@@ -1,0 +1,14 @@
+{
+  "name": "mxd-helper",
+  "version": "1.0.0",
+  "description": "mxd-helper",
+  "type": "module",
+  "scripts": {
+    "data": "node data.js",
+    "rank": "node rank.js",
+    "count": "node count.js"
+  },
+  "dependencies": {
+    "console-table-printer": "^2.16.1"
+  }
+}
