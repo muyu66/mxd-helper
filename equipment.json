@@ -1,0 +1,5413 @@
+[
+  {
+    "mobid": 120100,
+    "equipmentName": "水手头巾",
+    "id": 1002610,
+    "level": 10,
+    "rate": 0.09
+  },
+  {
+    "mobid": 120100,
+    "equipmentName": "蓝马裤",
+    "id": 1060007,
+    "level": 5,
+    "rate": 0.08
+  },
+  {
+    "mobid": 120100,
+    "equipmentName": "绿色旅行裙",
+    "id": 1061009,
+    "level": 10,
+    "rate": 0.08
+  },
+  {
+    "mobid": 120100,
+    "equipmentName": "白牛仔裤",
+    "id": 1062000,
+    "level": 16,
+    "rate": 0.08
+  },
+  {
+    "mobid": 120100,
+    "equipmentName": "战斗短刀",
+    "id": 1332006,
+    "level": 15,
+    "rate": 0.05
+  },
+  {
+    "mobid": 100100,
+    "equipmentName": "淡绿发箍",
+    "id": 1002067,
+    "level": 5,
+    "rate": 0.09
+  },
+  {
+    "mobid": 100101,
+    "equipmentName": "白线青T恤",
+    "id": 1040013,
+    "level": 11,
+    "rate": 0.08
+  },
+  {
+    "mobid": 100101,
+    "equipmentName": "灰修炼服",
+    "id": 1040017,
+    "level": 8,
+    "rate": 0.08
+  },
+  {
+    "mobid": 100101,
+    "equipmentName": "黄色红线短T",
+    "id": 1041012,
+    "level": 11,
+    "rate": 0.08
+  },
+  {
+    "mobid": 100101,
+    "equipmentName": "灰色橡胶裤",
+    "id": 1060004,
+    "level": 11,
+    "rate": 0.08
+  },
+  {
+    "mobid": 100101,
+    "equipmentName": "灰修炼裤",
+    "id": 1060013,
+    "level": 8,
+    "rate": 0.08
+  },
+  {
+    "mobid": 130100,
+    "equipmentName": "红皮甲裤",
+    "id": 1061014,
+    "level": 10,
+    "rate": 0.08
+  },
+  {
+    "mobid": 130100,
+    "equipmentName": "褐旅行鞋",
+    "id": 1072007,
+    "level": 20,
+    "rate": 0.08
+  },
+  {
+    "mobid": 130100,
+    "equipmentName": "腕甲",
+    "id": 1082003,
+    "level": 10,
+    "rate": 0.06
+  },
+  {
+    "mobid": 130100,
+    "equipmentName": "三角刃",
+    "id": 1332000,
+    "level": 12,
+    "rate": 0.05
+  },
+  {
+    "mobid": 130100,
+    "equipmentName": "钢铁弓",
+    "id": 1452003,
+    "level": 15,
+    "rate": 0.05
+  },
+  {
+    "mobid": 130100,
+    "equipmentName": "短枪",
+    "id": 1492000,
+    "level": 10,
+    "rate": 0.05
+  },
+  {
+    "mobid": 210100,
+    "equipmentName": "白头巾",
+    "id": 1002019,
+    "level": 10,
+    "rate": 0.09
+  },
+  {
+    "mobid": 210100,
+    "equipmentName": "褐安全鞋",
+    "id": 1072023,
+    "level": 15,
+    "rate": 0.08
+  },
+  {
+    "mobid": 210100,
+    "equipmentName": "魔法手套",
+    "id": 1082019,
+    "level": 15,
+    "rate": 0.06
+  },
+  {
+    "mobid": 210100,
+    "equipmentName": "叉枪",
+    "id": 1432001,
+    "level": 15,
+    "rate": 0.05
+  },
+  {
+    "mobid": 210100,
+    "equipmentName": "指套",
+    "id": 1482000,
+    "level": 10,
+    "rate": 0.05
+  },
+  {
+    "mobid": 210100,
+    "equipmentName": "皮制手提包",
+    "id": 1322007,
+    "level": 15,
+    "rate": 0.045
+  },
+  {
+    "mobid": 210100,
+    "equipmentName": "铁斧",
+    "id": 1412001,
+    "level": 10,
+    "rate": 0.045
+  },
+  {
+    "mobid": 210100,
+    "equipmentName": "伐木斧",
+    "id": 1412012,
+    "level": 15,
+    "rate": 0.045
+  },
+  {
+    "mobid": 130101,
+    "equipmentName": "紫水晶耳环",
+    "id": 1032003,
+    "level": 15,
+    "rate": 0.1
+  },
+  {
+    "mobid": 130101,
+    "equipmentName": "红梦裤",
+    "id": 1061029,
+    "level": 10,
+    "rate": 0.08
+  },
+  {
+    "mobid": 130101,
+    "equipmentName": "褐软布鞋",
+    "id": 1072060,
+    "level": 15,
+    "rate": 0.08
+  },
+  {
+    "mobid": 130101,
+    "equipmentName": "褐短指手套",
+    "id": 1082029,
+    "level": 15,
+    "rate": 0.06
+  },
+  {
+    "mobid": 130101,
+    "equipmentName": "小海盗套装",
+    "id": 1052095,
+    "level": 10,
+    "rate": 0.045
+  },
+  {
+    "mobid": 130101,
+    "equipmentName": "皮制手提包",
+    "id": 1322007,
+    "level": 15,
+    "rate": 0.045
+  },
+  {
+    "mobid": 130101,
+    "equipmentName": "金属短杖",
+    "id": 1372002,
+    "level": 18,
+    "rate": 0.045
+  },
+  {
+    "mobid": 130101,
+    "equipmentName": "木剑",
+    "id": 1402001,
+    "level": 10,
+    "rate": 0.045
+  },
+  {
+    "mobid": 1110100,
+    "equipmentName": "单边银色耳环",
+    "id": 1032001,
+    "level": 15,
+    "rate": 0.1
+  },
+  {
+    "mobid": 1110100,
+    "equipmentName": "褐色高级皮帽",
+    "id": 1002010,
+    "level": 10,
+    "rate": 0.09
+  },
+  {
+    "mobid": 1110100,
+    "equipmentName": "狗皮帽",
+    "id": 1002033,
+    "level": 15,
+    "rate": 0.09
+  },
+  {
+    "mobid": 1110100,
+    "equipmentName": "绿星魔法帽",
+    "id": 1002143,
+    "level": 35,
+    "rate": 0.09
+  },
+  {
+    "mobid": 1110100,
+    "equipmentName": "紫锦丝紧身衣",
+    "id": 1041017,
+    "level": 13,
+    "rate": 0.08
+  },
+  {
+    "mobid": 1110100,
+    "equipmentName": "赤夜",
+    "id": 1041044,
+    "level": 15,
+    "rate": 0.08
+  },
+  {
+    "mobid": 1110100,
+    "equipmentName": "黑皮制旅行服",
+    "id": 1041063,
+    "level": 15,
+    "rate": 0.08
+  },
+  {
+    "mobid": 1110100,
+    "equipmentName": "紫锦丝紧身裙",
+    "id": 1061012,
+    "level": 13,
+    "rate": 0.08
+  },
+  {
+    "mobid": 1110100,
+    "equipmentName": "赤夜裤",
+    "id": 1061037,
+    "level": 15,
+    "rate": 0.08
+  },
+  {
+    "mobid": 1110100,
+    "equipmentName": "灰旅行皮裙",
+    "id": 1061059,
+    "level": 15,
+    "rate": 0.08
+  },
+  {
+    "mobid": 1110100,
+    "equipmentName": "水手拖鞋",
+    "id": 1072285,
+    "level": 15,
+    "rate": 0.08
+  },
+  {
+    "mobid": 1110100,
+    "equipmentName": "双天戟",
+    "id": 1432005,
+    "level": 40,
+    "rate": 0.05
+  },
+  {
+    "mobid": 1110100,
+    "equipmentName": "钢铁弓",
+    "id": 1452003,
+    "level": 15,
+    "rate": 0.05
+  },
+  {
+    "mobid": 1110100,
+    "equipmentName": "战斗弩弓",
+    "id": 1462002,
+    "level": 18,
+    "rate": 0.05
+  },
+  {
+    "mobid": 1110100,
+    "equipmentName": "拳甲",
+    "id": 1482001,
+    "level": 15,
+    "rate": 0.05
+  },
+  {
+    "mobid": 1110100,
+    "equipmentName": "大剑",
+    "id": 1302007,
+    "level": 10,
+    "rate": 0.045
+  },
+  {
+    "mobid": 1110100,
+    "equipmentName": "铁瓜锤",
+    "id": 1322000,
+    "level": 15,
+    "rate": 0.045
+  },
+  {
+    "mobid": 1110100,
+    "equipmentName": "伐木斧",
+    "id": 1412012,
+    "level": 15,
+    "rate": 0.045
+  },
+  {
+    "mobid": 1110100,
+    "equipmentName": "锅盖",
+    "id": 1092008,
+    "level": 10,
+    "rate": 0.007
+  },
+  {
+    "mobid": 1110101,
+    "equipmentName": "单边银色耳环",
+    "id": 1032001,
+    "level": 15,
+    "rate": 0.1
+  },
+  {
+    "mobid": 1110101,
+    "equipmentName": "青铜头盔",
+    "id": 1002039,
+    "level": 12,
+    "rate": 0.09
+  },
+  {
+    "mobid": 1110101,
+    "equipmentName": "水手帽",
+    "id": 1002613,
+    "level": 15,
+    "rate": 0.09
+  },
+  {
+    "mobid": 1110101,
+    "equipmentName": "绿锦丝紧身衣",
+    "id": 1041018,
+    "level": 13,
+    "rate": 0.08
+  },
+  {
+    "mobid": 1110101,
+    "equipmentName": "黄旅行服",
+    "id": 1041061,
+    "level": 10,
+    "rate": 0.08
+  },
+  {
+    "mobid": 1110101,
+    "equipmentName": "绿锦丝紧身裙",
+    "id": 1061013,
+    "level": 13,
+    "rate": 0.08
+  },
+  {
+    "mobid": 1110101,
+    "equipmentName": "黄旅行裙",
+    "id": 1061057,
+    "level": 10,
+    "rate": 0.08
+  },
+  {
+    "mobid": 1110101,
+    "equipmentName": "指套",
+    "id": 1482000,
+    "level": 10,
+    "rate": 0.05
+  },
+  {
+    "mobid": 1110101,
+    "equipmentName": "木盾",
+    "id": 1092003,
+    "level": 5,
+    "rate": 0.045
+  },
+  {
+    "mobid": 1110101,
+    "equipmentName": "逆月刀",
+    "id": 1302006,
+    "level": 20,
+    "rate": 0.045
+  },
+  {
+    "mobid": 1110101,
+    "equipmentName": "木制长杖",
+    "id": 1382000,
+    "level": 10,
+    "rate": 0.045
+  },
+  {
+    "mobid": 1110101,
+    "equipmentName": "矛",
+    "id": 1442000,
+    "level": 10,
+    "rate": 0.045
+  },
+  {
+    "mobid": 1120100,
+    "equipmentName": "单边银色耳环",
+    "id": 1032001,
+    "level": 15,
+    "rate": 0.1
+  },
+  {
+    "mobid": 1120100,
+    "equipmentName": "青铜胸甲",
+    "id": 1040037,
+    "level": 15,
+    "rate": 0.08
+  },
+  {
+    "mobid": 1120100,
+    "equipmentName": "黄锦丝紧身衣",
+    "id": 1041026,
+    "level": 13,
+    "rate": 0.08
+  },
+  {
+    "mobid": 1120100,
+    "equipmentName": "褐色铁板裤子",
+    "id": 1060027,
+    "level": 15,
+    "rate": 0.08
+  },
+  {
+    "mobid": 1120100,
+    "equipmentName": "黄锦丝紧身裙",
+    "id": 1061022,
+    "level": 13,
+    "rate": 0.08
+  },
+  {
+    "mobid": 1120100,
+    "equipmentName": "拳甲",
+    "id": 1482001,
+    "level": 15,
+    "rate": 0.05
+  },
+  {
+    "mobid": 1120100,
+    "equipmentName": "钢盾",
+    "id": 1092000,
+    "level": 15,
+    "rate": 0.045
+  },
+  {
+    "mobid": 1120100,
+    "equipmentName": "木锤",
+    "id": 1422000,
+    "level": 10,
+    "rate": 0.045
+  },
+  {
+    "mobid": 1130100,
+    "equipmentName": "紫水晶耳环",
+    "id": 1032003,
+    "level": 15,
+    "rate": 0.1
+  },
+  {
+    "mobid": 1130100,
+    "equipmentName": "蓝箭翎帽",
+    "id": 1002118,
+    "level": 20,
+    "rate": 0.09
+  },
+  {
+    "mobid": 1130100,
+    "equipmentName": "朱红伽蓝",
+    "id": 1040019,
+    "level": 18,
+    "rate": 0.08
+  },
+  {
+    "mobid": 1130100,
+    "equipmentName": "黄夜",
+    "id": 1041045,
+    "level": 15,
+    "rate": 0.08
+  },
+  {
+    "mobid": 1130100,
+    "equipmentName": "白伽蓝裤",
+    "id": 1060015,
+    "level": 18,
+    "rate": 0.08
+  },
+  {
+    "mobid": 1130100,
+    "equipmentName": "黄夜裤",
+    "id": 1061038,
+    "level": 15,
+    "rate": 0.08
+  },
+  {
+    "mobid": 1130100,
+    "equipmentName": "褐短鞋",
+    "id": 1072008,
+    "level": 16,
+    "rate": 0.08
+  },
+  {
+    "mobid": 1130100,
+    "equipmentName": "单发手铳",
+    "id": 1492001,
+    "level": 15,
+    "rate": 0.05
+  },
+  {
+    "mobid": 1130100,
+    "equipmentName": "战斗盾牌",
+    "id": 1092007,
+    "level": 35,
+    "rate": 0.045
+  },
+  {
+    "mobid": 1130100,
+    "equipmentName": "青虹斧",
+    "id": 1312016,
+    "level": 20,
+    "rate": 0.045
+  },
+  {
+    "mobid": 1130100,
+    "equipmentName": "法师短杖",
+    "id": 1372001,
+    "level": 33,
+    "rate": 0.045
+  },
+  {
+    "mobid": 1130100,
+    "equipmentName": "古树长杖",
+    "id": 1382004,
+    "level": 20,
+    "rate": 0.045
+  },
+  {
+    "mobid": 1130100,
+    "equipmentName": "木剑",
+    "id": 1402001,
+    "level": 10,
+    "rate": 0.045
+  },
+  {
+    "mobid": 1140100,
+    "equipmentName": "飞侠红头巾",
+    "id": 1002107,
+    "level": 15,
+    "rate": 0.09
+  },
+  {
+    "mobid": 1140100,
+    "equipmentName": "蓝羽毛帽",
+    "id": 1002113,
+    "level": 15,
+    "rate": 0.09
+  },
+  {
+    "mobid": 1140100,
+    "equipmentName": "黑伽蓝",
+    "id": 1041029,
+    "level": 18,
+    "rate": 0.08
+  },
+  {
+    "mobid": 1140100,
+    "equipmentName": "黄皮制旅行服",
+    "id": 1041062,
+    "level": 15,
+    "rate": 0.08
+  },
+  {
+    "mobid": 1140100,
+    "equipmentName": "黑伽蓝裙",
+    "id": 1061027,
+    "level": 18,
+    "rate": 0.08
+  },
+  {
+    "mobid": 1140100,
+    "equipmentName": "褐旅行皮裙",
+    "id": 1061058,
+    "level": 15,
+    "rate": 0.08
+  },
+  {
+    "mobid": 1140100,
+    "equipmentName": "黄旅行鞋",
+    "id": 1072046,
+    "level": 20,
+    "rate": 0.08
+  },
+  {
+    "mobid": 1140100,
+    "equipmentName": "蓝漆皮鞋",
+    "id": 1072066,
+    "level": 20,
+    "rate": 0.08
+  },
+  {
+    "mobid": 1140100,
+    "equipmentName": "黑命中手套",
+    "id": 1082018,
+    "level": 25,
+    "rate": 0.06
+  },
+  {
+    "mobid": 1140100,
+    "equipmentName": "胶皮手套",
+    "id": 1082180,
+    "level": 15,
+    "rate": 0.06
+  },
+  {
+    "mobid": 1140100,
+    "equipmentName": "蓝祭司长袍",
+    "id": 1050003,
+    "level": 28,
+    "rate": 0.045
+  },
+  {
+    "mobid": 1140100,
+    "equipmentName": "绿魔法袍",
+    "id": 1050010,
+    "level": 13,
+    "rate": 0.045
+  },
+  {
+    "mobid": 1140100,
+    "equipmentName": "伐木斧",
+    "id": 1412012,
+    "level": 15,
+    "rate": 0.045
+  },
+  {
+    "mobid": 1210100,
+    "equipmentName": "褐色皮帽",
+    "id": 1002008,
+    "level": 5,
+    "rate": 0.09
+  },
+  {
+    "mobid": 1210100,
+    "equipmentName": "水手头巾",
+    "id": 1002610,
+    "level": 10,
+    "rate": 0.09
+  },
+  {
+    "mobid": 1210100,
+    "equipmentName": "黑夜",
+    "id": 1040034,
+    "level": 15,
+    "rate": 0.08
+  },
+  {
+    "mobid": 1210100,
+    "equipmentName": "黄皮制铠甲",
+    "id": 1041014,
+    "level": 10,
+    "rate": 0.08
+  },
+  {
+    "mobid": 1210100,
+    "equipmentName": "白伽蓝裙",
+    "id": 1061028,
+    "level": 18,
+    "rate": 0.08
+  },
+  {
+    "mobid": 1210100,
+    "equipmentName": "褐色皮制裤",
+    "id": 1062002,
+    "level": 20,
+    "rate": 0.08
+  },
+  {
+    "mobid": 1210100,
+    "equipmentName": "拳套",
+    "id": 1472000,
+    "level": 10,
+    "rate": 0.05
+  },
+  {
+    "mobid": 1210100,
+    "equipmentName": "木锤",
+    "id": 1422000,
+    "level": 10,
+    "rate": 0.045
+  },
+  {
+    "mobid": 1210100,
+    "equipmentName": "沧海雪板",
+    "id": 1442013,
+    "level": 12,
+    "rate": 0.01
+  },
+  {
+    "mobid": 1210101,
+    "equipmentName": "紫水晶耳环",
+    "id": 1032003,
+    "level": 15,
+    "rate": 0.1
+  },
+  {
+    "mobid": 1210101,
+    "equipmentName": "银连帽弓箭手服",
+    "id": 1040011,
+    "level": 15,
+    "rate": 0.08
+  },
+  {
+    "mobid": 1210101,
+    "equipmentName": "橙色运动T恤",
+    "id": 1040014,
+    "level": 11,
+    "rate": 0.08
+  },
+  {
+    "mobid": 1210101,
+    "equipmentName": "黑夜",
+    "id": 1040034,
+    "level": 15,
+    "rate": 0.08
+  },
+  {
+    "mobid": 1210101,
+    "equipmentName": "黄色红线短T",
+    "id": 1041012,
+    "level": 11,
+    "rate": 0.08
+  },
+  {
+    "mobid": 1210101,
+    "equipmentName": "黑夜裤",
+    "id": 1060024,
+    "level": 15,
+    "rate": 0.08
+  },
+  {
+    "mobid": 1210101,
+    "equipmentName": "水手拖鞋",
+    "id": 1072285,
+    "level": 15,
+    "rate": 0.08
+  },
+  {
+    "mobid": 1210101,
+    "equipmentName": "短枪",
+    "id": 1492000,
+    "level": 10,
+    "rate": 0.05
+  },
+  {
+    "mobid": 1210101,
+    "equipmentName": "海盗套装",
+    "id": 1052098,
+    "level": 15,
+    "rate": 0.045
+  },
+  {
+    "mobid": 1210101,
+    "equipmentName": "幻木剑",
+    "id": 1402018,
+    "level": 15,
+    "rate": 0.045
+  },
+  {
+    "mobid": 1210102,
+    "equipmentName": "青铜头盔",
+    "id": 1002043,
+    "level": 10,
+    "rate": 0.09
+  },
+  {
+    "mobid": 1210102,
+    "equipmentName": "褐硬皮鞋",
+    "id": 1072015,
+    "level": 10,
+    "rate": 0.08
+  },
+  {
+    "mobid": 1210102,
+    "equipmentName": "青狩猎手套",
+    "id": 1082012,
+    "level": 15,
+    "rate": 0.06
+  },
+  {
+    "mobid": 1210102,
+    "equipmentName": "长枪",
+    "id": 1432000,
+    "level": 10,
+    "rate": 0.05
+  },
+  {
+    "mobid": 1210102,
+    "equipmentName": "小海盗套装",
+    "id": 1052095,
+    "level": 10,
+    "rate": 0.045
+  },
+  {
+    "mobid": 1210102,
+    "equipmentName": "双刃斧",
+    "id": 1312000,
+    "level": 10,
+    "rate": 0.045
+  },
+  {
+    "mobid": 1210103,
+    "equipmentName": "红色旧魔法帽",
+    "id": 1002075,
+    "level": 10,
+    "rate": 0.09
+  },
+  {
+    "mobid": 1210103,
+    "equipmentName": "青夜",
+    "id": 1040035,
+    "level": 15,
+    "rate": 0.08
+  },
+  {
+    "mobid": 1210103,
+    "equipmentName": "黄皮制旅行服",
+    "id": 1041062,
+    "level": 15,
+    "rate": 0.08
+  },
+  {
+    "mobid": 1210103,
+    "equipmentName": "青夜裤",
+    "id": 1060025,
+    "level": 15,
+    "rate": 0.08
+  },
+  {
+    "mobid": 1210103,
+    "equipmentName": "褐旅行皮裙",
+    "id": 1061058,
+    "level": 15,
+    "rate": 0.08
+  },
+  {
+    "mobid": 1210103,
+    "equipmentName": "蓝宝石鞋",
+    "id": 1072019,
+    "level": 20,
+    "rate": 0.08
+  },
+  {
+    "mobid": 1210103,
+    "equipmentName": "胶皮手套",
+    "id": 1082180,
+    "level": 15,
+    "rate": 0.06
+  },
+  {
+    "mobid": 1210103,
+    "equipmentName": "长枪",
+    "id": 1432000,
+    "level": 10,
+    "rate": 0.05
+  },
+  {
+    "mobid": 1210103,
+    "equipmentName": "单发手铳",
+    "id": 1492001,
+    "level": 15,
+    "rate": 0.05
+  },
+  {
+    "mobid": 1210103,
+    "equipmentName": "幻木剑",
+    "id": 1402018,
+    "level": 15,
+    "rate": 0.045
+  },
+  {
+    "mobid": 1210103,
+    "equipmentName": "伐木斧",
+    "id": 1412012,
+    "level": 15,
+    "rate": 0.045
+  },
+  {
+    "mobid": 1210103,
+    "equipmentName": "海神叉",
+    "id": 1432008,
+    "level": 20,
+    "rate": 0.005
+  },
+  {
+    "mobid": 2110200,
+    "equipmentName": "钢制骑士头盔",
+    "id": 1002005,
+    "level": 25,
+    "rate": 0.09
+  },
+  {
+    "mobid": 2110200,
+    "equipmentName": "褐色术士帽",
+    "id": 1002038,
+    "level": 30,
+    "rate": 0.09
+  },
+  {
+    "mobid": 2110200,
+    "equipmentName": "黑唐衫",
+    "id": 1040044,
+    "level": 20,
+    "rate": 0.08
+  },
+  {
+    "mobid": 2110200,
+    "equipmentName": "绿皮制旅行服",
+    "id": 1041008,
+    "level": 15,
+    "rate": 0.08
+  },
+  {
+    "mobid": 2110200,
+    "equipmentName": "黑唐衫裤",
+    "id": 1060033,
+    "level": 20,
+    "rate": 0.08
+  },
+  {
+    "mobid": 2110200,
+    "equipmentName": "绿旅行皮裙",
+    "id": 1061006,
+    "level": 15,
+    "rate": 0.08
+  },
+  {
+    "mobid": 2110200,
+    "equipmentName": "黄飘风鞋",
+    "id": 1072073,
+    "level": 25,
+    "rate": 0.08
+  },
+  {
+    "mobid": 2110200,
+    "equipmentName": "钢制短手套",
+    "id": 1082000,
+    "level": 15,
+    "rate": 0.06
+  },
+  {
+    "mobid": 2110200,
+    "equipmentName": "鹰弩",
+    "id": 1462004,
+    "level": 32,
+    "rate": 0.05
+  },
+  {
+    "mobid": 2110200,
+    "equipmentName": "大型手铳",
+    "id": 1492002,
+    "level": 20,
+    "rate": 0.05
+  },
+  {
+    "mobid": 2110200,
+    "equipmentName": "海盗头目装",
+    "id": 1052104,
+    "level": 25,
+    "rate": 0.045
+  },
+  {
+    "mobid": 2110200,
+    "equipmentName": "钢盾",
+    "id": 1092000,
+    "level": 15,
+    "rate": 0.045
+  },
+  {
+    "mobid": 2110200,
+    "equipmentName": "弯刀",
+    "id": 1302004,
+    "level": 35,
+    "rate": 0.045
+  },
+  {
+    "mobid": 2110200,
+    "equipmentName": "锂矿戟",
+    "id": 1442001,
+    "level": 30,
+    "rate": 0.045
+  },
+  {
+    "mobid": 2110200,
+    "equipmentName": "枫叶杖",
+    "id": 1382012,
+    "level": 43,
+    "rate": 0.04
+  },
+  {
+    "mobid": 2130100,
+    "equipmentName": "黄星头巾",
+    "id": 1002097,
+    "level": 25,
+    "rate": 0.09
+  },
+  {
+    "mobid": 2130100,
+    "equipmentName": "水兵头巾",
+    "id": 1002616,
+    "level": 20,
+    "rate": 0.09
+  },
+  {
+    "mobid": 2130100,
+    "equipmentName": "紫硬皮装",
+    "id": 1041028,
+    "level": 20,
+    "rate": 0.08
+  },
+  {
+    "mobid": 2130100,
+    "equipmentName": "绿旅行皮裙",
+    "id": 1061006,
+    "level": 15,
+    "rate": 0.08
+  },
+  {
+    "mobid": 2130100,
+    "equipmentName": "紫硬皮裙",
+    "id": 1061026,
+    "level": 20,
+    "rate": 0.08
+  },
+  {
+    "mobid": 2130100,
+    "equipmentName": "红追击鞋",
+    "id": 1072085,
+    "level": 25,
+    "rate": 0.08
+  },
+  {
+    "mobid": 2130100,
+    "equipmentName": "黑追击鞋",
+    "id": 1072087,
+    "level": 25,
+    "rate": 0.08
+  },
+  {
+    "mobid": 2130100,
+    "equipmentName": "朱矿指虎",
+    "id": 1472006,
+    "level": 20,
+    "rate": 0.05
+  },
+  {
+    "mobid": 2130100,
+    "equipmentName": "锂矿斗拳",
+    "id": 1472009,
+    "level": 30,
+    "rate": 0.05
+  },
+  {
+    "mobid": 2130100,
+    "equipmentName": "银守护拳套",
+    "id": 1472012,
+    "level": 35,
+    "rate": 0.05
+  },
+  {
+    "mobid": 2130100,
+    "equipmentName": "褐贤者之袍",
+    "id": 1051003,
+    "level": 23,
+    "rate": 0.045
+  },
+  {
+    "mobid": 2130100,
+    "equipmentName": "紫贤者之袍",
+    "id": 1051004,
+    "level": 23,
+    "rate": 0.045
+  },
+  {
+    "mobid": 2130103,
+    "equipmentName": "铁制尖头具",
+    "id": 1002027,
+    "level": 22,
+    "rate": 0.09
+  },
+  {
+    "mobid": 2130103,
+    "equipmentName": "褐十字军甲",
+    "id": 1041021,
+    "level": 20,
+    "rate": 0.08
+  },
+  {
+    "mobid": 2130103,
+    "equipmentName": "紫伽蓝",
+    "id": 1041031,
+    "level": 18,
+    "rate": 0.08
+  },
+  {
+    "mobid": 2130103,
+    "equipmentName": "褐十字军裙",
+    "id": 1061018,
+    "level": 20,
+    "rate": 0.08
+  },
+  {
+    "mobid": 2130103,
+    "equipmentName": "白伽蓝裙",
+    "id": 1061028,
+    "level": 18,
+    "rate": 0.08
+  },
+  {
+    "mobid": 2130103,
+    "equipmentName": "红皮质鞋子",
+    "id": 1072069,
+    "level": 25,
+    "rate": 0.08
+  },
+  {
+    "mobid": 2130103,
+    "equipmentName": "牙刀",
+    "id": 1332008,
+    "level": 20,
+    "rate": 0.05
+  },
+  {
+    "mobid": 2130103,
+    "equipmentName": "格斗指虎",
+    "id": 1482002,
+    "level": 20,
+    "rate": 0.05
+  },
+  {
+    "mobid": 2220100,
+    "equipmentName": "红自由之帽",
+    "id": 1002127,
+    "level": 20,
+    "rate": 0.09
+  },
+  {
+    "mobid": 2220100,
+    "equipmentName": "绿防风帽",
+    "id": 1002178,
+    "level": 35,
+    "rate": 0.09
+  },
+  {
+    "mobid": 2220100,
+    "equipmentName": "水手帽",
+    "id": 1002613,
+    "level": 15,
+    "rate": 0.09
+  },
+  {
+    "mobid": 2220100,
+    "equipmentName": "水兵头巾",
+    "id": 1002616,
+    "level": 20,
+    "rate": 0.09
+  },
+  {
+    "mobid": 2220100,
+    "equipmentName": "兵长头巾",
+    "id": 1002619,
+    "level": 25,
+    "rate": 0.09
+  },
+  {
+    "mobid": 2220100,
+    "equipmentName": "蓝军官铠甲",
+    "id": 1040012,
+    "level": 20,
+    "rate": 0.08
+  },
+  {
+    "mobid": 2220100,
+    "equipmentName": "红硬皮装",
+    "id": 1041027,
+    "level": 20,
+    "rate": 0.08
+  },
+  {
+    "mobid": 2220100,
+    "equipmentName": "钢铁军官裙",
+    "id": 1060010,
+    "level": 20,
+    "rate": 0.08
+  },
+  {
+    "mobid": 2220100,
+    "equipmentName": "红硬皮裙",
+    "id": 1061025,
+    "level": 20,
+    "rate": 0.08
+  },
+  {
+    "mobid": 2220100,
+    "equipmentName": "锂矿战斗鞋",
+    "id": 1072011,
+    "level": 25,
+    "rate": 0.08
+  },
+  {
+    "mobid": 2220100,
+    "equipmentName": "紫宝石鞋",
+    "id": 1072020,
+    "level": 20,
+    "rate": 0.08
+  },
+  {
+    "mobid": 2220100,
+    "equipmentName": "半月刃",
+    "id": 1332001,
+    "level": 32,
+    "rate": 0.05
+  },
+  {
+    "mobid": 2220100,
+    "equipmentName": "战斗短刀",
+    "id": 1332006,
+    "level": 15,
+    "rate": 0.05
+  },
+  {
+    "mobid": 2220100,
+    "equipmentName": "叉枪",
+    "id": 1432001,
+    "level": 15,
+    "rate": 0.05
+  },
+  {
+    "mobid": 2220100,
+    "equipmentName": "钢铁铠甲",
+    "id": 1051000,
+    "level": 15,
+    "rate": 0.045
+  },
+  {
+    "mobid": 2220100,
+    "equipmentName": "法师长杖",
+    "id": 1382002,
+    "level": 25,
+    "rate": 0.045
+  },
+  {
+    "mobid": 2220100,
+    "equipmentName": "伐木斧",
+    "id": 1412012,
+    "level": 15,
+    "rate": 0.045
+  },
+  {
+    "mobid": 2220100,
+    "equipmentName": "锂矿戟",
+    "id": 1442001,
+    "level": 30,
+    "rate": 0.045
+  },
+  {
+    "mobid": 2230100,
+    "equipmentName": "猫眼耳环",
+    "id": 1032008,
+    "level": 35,
+    "rate": 0.1
+  },
+  {
+    "mobid": 2230100,
+    "equipmentName": "黄方耳环",
+    "id": 1032009,
+    "level": 20,
+    "rate": 0.1
+  },
+  {
+    "mobid": 2230100,
+    "equipmentName": "红色战斗头盔",
+    "id": 1002047,
+    "level": 35,
+    "rate": 0.09
+  },
+  {
+    "mobid": 2230100,
+    "equipmentName": "红龙服",
+    "id": 1040021,
+    "level": 30,
+    "rate": 0.08
+  },
+  {
+    "mobid": 2230100,
+    "equipmentName": "绿色旅行服",
+    "id": 1041007,
+    "level": 10,
+    "rate": 0.08
+  },
+  {
+    "mobid": 2230100,
+    "equipmentName": "绿打猎服",
+    "id": 1041032,
+    "level": 25,
+    "rate": 0.08
+  },
+  {
+    "mobid": 2230100,
+    "equipmentName": "绿敏捷之服",
+    "id": 1041060,
+    "level": 25,
+    "rate": 0.08
+  },
+  {
+    "mobid": 2230100,
+    "equipmentName": "树林之裤",
+    "id": 1060071,
+    "level": 40,
+    "rate": 0.08
+  },
+  {
+    "mobid": 2230100,
+    "equipmentName": "绿敏捷裤",
+    "id": 1061056,
+    "level": 25,
+    "rate": 0.08
+  },
+  {
+    "mobid": 2230100,
+    "equipmentName": "打猎裤",
+    "id": 1062006,
+    "level": 25,
+    "rate": 0.08
+  },
+  {
+    "mobid": 2230100,
+    "equipmentName": "���支枪",
+    "id": 1432002,
+    "level": 30,
+    "rate": 0.05
+  },
+  {
+    "mobid": 2230100,
+    "equipmentName": "三日月冲拳",
+    "id": 1482003,
+    "level": 25,
+    "rate": 0.05
+  },
+  {
+    "mobid": 2230100,
+    "equipmentName": "白祭司长袍",
+    "id": 1050026,
+    "level": 28,
+    "rate": 0.045
+  },
+  {
+    "mobid": 2230100,
+    "equipmentName": "蓝护身铠甲",
+    "id": 1051012,
+    "level": 30,
+    "rate": 0.045
+  },
+  {
+    "mobid": 2230100,
+    "equipmentName": "弯刀",
+    "id": 1302004,
+    "level": 35,
+    "rate": 0.045
+  },
+  {
+    "mobid": 2230100,
+    "equipmentName": "锂矿锤",
+    "id": 1422001,
+    "level": 30,
+    "rate": 0.045
+  },
+  {
+    "mobid": 2230101,
+    "equipmentName": "锤耳环",
+    "id": 1032000,
+    "level": 20,
+    "rate": 0.1
+  },
+  {
+    "mobid": 2230101,
+    "equipmentName": "金耳环",
+    "id": 1032004,
+    "level": 25,
+    "rate": 0.1
+  },
+  {
+    "mobid": 2230101,
+    "equipmentName": "粉红术士帽",
+    "id": 1002035,
+    "level": 30,
+    "rate": 0.09
+  },
+  {
+    "mobid": 2230101,
+    "equipmentName": "绿打猎帽",
+    "id": 1002158,
+    "level": 25,
+    "rate": 0.09
+  },
+  {
+    "mobid": 2230101,
+    "equipmentName": "铁胸甲",
+    "id": 1040009,
+    "level": 15,
+    "rate": 0.08
+  },
+  {
+    "mobid": 2230101,
+    "equipmentName": "红龙服",
+    "id": 1040021,
+    "level": 30,
+    "rate": 0.08
+  },
+  {
+    "mobid": 2230101,
+    "equipmentName": "绿龙服",
+    "id": 1040026,
+    "level": 30,
+    "rate": 0.08
+  },
+  {
+    "mobid": 2230101,
+    "equipmentName": "褐敏捷之服",
+    "id": 1040048,
+    "level": 25,
+    "rate": 0.08
+  },
+  {
+    "mobid": 2230101,
+    "equipmentName": "红武裤",
+    "id": 1060018,
+    "level": 30,
+    "rate": 0.08
+  },
+  {
+    "mobid": 2230101,
+    "equipmentName": "褐敏捷之裤",
+    "id": 1060038,
+    "level": 25,
+    "rate": 0.08
+  },
+  {
+    "mobid": 2230101,
+    "equipmentName": "皮腕轮",
+    "id": 1082183,
+    "level": 20,
+    "rate": 0.06
+  },
+  {
+    "mobid": 2230101,
+    "equipmentName": "刺枪",
+    "id": 1432003,
+    "level": 35,
+    "rate": 0.05
+  },
+  {
+    "mobid": 2230101,
+    "equipmentName": "打猎弓",
+    "id": 1452001,
+    "level": 20,
+    "rate": 0.05
+  },
+  {
+    "mobid": 2230101,
+    "equipmentName": "突击手铳",
+    "id": 1492003,
+    "level": 25,
+    "rate": 0.05
+  },
+  {
+    "mobid": 2230101,
+    "equipmentName": "蓝魔力长袍",
+    "id": 1050030,
+    "level": 33,
+    "rate": 0.045
+  },
+  {
+    "mobid": 2230101,
+    "equipmentName": "白魔力长袍",
+    "id": 1050031,
+    "level": 33,
+    "rate": 0.045
+  },
+  {
+    "mobid": 2230101,
+    "equipmentName": "青光斧",
+    "id": 1312007,
+    "level": 40,
+    "rate": 0.045
+  },
+  {
+    "mobid": 2230101,
+    "equipmentName": "锂矿短杖",
+    "id": 1372003,
+    "level": 28,
+    "rate": 0.045
+  },
+  {
+    "mobid": 2230101,
+    "equipmentName": "钢铁斧",
+    "id": 1412002,
+    "level": 20,
+    "rate": 0.045
+  },
+  {
+    "mobid": 2230101,
+    "equipmentName": "银雪板",
+    "id": 1442014,
+    "level": 24,
+    "rate": 0.01
+  },
+  {
+    "mobid": 2230110,
+    "equipmentName": "锂矿海王头盔",
+    "id": 1002058,
+    "level": 20,
+    "rate": 0.09
+  },
+  {
+    "mobid": 2230110,
+    "equipmentName": "褐箭翎帽",
+    "id": 1002121,
+    "level": 20,
+    "rate": 0.09
+  },
+  {
+    "mobid": 2230110,
+    "equipmentName": "绿自由之帽",
+    "id": 1002131,
+    "level": 20,
+    "rate": 0.09
+  },
+  {
+    "mobid": 2230110,
+    "equipmentName": "水兵头巾",
+    "id": 1002616,
+    "level": 20,
+    "rate": 0.09
+  },
+  {
+    "mobid": 2230110,
+    "equipmentName": "蓝伽蓝",
+    "id": 1040020,
+    "level": 18,
+    "rate": 0.08
+  },
+  {
+    "mobid": 2230110,
+    "equipmentName": "黑伽蓝裤",
+    "id": 1060014,
+    "level": 18,
+    "rate": 0.08
+  },
+  {
+    "mobid": 2230110,
+    "equipmentName": "金战斗鞋",
+    "id": 1072053,
+    "level": 25,
+    "rate": 0.08
+  },
+  {
+    "mobid": 2230110,
+    "equipmentName": "黑追击鞋",
+    "id": 1072087,
+    "level": 25,
+    "rate": 0.08
+  },
+  {
+    "mobid": 2230110,
+    "equipmentName": "紫矿机器手套",
+    "id": 1082006,
+    "level": 30,
+    "rate": 0.06
+  },
+  {
+    "mobid": 2230110,
+    "equipmentName": "蓝贤者手套",
+    "id": 1082026,
+    "level": 25,
+    "rate": 0.06
+  },
+  {
+    "mobid": 2230110,
+    "equipmentName": "银暴风手套",
+    "id": 1082043,
+    "level": 30,
+    "rate": 0.06
+  },
+  {
+    "mobid": 2230110,
+    "equipmentName": "钢短刀",
+    "id": 1332010,
+    "level": 25,
+    "rate": 0.05
+  },
+  {
+    "mobid": 2230102,
+    "equipmentName": "孙悟空青铜头箍",
+    "id": 1002064,
+    "level": 30,
+    "rate": 0.09
+  },
+  {
+    "mobid": 2230102,
+    "equipmentName": "褐魔道之帽",
+    "id": 1002151,
+    "level": 40,
+    "rate": 0.075
+  },
+  {
+    "mobid": 2230102,
+    "equipmentName": "红羽丝绒帽",
+    "id": 1002166,
+    "level": 40,
+    "rate": 0.075
+  },
+  {
+    "mobid": 2230102,
+    "equipmentName": "锤耳环",
+    "id": 1032000,
+    "level": 20,
+    "rate": 0.05
+  },
+  {
+    "mobid": 2230102,
+    "equipmentName": "蓝宝石耳环",
+    "id": 1032002,
+    "level": 35,
+    "rate": 0.05
+  },
+  {
+    "mobid": 2230102,
+    "equipmentName": "铜腕轮",
+    "id": 1082186,
+    "level": 25,
+    "rate": 0.05
+  },
+  {
+    "mobid": 2230102,
+    "equipmentName": "褐贵族之服",
+    "id": 1040079,
+    "level": 40,
+    "rate": 0.04
+  },
+  {
+    "mobid": 2230102,
+    "equipmentName": "绿硬皮装",
+    "id": 1041013,
+    "level": 20,
+    "rate": 0.04
+  },
+  {
+    "mobid": 2230102,
+    "equipmentName": "蓝暗影之裤",
+    "id": 1060050,
+    "level": 35,
+    "rate": 0.04
+  },
+  {
+    "mobid": 2230102,
+    "equipmentName": "褐贵族裤",
+    "id": 1060069,
+    "level": 40,
+    "rate": 0.04
+  },
+  {
+    "mobid": 2230102,
+    "equipmentName": "绿硬皮裙",
+    "id": 1061024,
+    "level": 20,
+    "rate": 0.04
+  },
+  {
+    "mobid": 2230102,
+    "equipmentName": "钢铁链鞋",
+    "id": 1072033,
+    "level": 30,
+    "rate": 0.04
+  },
+  {
+    "mobid": 2230102,
+    "equipmentName": "蓝斗士鞋",
+    "id": 1072039,
+    "level": 30,
+    "rate": 0.04
+  },
+  {
+    "mobid": 2230102,
+    "equipmentName": "枫叶刃",
+    "id": 1332025,
+    "level": 43,
+    "rate": 0.04
+  },
+  {
+    "mobid": 2230102,
+    "equipmentName": "枫叶斧",
+    "id": 1412011,
+    "level": 43,
+    "rate": 0.04
+  },
+  {
+    "mobid": 2230102,
+    "equipmentName": "枫叶枪",
+    "id": 1432012,
+    "level": 43,
+    "rate": 0.04
+  },
+  {
+    "mobid": 2230102,
+    "equipmentName": "枫叶弓",
+    "id": 1452022,
+    "level": 43,
+    "rate": 0.04
+  },
+  {
+    "mobid": 2230102,
+    "equipmentName": "枫叶拳",
+    "id": 1472032,
+    "level": 43,
+    "rate": 0.04
+  },
+  {
+    "mobid": 2230102,
+    "equipmentName": "红贤者之袍",
+    "id": 1051005,
+    "level": 23,
+    "rate": 0.035
+  },
+  {
+    "mobid": 2230102,
+    "equipmentName": "金轮杖",
+    "id": 1382017,
+    "level": 30,
+    "rate": 0.035
+  },
+  {
+    "mobid": 2230102,
+    "equipmentName": "高原之剑",
+    "id": 1402006,
+    "level": 35,
+    "rate": 0.035
+  },
+  {
+    "mobid": 2230102,
+    "equipmentName": "格斗斧",
+    "id": 1412005,
+    "level": 40,
+    "rate": 0.035
+  },
+  {
+    "mobid": 2230102,
+    "equipmentName": "刺枪",
+    "id": 1432003,
+    "level": 35,
+    "rate": 0.025
+  },
+  {
+    "mobid": 2230102,
+    "equipmentName": "雷电",
+    "id": 1452005,
+    "level": 30,
+    "rate": 0.025
+  },
+  {
+    "mobid": 2230102,
+    "equipmentName": "鹰弩",
+    "id": 1462004,
+    "level": 32,
+    "rate": 0.025
+  },
+  {
+    "mobid": 2230111,
+    "equipmentName": "蓝唐衫",
+    "id": 1040042,
+    "level": 20,
+    "rate": 0.08
+  },
+  {
+    "mobid": 2230111,
+    "equipmentName": "天蓝骑士甲",
+    "id": 1041023,
+    "level": 25,
+    "rate": 0.08
+  },
+  {
+    "mobid": 2230111,
+    "equipmentName": "蓝唐衫裤",
+    "id": 1060031,
+    "level": 20,
+    "rate": 0.08
+  },
+  {
+    "mobid": 2230111,
+    "equipmentName": "天蓝骑士裙",
+    "id": 1061019,
+    "level": 25,
+    "rate": 0.08
+  },
+  {
+    "mobid": 2230111,
+    "equipmentName": "绿击中手套",
+    "id": 1082049,
+    "level": 30,
+    "rate": 0.06
+  },
+  {
+    "mobid": 2230111,
+    "equipmentName": "红守护手套",
+    "id": 1082051,
+    "level": 30,
+    "rate": 0.06
+  },
+  {
+    "mobid": 2230111,
+    "equipmentName": "雷电",
+    "id": 1452005,
+    "level": 30,
+    "rate": 0.05
+  },
+  {
+    "mobid": 2230111,
+    "equipmentName": "海盗剑",
+    "id": 1302002,
+    "level": 20,
+    "rate": 0.045
+  },
+  {
+    "mobid": 2230111,
+    "equipmentName": "冰精短杖",
+    "id": 1372004,
+    "level": 23,
+    "rate": 0.045
+  },
+  {
+    "mobid": 2300100,
+    "equipmentName": "绿箭翎帽",
+    "id": 1002119,
+    "level": 20,
+    "rate": 0.09
+  },
+  {
+    "mobid": 2300100,
+    "equipmentName": "铁胸甲",
+    "id": 1040009,
+    "level": 15,
+    "rate": 0.08
+  },
+  {
+    "mobid": 2300100,
+    "equipmentName": "红唐衫",
+    "id": 1040043,
+    "level": 20,
+    "rate": 0.08
+  },
+  {
+    "mobid": 2300100,
+    "equipmentName": "粉红旗袍",
+    "id": 1041039,
+    "level": 20,
+    "rate": 0.08
+  },
+  {
+    "mobid": 2300100,
+    "equipmentName": "铁板裤",
+    "id": 1060009,
+    "level": 15,
+    "rate": 0.08
+  },
+  {
+    "mobid": 2300100,
+    "equipmentName": "红唐衫裤",
+    "id": 1060032,
+    "level": 20,
+    "rate": 0.08
+  },
+  {
+    "mobid": 2300100,
+    "equipmentName": "紫旗袍裙",
+    "id": 1061041,
+    "level": 22,
+    "rate": 0.08
+  },
+  {
+    "mobid": 2300100,
+    "equipmentName": "工地手套",
+    "id": 1082002,
+    "level": 10,
+    "rate": 0.06
+  },
+  {
+    "mobid": 2300100,
+    "equipmentName": "雷电",
+    "id": 1452005,
+    "level": 30,
+    "rate": 0.05
+  },
+  {
+    "mobid": 2300100,
+    "equipmentName": "海盗套装",
+    "id": 1052098,
+    "level": 15,
+    "rate": 0.045
+  },
+  {
+    "mobid": 2300100,
+    "equipmentName": "海盗马甲",
+    "id": 1052101,
+    "level": 20,
+    "rate": 0.045
+  },
+  {
+    "mobid": 3110100,
+    "equipmentName": "水兵帽",
+    "id": 1002622,
+    "level": 30,
+    "rate": 0.09
+  },
+  {
+    "mobid": 3110100,
+    "equipmentName": "红神圣法衣",
+    "id": 1041051,
+    "level": 33,
+    "rate": 0.08
+  },
+  {
+    "mobid": 3110100,
+    "equipmentName": "红神圣裙",
+    "id": 1061047,
+    "level": 33,
+    "rate": 0.08
+  },
+  {
+    "mobid": 3110100,
+    "equipmentName": "蓝铁头鞋",
+    "id": 1072112,
+    "level": 35,
+    "rate": 0.08
+  },
+  {
+    "mobid": 3110100,
+    "equipmentName": "钢铁追击手套",
+    "id": 1082046,
+    "level": 35,
+    "rate": 0.06
+  },
+  {
+    "mobid": 3110100,
+    "equipmentName": "绿击中手套",
+    "id": 1082049,
+    "level": 30,
+    "rate": 0.06
+  },
+  {
+    "mobid": 3110100,
+    "equipmentName": "枫叶矛",
+    "id": 1442024,
+    "level": 43,
+    "rate": 0.06
+  },
+  {
+    "mobid": 3110100,
+    "equipmentName": "暗影刃",
+    "id": 1332014,
+    "level": 35,
+    "rate": 0.05
+  },
+  {
+    "mobid": 3110100,
+    "equipmentName": "双天戟",
+    "id": 1432005,
+    "level": 40,
+    "rate": 0.05
+  },
+  {
+    "mobid": 3110100,
+    "equipmentName": "黄护身铠甲",
+    "id": 1051013,
+    "level": 30,
+    "rate": 0.045
+  },
+  {
+    "mobid": 3110100,
+    "equipmentName": "钢铁方盾",
+    "id": 1092012,
+    "level": 40,
+    "rate": 0.045
+  },
+  {
+    "mobid": 3110100,
+    "equipmentName": "马桶吸",
+    "id": 1322009,
+    "level": 25,
+    "rate": 0.045
+  },
+  {
+    "mobid": 3110100,
+    "equipmentName": "锂矿锤",
+    "id": 1422001,
+    "level": 30,
+    "rate": 0.045
+  },
+  {
+    "mobid": 3210100,
+    "equipmentName": "红星魔法帽",
+    "id": 1002141,
+    "level": 35,
+    "rate": 0.09
+  },
+  {
+    "mobid": 3210100,
+    "equipmentName": "绿防风帽",
+    "id": 1002178,
+    "level": 35,
+    "rate": 0.09
+  },
+  {
+    "mobid": 3210100,
+    "equipmentName": "绿龙服",
+    "id": 1040026,
+    "level": 30,
+    "rate": 0.08
+  },
+  {
+    "mobid": 3210100,
+    "equipmentName": "黄武裤",
+    "id": 1060019,
+    "level": 30,
+    "rate": 0.08
+  },
+  {
+    "mobid": 3210100,
+    "equipmentName": "红打猎鞋",
+    "id": 1072079,
+    "level": 30,
+    "rate": 0.08
+  },
+  {
+    "mobid": 3210100,
+    "equipmentName": "黑守护鞋",
+    "id": 1072091,
+    "level": 35,
+    "rate": 0.08
+  },
+  {
+    "mobid": 3210100,
+    "equipmentName": "红锦丝鞋",
+    "id": 1072103,
+    "level": 35,
+    "rate": 0.08
+  },
+  {
+    "mobid": 3210100,
+    "equipmentName": "黄金暴风手套",
+    "id": 1082044,
+    "level": 30,
+    "rate": 0.06
+  },
+  {
+    "mobid": 3210100,
+    "equipmentName": "蓝守护手套",
+    "id": 1082052,
+    "level": 30,
+    "rate": 0.06
+  },
+  {
+    "mobid": 3210100,
+    "equipmentName": "雷电",
+    "id": 1452005,
+    "level": 30,
+    "rate": 0.05
+  },
+  {
+    "mobid": 3210100,
+    "equipmentName": "双弦弩",
+    "id": 1462005,
+    "level": 38,
+    "rate": 0.05
+  },
+  {
+    "mobid": 3210100,
+    "equipmentName": "银守护拳套",
+    "id": 1472012,
+    "level": 35,
+    "rate": 0.05
+  },
+  {
+    "mobid": 3210100,
+    "equipmentName": "甲板兵服",
+    "id": 1052107,
+    "level": 30,
+    "rate": 0.045
+  },
+  {
+    "mobid": 3210100,
+    "equipmentName": "锂矿短杖",
+    "id": 1372003,
+    "level": 28,
+    "rate": 0.045
+  },
+  {
+    "mobid": 3210100,
+    "equipmentName": "水晶短杖",
+    "id": 1372012,
+    "level": 38,
+    "rate": 0.045
+  },
+  {
+    "mobid": 3210800,
+    "equipmentName": "褐色术士帽",
+    "id": 1002038,
+    "level": 30,
+    "rate": 0.09
+  },
+  {
+    "mobid": 3210800,
+    "equipmentName": "黑箭翎三角帽",
+    "id": 1002136,
+    "level": 35,
+    "rate": 0.09
+  },
+  {
+    "mobid": 3210800,
+    "equipmentName": "蓝假面帽",
+    "id": 1002172,
+    "level": 30,
+    "rate": 0.09
+  },
+  {
+    "mobid": 3210800,
+    "equipmentName": "黑守护之服",
+    "id": 1040075,
+    "level": 35,
+    "rate": 0.08
+  },
+  {
+    "mobid": 3210800,
+    "equipmentName": "紫寂静之服",
+    "id": 1041050,
+    "level": 30,
+    "rate": 0.08
+  },
+  {
+    "mobid": 3210800,
+    "equipmentName": "灰飞影之服",
+    "id": 1041094,
+    "level": 60,
+    "rate": 0.08
+  },
+  {
+    "mobid": 3210800,
+    "equipmentName": "黑守护之裤",
+    "id": 1060064,
+    "level": 35,
+    "rate": 0.08
+  },
+  {
+    "mobid": 3210800,
+    "equipmentName": "紫寂静裙",
+    "id": 1061046,
+    "level": 30,
+    "rate": 0.08
+  },
+  {
+    "mobid": 3210800,
+    "equipmentName": "黄流星鞋",
+    "id": 1072109,
+    "level": 40,
+    "rate": 0.08
+  },
+  {
+    "mobid": 3210800,
+    "equipmentName": "黄月鞋",
+    "id": 1072116,
+    "level": 40,
+    "rate": 0.08
+  },
+  {
+    "mobid": 3210800,
+    "equipmentName": "钩魂铁脚",
+    "id": 1072300,
+    "level": 40,
+    "rate": 0.08
+  },
+  {
+    "mobid": 3210800,
+    "equipmentName": "鲨皮手套",
+    "id": 1082192,
+    "level": 35,
+    "rate": 0.06
+  },
+  {
+    "mobid": 3210800,
+    "equipmentName": "黑护腕",
+    "id": 1472017,
+    "level": 40,
+    "rate": 0.05
+  },
+  {
+    "mobid": 3210800,
+    "equipmentName": "蓝宝石铠甲",
+    "id": 1051014,
+    "level": 35,
+    "rate": 0.045
+  },
+  {
+    "mobid": 3210800,
+    "equipmentName": "锂矿方盾",
+    "id": 1092013,
+    "level": 40,
+    "rate": 0.045
+  },
+  {
+    "mobid": 3210800,
+    "equipmentName": "太阳剑",
+    "id": 1302003,
+    "level": 25,
+    "rate": 0.045
+  },
+  {
+    "mobid": 3210800,
+    "equipmentName": "铝球棍",
+    "id": 1402010,
+    "level": 30,
+    "rate": 0.045
+  },
+  {
+    "mobid": 3230100,
+    "equipmentName": "红铁头盔",
+    "id": 1002025,
+    "level": 40,
+    "rate": 0.09
+  },
+  {
+    "mobid": 3230100,
+    "equipmentName": "绿星魔法帽",
+    "id": 1002143,
+    "level": 35,
+    "rate": 0.09
+  },
+  {
+    "mobid": 3230100,
+    "equipmentName": "黑防风帽",
+    "id": 1002180,
+    "level": 35,
+    "rate": 0.09
+  },
+  {
+    "mobid": 3230100,
+    "equipmentName": "红龙服",
+    "id": 1040021,
+    "level": 30,
+    "rate": 0.08
+  },
+  {
+    "mobid": 3230100,
+    "equipmentName": "黑暗影之服",
+    "id": 1040063,
+    "level": 35,
+    "rate": 0.08
+  },
+  {
+    "mobid": 3230100,
+    "equipmentName": "褐贵族之服",
+    "id": 1040079,
+    "level": 40,
+    "rate": 0.08
+  },
+  {
+    "mobid": 3230100,
+    "equipmentName": "黑武裤",
+    "id": 1060016,
+    "level": 30,
+    "rate": 0.08
+  },
+  {
+    "mobid": 3230100,
+    "equipmentName": "黑暗影之裤",
+    "id": 1060052,
+    "level": 35,
+    "rate": 0.08
+  },
+  {
+    "mobid": 3230100,
+    "equipmentName": "褐贵族裤",
+    "id": 1060069,
+    "level": 40,
+    "rate": 0.08
+  },
+  {
+    "mobid": 3230100,
+    "equipmentName": "刺枪",
+    "id": 1432003,
+    "level": 35,
+    "rate": 0.05
+  },
+  {
+    "mobid": 3230100,
+    "equipmentName": "双翼拳甲",
+    "id": 1482005,
+    "level": 35,
+    "rate": 0.05
+  },
+  {
+    "mobid": 3230100,
+    "equipmentName": "黑郁金香",
+    "id": 1492006,
+    "level": 40,
+    "rate": 0.05
+  },
+  {
+    "mobid": 3230100,
+    "equipmentName": "蓝色月光服",
+    "id": 1051025,
+    "level": 38,
+    "rate": 0.045
+  },
+  {
+    "mobid": 3230100,
+    "equipmentName": "棒棒果",
+    "id": 1322003,
+    "level": 30,
+    "rate": 0.045
+  },
+  {
+    "mobid": 3230101,
+    "equipmentName": "红月鞋",
+    "id": 1072114,
+    "level": 40,
+    "rate": 0.08
+  },
+  {
+    "mobid": 3230101,
+    "equipmentName": "红精灵鞋",
+    "id": 1072118,
+    "level": 40,
+    "rate": 0.08
+  },
+  {
+    "mobid": 3230101,
+    "equipmentName": "紫矿追击手套",
+    "id": 1082047,
+    "level": 35,
+    "rate": 0.06
+  },
+  {
+    "mobid": 3230101,
+    "equipmentName": "黑神圣手套",
+    "id": 1082056,
+    "level": 35,
+    "rate": 0.06
+  },
+  {
+    "mobid": 3230101,
+    "equipmentName": "锂矿名弓手套",
+    "id": 1082069,
+    "level": 35,
+    "rate": 0.06
+  },
+  {
+    "mobid": 3230101,
+    "equipmentName": "战斗弓",
+    "id": 1452000,
+    "level": 25,
+    "rate": 0.05
+  },
+  {
+    "mobid": 3230101,
+    "equipmentName": "朱矿护腕",
+    "id": 1472016,
+    "level": 40,
+    "rate": 0.05
+  },
+  {
+    "mobid": 3230101,
+    "equipmentName": "红杰克",
+    "id": 1492005,
+    "level": 35,
+    "rate": 0.05
+  },
+  {
+    "mobid": 3230101,
+    "equipmentName": "黑十字锁子甲",
+    "id": 1050022,
+    "level": 35,
+    "rate": 0.045
+  },
+  {
+    "mobid": 3230101,
+    "equipmentName": "蓝飞影甲",
+    "id": 1051008,
+    "level": 35,
+    "rate": 0.045
+  },
+  {
+    "mobid": 3230101,
+    "equipmentName": "黑护身铠甲",
+    "id": 1051010,
+    "level": 30,
+    "rate": 0.045
+  },
+  {
+    "mobid": 3230101,
+    "equipmentName": "绿蛇刀",
+    "id": 1412004,
+    "level": 35,
+    "rate": 0.045
+  },
+  {
+    "mobid": 3230102,
+    "equipmentName": "黑贵族之服",
+    "id": 1040080,
+    "level": 40,
+    "rate": 0.08
+  },
+  {
+    "mobid": 3230102,
+    "equipmentName": "花精之影",
+    "id": 1041074,
+    "level": 40,
+    "rate": 0.08
+  },
+  {
+    "mobid": 3230102,
+    "equipmentName": "黑贵族裤",
+    "id": 1060068,
+    "level": 40,
+    "rate": 0.08
+  },
+  {
+    "mobid": 3230102,
+    "equipmentName": "树林之裤",
+    "id": 1061069,
+    "level": 40,
+    "rate": 0.08
+  },
+  {
+    "mobid": 3230102,
+    "equipmentName": "黑铁头鞋",
+    "id": 1072113,
+    "level": 35,
+    "rate": 0.08
+  },
+  {
+    "mobid": 3230102,
+    "equipmentName": "蓝精灵鞋",
+    "id": 1072121,
+    "level": 40,
+    "rate": 0.08
+  },
+  {
+    "mobid": 3230102,
+    "equipmentName": "防污靴",
+    "id": 1072297,
+    "level": 35,
+    "rate": 0.08
+  },
+  {
+    "mobid": 3230102,
+    "equipmentName": "黑神圣手套",
+    "id": 1082056,
+    "level": 35,
+    "rate": 0.06
+  },
+  {
+    "mobid": 3230102,
+    "equipmentName": "黑侠客手套",
+    "id": 1082074,
+    "level": 40,
+    "rate": 0.06
+  },
+  {
+    "mobid": 3230102,
+    "equipmentName": "雷电",
+    "id": 1452005,
+    "level": 30,
+    "rate": 0.05
+  },
+  {
+    "mobid": 3230102,
+    "equipmentName": "刺棘拳甲",
+    "id": 1482006,
+    "level": 40,
+    "rate": 0.05
+  },
+  {
+    "mobid": 3230102,
+    "equipmentName": "白十字锁子甲",
+    "id": 1050000,
+    "level": 35,
+    "rate": 0.045
+  },
+  {
+    "mobid": 3230102,
+    "equipmentName": "蓝星光长袍",
+    "id": 1050038,
+    "level": 38,
+    "rate": 0.045
+  },
+  {
+    "mobid": 3230102,
+    "equipmentName": "朱矿方盾",
+    "id": 1092014,
+    "level": 40,
+    "rate": 0.045
+  },
+  {
+    "mobid": 3230102,
+    "equipmentName": "金轮杖",
+    "id": 1382017,
+    "level": 30,
+    "rate": 0.045
+  },
+  {
+    "mobid": 3230102,
+    "equipmentName": "锂矿戟",
+    "id": 1442001,
+    "level": 30,
+    "rate": 0.045
+  },
+  {
+    "mobid": 4130100,
+    "equipmentName": "蓝色骨盔",
+    "id": 1002045,
+    "level": 42,
+    "rate": 0.09
+  },
+  {
+    "mobid": 4130100,
+    "equipmentName": "蓝箭翎三角帽",
+    "id": 1002138,
+    "level": 35,
+    "rate": 0.09
+  },
+  {
+    "mobid": 4130100,
+    "equipmentName": "褐贵族之服",
+    "id": 1040079,
+    "level": 40,
+    "rate": 0.08
+  },
+  {
+    "mobid": 4130100,
+    "equipmentName": "褐贵族裤",
+    "id": 1060069,
+    "level": 40,
+    "rate": 0.08
+  },
+  {
+    "mobid": 4130100,
+    "equipmentName": "紫空空鞋",
+    "id": 1072125,
+    "level": 50,
+    "rate": 0.08
+  },
+  {
+    "mobid": 4130100,
+    "equipmentName": "锂矿蓝将军靴",
+    "id": 1072133,
+    "level": 50,
+    "rate": 0.08
+  },
+  {
+    "mobid": 4130100,
+    "equipmentName": "黑精灵手套",
+    "id": 1082064,
+    "level": 40,
+    "rate": 0.06
+  },
+  {
+    "mobid": 4130100,
+    "equipmentName": "华戟",
+    "id": 1332016,
+    "level": 50,
+    "rate": 0.05
+  },
+  {
+    "mobid": 4130100,
+    "equipmentName": "黑十字锁子甲",
+    "id": 1050022,
+    "level": 35,
+    "rate": 0.045
+  },
+  {
+    "mobid": 4130100,
+    "equipmentName": "红魔法战士衣",
+    "id": 1050046,
+    "level": 48,
+    "rate": 0.045
+  },
+  {
+    "mobid": 4130100,
+    "equipmentName": "冲锋兵",
+    "id": 1052113,
+    "level": 40,
+    "rate": 0.045
+  },
+  {
+    "mobid": 4130100,
+    "equipmentName": "树灵之剑",
+    "id": 1302010,
+    "level": 50,
+    "rate": 0.045
+  },
+  {
+    "mobid": 4130100,
+    "equipmentName": "重锤",
+    "id": 1322016,
+    "level": 40,
+    "rate": 0.045
+  },
+  {
+    "mobid": 4130100,
+    "equipmentName": "精灵长杖",
+    "id": 1382001,
+    "level": 45,
+    "rate": 0.045
+  },
+  {
+    "mobid": 4130101,
+    "equipmentName": "蓝魔道之帽",
+    "id": 1002152,
+    "level": 40,
+    "rate": 0.09
+  },
+  {
+    "mobid": 4130101,
+    "equipmentName": "绿海盗头巾",
+    "id": 1002183,
+    "level": 40,
+    "rate": 0.09
+  },
+  {
+    "mobid": 4130101,
+    "equipmentName": "黄月",
+    "id": 1041079,
+    "level": 50,
+    "rate": 0.08
+  },
+  {
+    "mobid": 4130101,
+    "equipmentName": "白女贵族服",
+    "id": 1041081,
+    "level": 40,
+    "rate": 0.08
+  },
+  {
+    "mobid": 4130101,
+    "equipmentName": "黑将军铠甲",
+    "id": 1041089,
+    "level": 50,
+    "rate": 0.08
+  },
+  {
+    "mobid": 4130101,
+    "equipmentName": "黄月裤",
+    "id": 1061078,
+    "level": 50,
+    "rate": 0.08
+  },
+  {
+    "mobid": 4130101,
+    "equipmentName": "白贵族裙",
+    "id": 1061080,
+    "level": 40,
+    "rate": 0.08
+  },
+  {
+    "mobid": 4130101,
+    "equipmentName": "黑将军裤",
+    "id": 1061088,
+    "level": 50,
+    "rate": 0.08
+  },
+  {
+    "mobid": 4130101,
+    "equipmentName": "蓝空空鞋",
+    "id": 1072124,
+    "level": 50,
+    "rate": 0.08
+  },
+  {
+    "mobid": 4130101,
+    "equipmentName": "紫黄金风",
+    "id": 1072142,
+    "level": 50,
+    "rate": 0.08
+  },
+  {
+    "mobid": 4130101,
+    "equipmentName": "头目靴",
+    "id": 1072303,
+    "level": 50,
+    "rate": 0.08
+  },
+  {
+    "mobid": 4130101,
+    "equipmentName": "朱矿护腕",
+    "id": 1472016,
+    "level": 40,
+    "rate": 0.05
+  },
+  {
+    "mobid": 4130101,
+    "equipmentName": "骨纹盾",
+    "id": 1092004,
+    "level": 50,
+    "rate": 0.045
+  },
+  {
+    "mobid": 4130101,
+    "equipmentName": "虎剑",
+    "id": 1402003,
+    "level": 50,
+    "rate": 0.045
+  },
+  {
+    "mobid": 4230100,
+    "equipmentName": "猫眼耳环",
+    "id": 1032008,
+    "level": 35,
+    "rate": 0.1
+  },
+  {
+    "mobid": 4230100,
+    "equipmentName": "黄金诺曼头盔",
+    "id": 1002098,
+    "level": 40,
+    "rate": 0.09
+  },
+  {
+    "mobid": 4230100,
+    "equipmentName": "粉红魔法帽",
+    "id": 1002103,
+    "level": 15,
+    "rate": 0.09
+  },
+  {
+    "mobid": 4230100,
+    "equipmentName": "红羽丝绒帽",
+    "id": 1002166,
+    "level": 40,
+    "rate": 0.09
+  },
+  {
+    "mobid": 4230100,
+    "equipmentName": "褐羽丝绒帽",
+    "id": 1002169,
+    "level": 40,
+    "rate": 0.09
+  },
+  {
+    "mobid": 4230100,
+    "equipmentName": "火焰之影",
+    "id": 1041075,
+    "level": 40,
+    "rate": 0.08
+  },
+  {
+    "mobid": 4230100,
+    "equipmentName": "黑浪人之裤",
+    "id": 1060057,
+    "level": 30,
+    "rate": 0.08
+  },
+  {
+    "mobid": 4230100,
+    "equipmentName": "沧海之裤",
+    "id": 1061070,
+    "level": 40,
+    "rate": 0.08
+  },
+  {
+    "mobid": 4230100,
+    "equipmentName": "红守护鞋",
+    "id": 1072090,
+    "level": 35,
+    "rate": 0.08
+  },
+  {
+    "mobid": 4230100,
+    "equipmentName": "祖母绿将军靴",
+    "id": 1072132,
+    "level": 50,
+    "rate": 0.08
+  },
+  {
+    "mobid": 4230100,
+    "equipmentName": "粉红黄金风",
+    "id": 1072140,
+    "level": 50,
+    "rate": 0.08
+  },
+  {
+    "mobid": 4230100,
+    "equipmentName": "黄月手套",
+    "id": 1082066,
+    "level": 50,
+    "rate": 0.06
+  },
+  {
+    "mobid": 4230100,
+    "equipmentName": "鹰弩",
+    "id": 1462004,
+    "level": 32,
+    "rate": 0.05
+  },
+  {
+    "mobid": 4230100,
+    "equipmentName": "黑守护拳套",
+    "id": 1472013,
+    "level": 35,
+    "rate": 0.05
+  },
+  {
+    "mobid": 4230100,
+    "equipmentName": "黑护腕",
+    "id": 1472017,
+    "level": 40,
+    "rate": 0.05
+  },
+  {
+    "mobid": 4230100,
+    "equipmentName": "绿蛇刀",
+    "id": 1412004,
+    "level": 35,
+    "rate": 0.045
+  },
+  {
+    "mobid": 4230102,
+    "equipmentName": "红色鞭子",
+    "id": 1302013,
+    "level": 35,
+    "rate": 0.145
+  },
+  {
+    "mobid": 4230102,
+    "equipmentName": "猫眼耳环",
+    "id": 1032008,
+    "level": 35,
+    "rate": 0.1
+  },
+  {
+    "mobid": 4230102,
+    "equipmentName": "锂矿诺曼头盔",
+    "id": 1002099,
+    "level": 40,
+    "rate": 0.09
+  },
+  {
+    "mobid": 4230102,
+    "equipmentName": "红黑太阳帽",
+    "id": 1002207,
+    "level": 50,
+    "rate": 0.09
+  },
+  {
+    "mobid": 4230102,
+    "equipmentName": "蓝贵族软帽",
+    "id": 1002211,
+    "level": 50,
+    "rate": 0.09
+  },
+  {
+    "mobid": 4230102,
+    "equipmentName": "红贵族软帽",
+    "id": 1002212,
+    "level": 50,
+    "rate": 0.09
+  },
+  {
+    "mobid": 4230102,
+    "equipmentName": "火黄金法冠",
+    "id": 1002215,
+    "level": 50,
+    "rate": 0.09
+  },
+  {
+    "mobid": 4230102,
+    "equipmentName": "绿暗影之服",
+    "id": 1040061,
+    "level": 35,
+    "rate": 0.08
+  },
+  {
+    "mobid": 4230102,
+    "equipmentName": "紫金铠甲",
+    "id": 1040085,
+    "level": 40,
+    "rate": 0.08
+  },
+  {
+    "mobid": 4230102,
+    "equipmentName": "蓝暗影之裤",
+    "id": 1060050,
+    "level": 35,
+    "rate": 0.08
+  },
+  {
+    "mobid": 4230102,
+    "equipmentName": "白金裤",
+    "id": 1060074,
+    "level": 40,
+    "rate": 0.08
+  },
+  {
+    "mobid": 4230102,
+    "equipmentName": "蓝黄金风",
+    "id": 1072141,
+    "level": 50,
+    "rate": 0.08
+  },
+  {
+    "mobid": 4230102,
+    "equipmentName": "头目靴",
+    "id": 1072303,
+    "level": 50,
+    "rate": 0.08
+  },
+  {
+    "mobid": 4230102,
+    "equipmentName": "黄月手套",
+    "id": 1082066,
+    "level": 50,
+    "rate": 0.06
+  },
+  {
+    "mobid": 4230102,
+    "equipmentName": "枫叶拳",
+    "id": 1472032,
+    "level": 43,
+    "rate": 0.04
+  },
+  {
+    "mobid": 4230101,
+    "equipmentName": "褐魔道之帽",
+    "id": 1002151,
+    "level": 40,
+    "rate": 0.09
+  },
+  {
+    "mobid": 4230101,
+    "equipmentName": "黑海盗头巾",
+    "id": 1002185,
+    "level": 40,
+    "rate": 0.09
+  },
+  {
+    "mobid": 4230101,
+    "equipmentName": "三眼海盗帽",
+    "id": 1002628,
+    "level": 40,
+    "rate": 0.09
+  },
+  {
+    "mobid": 4230101,
+    "equipmentName": "黄金铠甲",
+    "id": 1040000,
+    "level": 40,
+    "rate": 0.08
+  },
+  {
+    "mobid": 4230101,
+    "equipmentName": "绿守护之服",
+    "id": 1040074,
+    "level": 35,
+    "rate": 0.08
+  },
+  {
+    "mobid": 4230101,
+    "equipmentName": "黑守护之服",
+    "id": 1041068,
+    "level": 35,
+    "rate": 0.08
+  },
+  {
+    "mobid": 4230101,
+    "equipmentName": "黑镇月铠甲",
+    "id": 1041086,
+    "level": 40,
+    "rate": 0.08
+  },
+  {
+    "mobid": 4230101,
+    "equipmentName": "绿守护之裤",
+    "id": 1060063,
+    "level": 35,
+    "rate": 0.08
+  },
+  {
+    "mobid": 4230101,
+    "equipmentName": "黑镇月裙",
+    "id": 1061085,
+    "level": 40,
+    "rate": 0.08
+  },
+  {
+    "mobid": 4230101,
+    "equipmentName": "青铜精神手套",
+    "id": 1082037,
+    "level": 25,
+    "rate": 0.06
+  },
+  {
+    "mobid": 4230101,
+    "equipmentName": "破碎刃",
+    "id": 1332003,
+    "level": 50,
+    "rate": 0.05
+  },
+  {
+    "mobid": 4230101,
+    "equipmentName": "白银弩",
+    "id": 1462006,
+    "level": 42,
+    "rate": 0.05
+  },
+  {
+    "mobid": 4230101,
+    "equipmentName": "炎弩",
+    "id": 1462007,
+    "level": 50,
+    "rate": 0.05
+  },
+  {
+    "mobid": 4230101,
+    "equipmentName": "赤红护腕",
+    "id": 1472015,
+    "level": 40,
+    "rate": 0.05
+  },
+  {
+    "mobid": 4230101,
+    "equipmentName": "��星光长袍",
+    "id": 1050039,
+    "level": 38,
+    "rate": 0.045
+  },
+  {
+    "mobid": 4230101,
+    "equipmentName": "祖母绿铠甲",
+    "id": 1051001,
+    "level": 35,
+    "rate": 0.045
+  },
+  {
+    "mobid": 4230101,
+    "equipmentName": "紫飞影甲",
+    "id": 1051009,
+    "level": 35,
+    "rate": 0.045
+  },
+  {
+    "mobid": 4230101,
+    "equipmentName": "精灵长杖",
+    "id": 1382001,
+    "level": 45,
+    "rate": 0.045
+  },
+  {
+    "mobid": 4230101,
+    "equipmentName": "九龙刀",
+    "id": 1442005,
+    "level": 50,
+    "rate": 0.045
+  },
+  {
+    "mobid": 4230101,
+    "equipmentName": "枫叶刃",
+    "id": 1332025,
+    "level": 43,
+    "rate": 0.04
+  },
+  {
+    "mobid": 4230103,
+    "equipmentName": "褐魔道之帽",
+    "id": 1002151,
+    "level": 40,
+    "rate": 0.09
+  },
+  {
+    "mobid": 4230103,
+    "equipmentName": "褐防风帽",
+    "id": 1002179,
+    "level": 35,
+    "rate": 0.09
+  },
+  {
+    "mobid": 4230103,
+    "equipmentName": "红月鞋",
+    "id": 1072114,
+    "level": 40,
+    "rate": 0.08
+  },
+  {
+    "mobid": 4230103,
+    "equipmentName": "蓝精灵鞋",
+    "id": 1072121,
+    "level": 40,
+    "rate": 0.08
+  },
+  {
+    "mobid": 4230103,
+    "equipmentName": "黄金侠客手套",
+    "id": 1082076,
+    "level": 40,
+    "rate": 0.06
+  },
+  {
+    "mobid": 4230103,
+    "equipmentName": "半月刃",
+    "id": 1332001,
+    "level": 32,
+    "rate": 0.05
+  },
+  {
+    "mobid": 4230103,
+    "equipmentName": "赤红手甲",
+    "id": 1472019,
+    "level": 50,
+    "rate": 0.05
+  },
+  {
+    "mobid": 4230103,
+    "equipmentName": "赤仙白宫",
+    "id": 1050051,
+    "level": 50,
+    "rate": 0.045
+  },
+  {
+    "mobid": 4230103,
+    "equipmentName": "朱红妖精礼服",
+    "id": 1051034,
+    "level": 48,
+    "rate": 0.045
+  },
+  {
+    "mobid": 4230103,
+    "equipmentName": "朱矿方盾",
+    "id": 1092014,
+    "level": 40,
+    "rate": 0.045
+  },
+  {
+    "mobid": 4230103,
+    "equipmentName": "大斧",
+    "id": 1312006,
+    "level": 35,
+    "rate": 0.045
+  },
+  {
+    "mobid": 4230103,
+    "equipmentName": "旋风锤",
+    "id": 1322017,
+    "level": 50,
+    "rate": 0.045
+  },
+  {
+    "mobid": 4230103,
+    "equipmentName": "枫叶弓",
+    "id": 1452022,
+    "level": 43,
+    "rate": 0.04
+  },
+  {
+    "mobid": 4230104,
+    "equipmentName": "红铁头盔",
+    "id": 1002025,
+    "level": 40,
+    "rate": 0.09
+  },
+  {
+    "mobid": 4230104,
+    "equipmentName": "锂矿十字军帽",
+    "id": 1002085,
+    "level": 50,
+    "rate": 0.09
+  },
+  {
+    "mobid": 4230104,
+    "equipmentName": "土黄金法冠",
+    "id": 1002217,
+    "level": 50,
+    "rate": 0.09
+  },
+  {
+    "mobid": 4230104,
+    "equipmentName": "沧海之影",
+    "id": 1040083,
+    "level": 40,
+    "rate": 0.08
+  },
+  {
+    "mobid": 4230104,
+    "equipmentName": "青阳",
+    "id": 1040095,
+    "level": 50,
+    "rate": 0.08
+  },
+  {
+    "mobid": 4230104,
+    "equipmentName": "褐女贵族服",
+    "id": 1041082,
+    "level": 40,
+    "rate": 0.08
+  },
+  {
+    "mobid": 4230104,
+    "equipmentName": "红将军铠甲",
+    "id": 1041087,
+    "level": 50,
+    "rate": 0.08
+  },
+  {
+    "mobid": 4230104,
+    "equipmentName": "沧海之裤",
+    "id": 1060072,
+    "level": 40,
+    "rate": 0.08
+  },
+  {
+    "mobid": 4230104,
+    "equipmentName": "青阳裤",
+    "id": 1060084,
+    "level": 50,
+    "rate": 0.08
+  },
+  {
+    "mobid": 4230104,
+    "equipmentName": "褐贵族裙",
+    "id": 1061081,
+    "level": 40,
+    "rate": 0.08
+  },
+  {
+    "mobid": 4230104,
+    "equipmentName": "红将军裤",
+    "id": 1061086,
+    "level": 50,
+    "rate": 0.08
+  },
+  {
+    "mobid": 4230104,
+    "equipmentName": "蛇吻",
+    "id": 1482007,
+    "level": 50,
+    "rate": 0.05
+  },
+  {
+    "mobid": 4230104,
+    "equipmentName": "黄色雨伞",
+    "id": 1302016,
+    "level": 40,
+    "rate": 0.045
+  },
+  {
+    "mobid": 4230104,
+    "equipmentName": "精灵长杖",
+    "id": 1382001,
+    "level": 45,
+    "rate": 0.045
+  },
+  {
+    "mobid": 4230104,
+    "equipmentName": "太阳之斧",
+    "id": 1412003,
+    "level": 50,
+    "rate": 0.045
+  },
+  {
+    "mobid": 4230125,
+    "equipmentName": "红色战斗头盔",
+    "id": 1002047,
+    "level": 35,
+    "rate": 0.09
+  },
+  {
+    "mobid": 4230125,
+    "equipmentName": "青头巾",
+    "id": 1002081,
+    "level": 10,
+    "rate": 0.09
+  },
+  {
+    "mobid": 4230125,
+    "equipmentName": "褐星魔法帽",
+    "id": 1002144,
+    "level": 35,
+    "rate": 0.09
+  },
+  {
+    "mobid": 4230125,
+    "equipmentName": "绿防风帽",
+    "id": 1002178,
+    "level": 35,
+    "rate": 0.09
+  },
+  {
+    "mobid": 4230125,
+    "equipmentName": "绿流星鞋",
+    "id": 1072108,
+    "level": 40,
+    "rate": 0.08
+  },
+  {
+    "mobid": 4230125,
+    "equipmentName": "红精灵鞋",
+    "id": 1072118,
+    "level": 40,
+    "rate": 0.08
+  },
+  {
+    "mobid": 4230125,
+    "equipmentName": "紫金月鞋",
+    "id": 1072126,
+    "level": 40,
+    "rate": 0.08
+  },
+  {
+    "mobid": 4230125,
+    "equipmentName": "华戟",
+    "id": 1332016,
+    "level": 50,
+    "rate": 0.05
+  },
+  {
+    "mobid": 4230125,
+    "equipmentName": "青仙白宫",
+    "id": 1050052,
+    "level": 50,
+    "rate": 0.045
+  },
+  {
+    "mobid": 4230125,
+    "equipmentName": "护法之杖",
+    "id": 1382019,
+    "level": 40,
+    "rate": 0.045
+  },
+  {
+    "mobid": 4230125,
+    "equipmentName": "巨人锤",
+    "id": 1422007,
+    "level": 40,
+    "rate": 0.045
+  },
+  {
+    "mobid": 4230126,
+    "equipmentName": "船头",
+    "id": 1002631,
+    "level": 50,
+    "rate": 0.09
+  },
+  {
+    "mobid": 4230126,
+    "equipmentName": "褐女贵族服",
+    "id": 1041082,
+    "level": 40,
+    "rate": 0.08
+  },
+  {
+    "mobid": 4230126,
+    "equipmentName": "红镇月铠甲",
+    "id": 1041084,
+    "level": 40,
+    "rate": 0.08
+  },
+  {
+    "mobid": 4230126,
+    "equipmentName": "褐贵族裤",
+    "id": 1060069,
+    "level": 40,
+    "rate": 0.08
+  },
+  {
+    "mobid": 4230126,
+    "equipmentName": "黄金裤",
+    "id": 1060075,
+    "level": 40,
+    "rate": 0.08
+  },
+  {
+    "mobid": 4230126,
+    "equipmentName": "锂矿合金手套",
+    "id": 1082010,
+    "level": 50,
+    "rate": 0.06
+  },
+  {
+    "mobid": 4230126,
+    "equipmentName": "青铜战斗手套",
+    "id": 1082059,
+    "level": 60,
+    "rate": 0.06
+  },
+  {
+    "mobid": 4230126,
+    "equipmentName": "黄月手套",
+    "id": 1082066,
+    "level": 50,
+    "rate": 0.06
+  },
+  {
+    "mobid": 4230126,
+    "equipmentName": "黄神功手套",
+    "id": 1082089,
+    "level": 60,
+    "rate": 0.06
+  },
+  {
+    "mobid": 4230126,
+    "equipmentName": "青铜柔丝手套",
+    "id": 1082092,
+    "level": 60,
+    "rate": 0.06
+  },
+  {
+    "mobid": 4230126,
+    "equipmentName": "白魔法战士衣",
+    "id": 1050048,
+    "level": 48,
+    "rate": 0.045
+  },
+  {
+    "mobid": 4230126,
+    "equipmentName": "蓝妖精礼服",
+    "id": 1051032,
+    "level": 48,
+    "rate": 0.045
+  },
+  {
+    "mobid": 5130100,
+    "equipmentName": "船头",
+    "id": 1002631,
+    "level": 50,
+    "rate": 0.09
+  },
+  {
+    "mobid": 5130100,
+    "equipmentName": "黑板金铠甲",
+    "id": 1040089,
+    "level": 50,
+    "rate": 0.08
+  },
+  {
+    "mobid": 5130100,
+    "equipmentName": "紫月",
+    "id": 1041077,
+    "level": 50,
+    "rate": 0.08
+  },
+  {
+    "mobid": 5130100,
+    "equipmentName": "黑板金裤",
+    "id": 1060078,
+    "level": 50,
+    "rate": 0.08
+  },
+  {
+    "mobid": 5130100,
+    "equipmentName": "紫月裤",
+    "id": 1061076,
+    "level": 50,
+    "rate": 0.08
+  },
+  {
+    "mobid": 5130100,
+    "equipmentName": "绿流星鞋",
+    "id": 1072108,
+    "level": 40,
+    "rate": 0.08
+  },
+  {
+    "mobid": 5130100,
+    "equipmentName": "黄月鞋",
+    "id": 1072116,
+    "level": 40,
+    "rate": 0.08
+  },
+  {
+    "mobid": 5130100,
+    "equipmentName": "黑意志手套",
+    "id": 1082083,
+    "level": 50,
+    "rate": 0.06
+  },
+  {
+    "mobid": 5130100,
+    "equipmentName": "双天戟",
+    "id": 1432005,
+    "level": 40,
+    "rate": 0.05
+  },
+  {
+    "mobid": 5130100,
+    "equipmentName": "暴风弓",
+    "id": 1452007,
+    "level": 40,
+    "rate": 0.05
+  },
+  {
+    "mobid": 5130100,
+    "equipmentName": "鹰弩",
+    "id": 1462004,
+    "level": 32,
+    "rate": 0.05
+  },
+  {
+    "mobid": 5130100,
+    "equipmentName": "黑妖精礼服",
+    "id": 1051030,
+    "level": 48,
+    "rate": 0.045
+  },
+  {
+    "mobid": 5130100,
+    "equipmentName": "蓝贵族礼服",
+    "id": 1051037,
+    "level": 50,
+    "rate": 0.045
+  },
+  {
+    "mobid": 5130100,
+    "equipmentName": "锅盖",
+    "id": 1092008,
+    "level": 10,
+    "rate": 0.045
+  },
+  {
+    "mobid": 5130100,
+    "equipmentName": "白龙之杖",
+    "id": 1382006,
+    "level": 55,
+    "rate": 0.045
+  },
+  {
+    "mobid": 5130100,
+    "equipmentName": "格斗斧",
+    "id": 1412005,
+    "level": 40,
+    "rate": 0.045
+  },
+  {
+    "mobid": 4230400,
+    "equipmentName": "紫荆花耳环",
+    "id": 1032018,
+    "level": 45,
+    "rate": 0.1
+  },
+  {
+    "mobid": 4230400,
+    "equipmentName": "褐海盗头巾",
+    "id": 1002184,
+    "level": 40,
+    "rate": 0.09
+  },
+  {
+    "mobid": 4230400,
+    "equipmentName": "褐女贵族服",
+    "id": 1041082,
+    "level": 40,
+    "rate": 0.08
+  },
+  {
+    "mobid": 4230400,
+    "equipmentName": "褐贵族裙",
+    "id": 1061081,
+    "level": 40,
+    "rate": 0.08
+  },
+  {
+    "mobid": 4230400,
+    "equipmentName": "黄月鞋",
+    "id": 1072116,
+    "level": 40,
+    "rate": 0.08
+  },
+  {
+    "mobid": 4230400,
+    "equipmentName": "紫金月鞋",
+    "id": 1072126,
+    "level": 40,
+    "rate": 0.08
+  },
+  {
+    "mobid": 4230400,
+    "equipmentName": "蓝勇气手套",
+    "id": 1082071,
+    "level": 40,
+    "rate": 0.06
+  },
+  {
+    "mobid": 4230400,
+    "equipmentName": "朱红魔法战士衣",
+    "id": 1050047,
+    "level": 48,
+    "rate": 0.045
+  },
+  {
+    "mobid": 5130101,
+    "equipmentName": "蓝宝石耳环",
+    "id": 1032002,
+    "level": 35,
+    "rate": 0.1
+  },
+  {
+    "mobid": 5130101,
+    "equipmentName": "青铜十字军帽",
+    "id": 1002086,
+    "level": 50,
+    "rate": 0.09
+  },
+  {
+    "mobid": 5130101,
+    "equipmentName": "青铜忍者头巾",
+    "id": 1002247,
+    "level": 60,
+    "rate": 0.09
+  },
+  {
+    "mobid": 5130101,
+    "equipmentName": "黑暗之影",
+    "id": 1040084,
+    "level": 40,
+    "rate": 0.08
+  },
+  {
+    "mobid": 5130101,
+    "equipmentName": "赤月",
+    "id": 1041080,
+    "level": 50,
+    "rate": 0.08
+  },
+  {
+    "mobid": 5130101,
+    "equipmentName": "绿钢玉铠甲",
+    "id": 1041091,
+    "level": 60,
+    "rate": 0.08
+  },
+  {
+    "mobid": 5130101,
+    "equipmentName": "赤月裤",
+    "id": 1061079,
+    "level": 50,
+    "rate": 0.08
+  },
+  {
+    "mobid": 5130101,
+    "equipmentName": "绿钢玉裙",
+    "id": 1061090,
+    "level": 60,
+    "rate": 0.08
+  },
+  {
+    "mobid": 5130101,
+    "equipmentName": "蓝精灵鞋",
+    "id": 1072121,
+    "level": 40,
+    "rate": 0.08
+  },
+  {
+    "mobid": 5130101,
+    "equipmentName": "绿黄金风",
+    "id": 1072143,
+    "level": 50,
+    "rate": 0.08
+  },
+  {
+    "mobid": 5130101,
+    "equipmentName": "头目靴",
+    "id": 1072303,
+    "level": 50,
+    "rate": 0.08
+  },
+  {
+    "mobid": 5130101,
+    "equipmentName": "黑指节手套",
+    "id": 1082025,
+    "level": 40,
+    "rate": 0.06
+  },
+  {
+    "mobid": 5130101,
+    "equipmentName": "黄金侠客手套",
+    "id": 1082076,
+    "level": 40,
+    "rate": 0.06
+  },
+  {
+    "mobid": 5130101,
+    "equipmentName": "雷电",
+    "id": 1452005,
+    "level": 30,
+    "rate": 0.05
+  },
+  {
+    "mobid": 5130101,
+    "equipmentName": "白魔法战士衣",
+    "id": 1050048,
+    "level": 48,
+    "rate": 0.045
+  },
+  {
+    "mobid": 5130101,
+    "equipmentName": "红十字盾牌",
+    "id": 1092002,
+    "level": 30,
+    "rate": 0.045
+  },
+  {
+    "mobid": 5130101,
+    "equipmentName": "猛禽斧",
+    "id": 1312009,
+    "level": 60,
+    "rate": 0.045
+  },
+  {
+    "mobid": 5130101,
+    "equipmentName": "水晶短杖",
+    "id": 1372012,
+    "level": 38,
+    "rate": 0.045
+  },
+  {
+    "mobid": 5130102,
+    "equipmentName": "圣十字耳环",
+    "id": 1032021,
+    "level": 55,
+    "rate": 0.1
+  },
+  {
+    "mobid": 5130102,
+    "equipmentName": "旧诺曼头盔",
+    "id": 1002022,
+    "level": 55,
+    "rate": 0.09
+  },
+  {
+    "mobid": 5130102,
+    "equipmentName": "绿黑太阳帽",
+    "id": 1002209,
+    "level": 50,
+    "rate": 0.09
+  },
+  {
+    "mobid": 5130102,
+    "equipmentName": "黑贵族软帽",
+    "id": 1002214,
+    "level": 50,
+    "rate": 0.09
+  },
+  {
+    "mobid": 5130102,
+    "equipmentName": "黑忍者头巾",
+    "id": 1002249,
+    "level": 60,
+    "rate": 0.09
+  },
+  {
+    "mobid": 5130102,
+    "equipmentName": "紫金铠甲",
+    "id": 1040085,
+    "level": 40,
+    "rate": 0.08
+  },
+  {
+    "mobid": 5130102,
+    "equipmentName": "红钢玉铠甲",
+    "id": 1040091,
+    "level": 60,
+    "rate": 0.08
+  },
+  {
+    "mobid": 5130102,
+    "equipmentName": "花精之影",
+    "id": 1041074,
+    "level": 40,
+    "rate": 0.08
+  },
+  {
+    "mobid": 5130102,
+    "equipmentName": "白金裤",
+    "id": 1060074,
+    "level": 40,
+    "rate": 0.08
+  },
+  {
+    "mobid": 5130102,
+    "equipmentName": "红钢玉裤",
+    "id": 1060080,
+    "level": 60,
+    "rate": 0.08
+  },
+  {
+    "mobid": 5130102,
+    "equipmentName": "树林之裤",
+    "id": 1061069,
+    "level": 40,
+    "rate": 0.08
+  },
+  {
+    "mobid": 5130102,
+    "equipmentName": "褐精灵鞋",
+    "id": 1072120,
+    "level": 40,
+    "rate": 0.08
+  },
+  {
+    "mobid": 5130102,
+    "equipmentName": "蓝天使鞋",
+    "id": 1072139,
+    "level": 60,
+    "rate": 0.08
+  },
+  {
+    "mobid": 5130102,
+    "equipmentName": "钢铁合金手套",
+    "id": 1082009,
+    "level": 50,
+    "rate": 0.06
+  },
+  {
+    "mobid": 5130102,
+    "equipmentName": "黑封印手套",
+    "id": 1082088,
+    "level": 60,
+    "rate": 0.06
+  },
+  {
+    "mobid": 5130102,
+    "equipmentName": "黑色魔法披风",
+    "id": 1102018,
+    "level": 60,
+    "rate": 0.06
+  },
+  {
+    "mobid": 5130102,
+    "equipmentName": "速射手铳",
+    "id": 1492008,
+    "level": 60,
+    "rate": 0.05
+  },
+  {
+    "mobid": 5130102,
+    "equipmentName": "黑星光长袍",
+    "id": 1050039,
+    "level": 38,
+    "rate": 0.045
+  },
+  {
+    "mobid": 5130102,
+    "equipmentName": "青旋风甲",
+    "id": 1050059,
+    "level": 60,
+    "rate": 0.045
+  },
+  {
+    "mobid": 5130102,
+    "equipmentName": "魔灵之翼",
+    "id": 1382007,
+    "level": 65,
+    "rate": 0.045
+  },
+  {
+    "mobid": 5130103,
+    "equipmentName": "黄黑太阳帽",
+    "id": 1002210,
+    "level": 50,
+    "rate": 0.09
+  },
+  {
+    "mobid": 5130103,
+    "equipmentName": "黑黄金法冠",
+    "id": 1002218,
+    "level": 50,
+    "rate": 0.09
+  },
+  {
+    "mobid": 5130103,
+    "equipmentName": "白飞影之服",
+    "id": 1040098,
+    "level": 60,
+    "rate": 0.08
+  },
+  {
+    "mobid": 5130103,
+    "equipmentName": "黄月",
+    "id": 1041079,
+    "level": 50,
+    "rate": 0.08
+  },
+  {
+    "mobid": 5130103,
+    "equipmentName": "白飞影之裤",
+    "id": 1060087,
+    "level": 60,
+    "rate": 0.08
+  },
+  {
+    "mobid": 5130103,
+    "equipmentName": "黄月裤",
+    "id": 1061078,
+    "level": 50,
+    "rate": 0.08
+  },
+  {
+    "mobid": 5130103,
+    "equipmentName": "青铜柔丝手套",
+    "id": 1082092,
+    "level": 60,
+    "rate": 0.06
+  },
+  {
+    "mobid": 5130103,
+    "equipmentName": "龙刃",
+    "id": 1332031,
+    "level": 40,
+    "rate": 0.05
+  },
+  {
+    "mobid": 5130103,
+    "equipmentName": "红魔法战士衣",
+    "id": 1050046,
+    "level": 48,
+    "rate": 0.045
+  },
+  {
+    "mobid": 5130103,
+    "equipmentName": "绿贵族礼服",
+    "id": 1051038,
+    "level": 50,
+    "rate": 0.045
+  },
+  {
+    "mobid": 5130103,
+    "equipmentName": "士官服",
+    "id": 1052119,
+    "level": 60,
+    "rate": 0.045
+  },
+  {
+    "mobid": 5130103,
+    "equipmentName": "古老木盾",
+    "id": 1092009,
+    "level": 60,
+    "rate": 0.045
+  },
+  {
+    "mobid": 5130103,
+    "equipmentName": "护法之杖",
+    "id": 1382019,
+    "level": 40,
+    "rate": 0.045
+  },
+  {
+    "mobid": 5150000,
+    "equipmentName": "将军的红头盔",
+    "id": 1002029,
+    "level": 60,
+    "rate": 0.09
+  },
+  {
+    "mobid": 5150000,
+    "equipmentName": "银忍者头巾",
+    "id": 1002248,
+    "level": 60,
+    "rate": 0.09
+  },
+  {
+    "mobid": 5150000,
+    "equipmentName": "白弓羽",
+    "id": 1002269,
+    "level": 60,
+    "rate": 0.09
+  },
+  {
+    "mobid": 5150000,
+    "equipmentName": "蓝钢玉铠甲",
+    "id": 1040092,
+    "level": 60,
+    "rate": 0.08
+  },
+  {
+    "mobid": 5150000,
+    "equipmentName": "紫月",
+    "id": 1041077,
+    "level": 50,
+    "rate": 0.08
+  },
+  {
+    "mobid": 5150000,
+    "equipmentName": "灰飞影之服",
+    "id": 1041094,
+    "level": 60,
+    "rate": 0.08
+  },
+  {
+    "mobid": 5150000,
+    "equipmentName": "蓝钢玉裤",
+    "id": 1060081,
+    "level": 60,
+    "rate": 0.08
+  },
+  {
+    "mobid": 5150000,
+    "equipmentName": "紫月裤",
+    "id": 1061076,
+    "level": 50,
+    "rate": 0.08
+  },
+  {
+    "mobid": 5150000,
+    "equipmentName": "灰飞影之裤",
+    "id": 1061093,
+    "level": 60,
+    "rate": 0.08
+  },
+  {
+    "mobid": 5150000,
+    "equipmentName": "绿花精鞋",
+    "id": 1072146,
+    "level": 60,
+    "rate": 0.08
+  },
+  {
+    "mobid": 5150000,
+    "equipmentName": "鲨鱼皮���",
+    "id": 1072306,
+    "level": 60,
+    "rate": 0.08
+  },
+  {
+    "mobid": 5150000,
+    "equipmentName": "黄月手套",
+    "id": 1082066,
+    "level": 50,
+    "rate": 0.06
+  },
+  {
+    "mobid": 5150000,
+    "equipmentName": "黄金封印手套",
+    "id": 1082087,
+    "level": 60,
+    "rate": 0.06
+  },
+  {
+    "mobid": 5150000,
+    "equipmentName": "蓝贵族礼服",
+    "id": 1051037,
+    "level": 50,
+    "rate": 0.045
+  },
+  {
+    "mobid": 5150000,
+    "equipmentName": "火焰之杖",
+    "id": 1372014,
+    "level": 58,
+    "rate": 0.045
+  },
+  {
+    "mobid": 5150001,
+    "equipmentName": "银制战帽",
+    "id": 1002030,
+    "level": 70,
+    "rate": 0.09
+  },
+  {
+    "mobid": 5150001,
+    "equipmentName": "红神圣之冠",
+    "id": 1002252,
+    "level": 70,
+    "rate": 0.09
+  },
+  {
+    "mobid": 5150001,
+    "equipmentName": "褐天空之帽",
+    "id": 1002281,
+    "level": 70,
+    "rate": 0.09
+  },
+  {
+    "mobid": 5150001,
+    "equipmentName": "白黄司令帽",
+    "id": 1002287,
+    "level": 70,
+    "rate": 0.09
+  },
+  {
+    "mobid": 5150001,
+    "equipmentName": "蓝钢玉铠甲",
+    "id": 1040092,
+    "level": 60,
+    "rate": 0.08
+  },
+  {
+    "mobid": 5150001,
+    "equipmentName": "白飞影之服",
+    "id": 1040098,
+    "level": 60,
+    "rate": 0.08
+  },
+  {
+    "mobid": 5150001,
+    "equipmentName": "蓝钢玉裤",
+    "id": 1060081,
+    "level": 60,
+    "rate": 0.08
+  },
+  {
+    "mobid": 5150001,
+    "equipmentName": "白飞影之裤",
+    "id": 1060087,
+    "level": 60,
+    "rate": 0.08
+  },
+  {
+    "mobid": 5150001,
+    "equipmentName": "褐空空鞋",
+    "id": 1072122,
+    "level": 50,
+    "rate": 0.08
+  },
+  {
+    "mobid": 5150001,
+    "equipmentName": "蓝雷电鞋",
+    "id": 1072128,
+    "level": 50,
+    "rate": 0.08
+  },
+  {
+    "mobid": 5150001,
+    "equipmentName": "祖母绿将军靴",
+    "id": 1072132,
+    "level": 50,
+    "rate": 0.08
+  },
+  {
+    "mobid": 5150001,
+    "equipmentName": "粉红黄金风",
+    "id": 1072140,
+    "level": 50,
+    "rate": 0.08
+  },
+  {
+    "mobid": 5150001,
+    "equipmentName": "鲨鱼皮鞋",
+    "id": 1072306,
+    "level": 60,
+    "rate": 0.08
+  },
+  {
+    "mobid": 5150001,
+    "equipmentName": "青旋风甲",
+    "id": 1050059,
+    "level": 60,
+    "rate": 0.045
+  },
+  {
+    "mobid": 5150001,
+    "equipmentName": "红神圣服",
+    "id": 1051045,
+    "level": 58,
+    "rate": 0.045
+  },
+  {
+    "mobid": 5300100,
+    "equipmentName": "水仙耳环",
+    "id": 1032019,
+    "level": 55,
+    "rate": 0.1
+  },
+  {
+    "mobid": 5300100,
+    "equipmentName": "黄铁头盔",
+    "id": 1002092,
+    "level": 40,
+    "rate": 0.09
+  },
+  {
+    "mobid": 5300100,
+    "equipmentName": "绿羽丝绒帽",
+    "id": 1002168,
+    "level": 40,
+    "rate": 0.09
+  },
+  {
+    "mobid": 5300100,
+    "equipmentName": "青金铠甲",
+    "id": 1040086,
+    "level": 40,
+    "rate": 0.08
+  },
+  {
+    "mobid": 5300100,
+    "equipmentName": "绿钢玉铠甲",
+    "id": 1040090,
+    "level": 60,
+    "rate": 0.08
+  },
+  {
+    "mobid": 5300100,
+    "equipmentName": "黑金裤",
+    "id": 1060000,
+    "level": 40,
+    "rate": 0.08
+  },
+  {
+    "mobid": 5300100,
+    "equipmentName": "绿钢玉裤",
+    "id": 1060079,
+    "level": 60,
+    "rate": 0.08
+  },
+  {
+    "mobid": 5300100,
+    "equipmentName": "绿天使鞋",
+    "id": 1072137,
+    "level": 60,
+    "rate": 0.08
+  },
+  {
+    "mobid": 5300100,
+    "equipmentName": "绿黄金风",
+    "id": 1072143,
+    "level": 50,
+    "rate": 0.08
+  },
+  {
+    "mobid": 5300100,
+    "equipmentName": "黄金合金手套",
+    "id": 1082011,
+    "level": 50,
+    "rate": 0.06
+  },
+  {
+    "mobid": 5300100,
+    "equipmentName": "钢铁柔丝手套",
+    "id": 1082093,
+    "level": 60,
+    "rate": 0.06
+  },
+  {
+    "mobid": 5300100,
+    "equipmentName": "幽明",
+    "id": 1082198,
+    "level": 50,
+    "rate": 0.06
+  },
+  {
+    "mobid": 5300100,
+    "equipmentName": "凤凰之弓",
+    "id": 1452004,
+    "level": 60,
+    "rate": 0.05
+  },
+  {
+    "mobid": 5300100,
+    "equipmentName": "天弓",
+    "id": 1452008,
+    "level": 50,
+    "rate": 0.05
+  },
+  {
+    "mobid": 5300100,
+    "equipmentName": "蓝宝手甲",
+    "id": 1472020,
+    "level": 50,
+    "rate": 0.05
+  },
+  {
+    "mobid": 5300100,
+    "equipmentName": "白妖精礼服",
+    "id": 1051031,
+    "level": 48,
+    "rate": 0.045
+  },
+  {
+    "mobid": 5300100,
+    "equipmentName": "红贵族礼服",
+    "id": 1051039,
+    "level": 50,
+    "rate": 0.045
+  },
+  {
+    "mobid": 5300100,
+    "equipmentName": "枫叶弩",
+    "id": 1462019,
+    "level": 43,
+    "rate": 0.04
+  },
+  {
+    "mobid": 6230100,
+    "equipmentName": "诺曼头盔",
+    "id": 1002021,
+    "level": 40,
+    "rate": 0.09
+  },
+  {
+    "mobid": 6230100,
+    "equipmentName": "红羽丝绒帽",
+    "id": 1002166,
+    "level": 40,
+    "rate": 0.09
+  },
+  {
+    "mobid": 6230100,
+    "equipmentName": "黑黄金法冠",
+    "id": 1002218,
+    "level": 50,
+    "rate": 0.09
+  },
+  {
+    "mobid": 6230100,
+    "equipmentName": "青阳",
+    "id": 1040095,
+    "level": 50,
+    "rate": 0.08
+  },
+  {
+    "mobid": 6230100,
+    "equipmentName": "红将军铠甲",
+    "id": 1041087,
+    "level": 50,
+    "rate": 0.08
+  },
+  {
+    "mobid": 6230100,
+    "equipmentName": "红朱雀之甲",
+    "id": 1041103,
+    "level": 70,
+    "rate": 0.08
+  },
+  {
+    "mobid": 6230100,
+    "equipmentName": "青阳裤",
+    "id": 1060084,
+    "level": 50,
+    "rate": 0.08
+  },
+  {
+    "mobid": 6230100,
+    "equipmentName": "红将军裤",
+    "id": 1061086,
+    "level": 50,
+    "rate": 0.08
+  },
+  {
+    "mobid": 6230100,
+    "equipmentName": "红朱雀之裤",
+    "id": 1061102,
+    "level": 70,
+    "rate": 0.08
+  },
+  {
+    "mobid": 6230100,
+    "equipmentName": "紫十字鞋",
+    "id": 1072148,
+    "level": 60,
+    "rate": 0.08
+  },
+  {
+    "mobid": 6230100,
+    "equipmentName": "蓝飞魂鞋",
+    "id": 1072154,
+    "level": 70,
+    "rate": 0.08
+  },
+  {
+    "mobid": 6230100,
+    "equipmentName": "黑战斗手套",
+    "id": 1082061,
+    "level": 60,
+    "rate": 0.06
+  },
+  {
+    "mobid": 6230100,
+    "equipmentName": "赤神功手套",
+    "id": 1082090,
+    "level": 60,
+    "rate": 0.06
+  },
+  {
+    "mobid": 6230100,
+    "equipmentName": "蓝神眼手套",
+    "id": 1082106,
+    "level": 70,
+    "rate": 0.06
+  },
+  {
+    "mobid": 6230100,
+    "equipmentName": "铁手",
+    "id": 1082204,
+    "level": 70,
+    "rate": 0.06
+  },
+  {
+    "mobid": 6230100,
+    "equipmentName": "红色魔法披风",
+    "id": 1102016,
+    "level": 60,
+    "rate": 0.06
+  },
+  {
+    "mobid": 6230100,
+    "equipmentName": "赤红战神拳套",
+    "id": 1472023,
+    "level": 60,
+    "rate": 0.05
+  },
+  {
+    "mobid": 6230100,
+    "equipmentName": "朱红魔法战士衣",
+    "id": 1050047,
+    "level": 48,
+    "rate": 0.045
+  },
+  {
+    "mobid": 6230100,
+    "equipmentName": "赤旋风甲",
+    "id": 1050060,
+    "level": 60,
+    "rate": 0.045
+  },
+  {
+    "mobid": 6230100,
+    "equipmentName": "红神圣服",
+    "id": 1051045,
+    "level": 58,
+    "rate": 0.045
+  },
+  {
+    "mobid": 6230100,
+    "equipmentName": "褐天上之衣",
+    "id": 1051054,
+    "level": 68,
+    "rate": 0.045
+  },
+  {
+    "mobid": 6230100,
+    "equipmentName": "黄金锤",
+    "id": 1422005,
+    "level": 50,
+    "rate": 0.045
+  },
+  {
+    "mobid": 6230100,
+    "equipmentName": "方天戟",
+    "id": 1442010,
+    "level": 60,
+    "rate": 0.045
+  },
+  {
+    "mobid": 6130100,
+    "equipmentName": "黑和平之帽",
+    "id": 1002246,
+    "level": 60,
+    "rate": 0.09
+  },
+  {
+    "mobid": 6130100,
+    "equipmentName": "银忍者头巾",
+    "id": 1002248,
+    "level": 60,
+    "rate": 0.09
+  },
+  {
+    "mobid": 6130100,
+    "equipmentName": "黑贵族之服",
+    "id": 1040080,
+    "level": 40,
+    "rate": 0.08
+  },
+  {
+    "mobid": 6130100,
+    "equipmentName": "沧海之影",
+    "id": 1040083,
+    "level": 40,
+    "rate": 0.08
+  },
+  {
+    "mobid": 6130100,
+    "equipmentName": "黑飞影之服",
+    "id": 1040100,
+    "level": 60,
+    "rate": 0.08
+  },
+  {
+    "mobid": 6130100,
+    "equipmentName": "锂矿暴风甲",
+    "id": 1040103,
+    "level": 70,
+    "rate": 0.08
+  },
+  {
+    "mobid": 6130100,
+    "equipmentName": "赤月",
+    "id": 1041080,
+    "level": 50,
+    "rate": 0.08
+  },
+  {
+    "mobid": 6130100,
+    "equipmentName": "黑贵族裤",
+    "id": 1060068,
+    "level": 40,
+    "rate": 0.08
+  },
+  {
+    "mobid": 6130100,
+    "equipmentName": "沧海之裤",
+    "id": 1060072,
+    "level": 40,
+    "rate": 0.08
+  },
+  {
+    "mobid": 6130100,
+    "equipmentName": "黑飞影之裤",
+    "id": 1060089,
+    "level": 60,
+    "rate": 0.08
+  },
+  {
+    "mobid": 6130100,
+    "equipmentName": "锂矿暴风裤",
+    "id": 1060091,
+    "level": 70,
+    "rate": 0.08
+  },
+  {
+    "mobid": 6130100,
+    "equipmentName": "赤月裤",
+    "id": 1061079,
+    "level": 50,
+    "rate": 0.08
+  },
+  {
+    "mobid": 6130100,
+    "equipmentName": "粉红天使靴",
+    "id": 1072136,
+    "level": 60,
+    "rate": 0.08
+  },
+  {
+    "mobid": 6130100,
+    "equipmentName": "绿花精鞋",
+    "id": 1072146,
+    "level": 60,
+    "rate": 0.08
+  },
+  {
+    "mobid": 6130100,
+    "equipmentName": "紫十字鞋",
+    "id": 1072148,
+    "level": 60,
+    "rate": 0.08
+  },
+  {
+    "mobid": 6130100,
+    "equipmentName": "金水晶凉鞋",
+    "id": 1072160,
+    "level": 70,
+    "rate": 0.08
+  },
+  {
+    "mobid": 6130100,
+    "equipmentName": "蓝龙皮鞋",
+    "id": 1072162,
+    "level": 70,
+    "rate": 0.08
+  },
+  {
+    "mobid": 6130100,
+    "equipmentName": "赤月手套",
+    "id": 1082067,
+    "level": 50,
+    "rate": 0.06
+  },
+  {
+    "mobid": 6130100,
+    "equipmentName": "蓝神眼手套",
+    "id": 1082106,
+    "level": 70,
+    "rate": 0.06
+  },
+  {
+    "mobid": 6130100,
+    "equipmentName": "红斗士披风",
+    "id": 1102022,
+    "level": 65,
+    "rate": 0.06
+  },
+  {
+    "mobid": 6130100,
+    "equipmentName": "列翼拳甲",
+    "id": 1482008,
+    "level": 60,
+    "rate": 0.05
+  },
+  {
+    "mobid": 6130100,
+    "equipmentName": "黑圣党之服",
+    "id": 1050056,
+    "level": 58,
+    "rate": 0.045
+  },
+  {
+    "mobid": 6130100,
+    "equipmentName": "骨纹盾",
+    "id": 1092004,
+    "level": 50,
+    "rate": 0.045
+  },
+  {
+    "mobid": 6130100,
+    "equipmentName": "火焰之杖",
+    "id": 1372014,
+    "level": 58,
+    "rate": 0.045
+  },
+  {
+    "mobid": 6230600,
+    "equipmentName": "骨纹巾",
+    "id": 1002634,
+    "level": 60,
+    "rate": 0.09
+  },
+  {
+    "mobid": 6230600,
+    "equipmentName": "红钢玉铠甲",
+    "id": 1040091,
+    "level": 60,
+    "rate": 0.08
+  },
+  {
+    "mobid": 6230600,
+    "equipmentName": "赤阳",
+    "id": 1040094,
+    "level": 50,
+    "rate": 0.08
+  },
+  {
+    "mobid": 6230600,
+    "equipmentName": "黄镇月铠甲",
+    "id": 1041085,
+    "level": 40,
+    "rate": 0.08
+  },
+  {
+    "mobid": 6230600,
+    "equipmentName": "绿钢玉铠甲",
+    "id": 1041091,
+    "level": 60,
+    "rate": 0.08
+  },
+  {
+    "mobid": 6230600,
+    "equipmentName": "红钢玉裤",
+    "id": 1060080,
+    "level": 60,
+    "rate": 0.08
+  },
+  {
+    "mobid": 6230600,
+    "equipmentName": "赤阳裤",
+    "id": 1060083,
+    "level": 50,
+    "rate": 0.08
+  },
+  {
+    "mobid": 6230600,
+    "equipmentName": "红镇月裙",
+    "id": 1061083,
+    "level": 40,
+    "rate": 0.08
+  },
+  {
+    "mobid": 6230600,
+    "equipmentName": "绿钢玉裙",
+    "id": 1061090,
+    "level": 60,
+    "rate": 0.08
+  },
+  {
+    "mobid": 6230600,
+    "equipmentName": "红水晶凉鞋",
+    "id": 1072158,
+    "level": 70,
+    "rate": 0.08
+  },
+  {
+    "mobid": 6230600,
+    "equipmentName": "青铜名誉手套",
+    "id": 1082095,
+    "level": 70,
+    "rate": 0.06
+  },
+  {
+    "mobid": 6230600,
+    "equipmentName": "褐战魂���套",
+    "id": 1082098,
+    "level": 70,
+    "rate": 0.06
+  },
+  {
+    "mobid": 6230600,
+    "equipmentName": "黄金弩",
+    "id": 1462008,
+    "level": 60,
+    "rate": 0.05
+  },
+  {
+    "mobid": 6230600,
+    "equipmentName": "蓝宝战神拳套",
+    "id": 1472024,
+    "level": 60,
+    "rate": 0.05
+  },
+  {
+    "mobid": 6230600,
+    "equipmentName": "黄草露",
+    "id": 1051043,
+    "level": 60,
+    "rate": 0.045
+  },
+  {
+    "mobid": 6230600,
+    "equipmentName": "白神圣服",
+    "id": 1051046,
+    "level": 58,
+    "rate": 0.045
+  },
+  {
+    "mobid": 6230602,
+    "equipmentName": "将军青头盔",
+    "id": 1002084,
+    "level": 60,
+    "rate": 0.09
+  },
+  {
+    "mobid": 6230602,
+    "equipmentName": "黑和平之帽",
+    "id": 1002246,
+    "level": 60,
+    "rate": 0.09
+  },
+  {
+    "mobid": 6230602,
+    "equipmentName": "银忍者头巾",
+    "id": 1002248,
+    "level": 60,
+    "rate": 0.09
+  },
+  {
+    "mobid": 6230602,
+    "equipmentName": "白弓羽",
+    "id": 1002269,
+    "level": 60,
+    "rate": 0.09
+  },
+  {
+    "mobid": 6230602,
+    "equipmentName": "锂矿合金手套",
+    "id": 1082010,
+    "level": 50,
+    "rate": 0.06
+  },
+  {
+    "mobid": 6230602,
+    "equipmentName": "青月手套",
+    "id": 1082065,
+    "level": 50,
+    "rate": 0.06
+  },
+  {
+    "mobid": 6230602,
+    "equipmentName": "蓝元素手套",
+    "id": 1082082,
+    "level": 50,
+    "rate": 0.06
+  },
+  {
+    "mobid": 6230602,
+    "equipmentName": "红意志手套",
+    "id": 1082085,
+    "level": 50,
+    "rate": 0.06
+  },
+  {
+    "mobid": 6230602,
+    "equipmentName": "银名誉手套",
+    "id": 1082096,
+    "level": 70,
+    "rate": 0.06
+  },
+  {
+    "mobid": 6230602,
+    "equipmentName": "褐战魂手套",
+    "id": 1082098,
+    "level": 70,
+    "rate": 0.06
+  },
+  {
+    "mobid": 6230602,
+    "equipmentName": "青铜暗影手套",
+    "id": 1082103,
+    "level": 70,
+    "rate": 0.06
+  },
+  {
+    "mobid": 6230602,
+    "equipmentName": "蓝神眼手套",
+    "id": 1082106,
+    "level": 70,
+    "rate": 0.06
+  },
+  {
+    "mobid": 6230602,
+    "equipmentName": "金蛇剑",
+    "id": 1332017,
+    "level": 60,
+    "rate": 0.05
+  },
+  {
+    "mobid": 6230602,
+    "equipmentName": "赤红战神拳套",
+    "id": 1472023,
+    "level": 60,
+    "rate": 0.05
+  },
+  {
+    "mobid": 6230602,
+    "equipmentName": "强袭拳甲",
+    "id": 1482009,
+    "level": 70,
+    "rate": 0.05
+  },
+  {
+    "mobid": 6230602,
+    "equipmentName": "古老朱矿盾",
+    "id": 1092011,
+    "level": 60,
+    "rate": 0.045
+  },
+  {
+    "mobid": 6230602,
+    "equipmentName": "奇型刀",
+    "id": 1302011,
+    "level": 60,
+    "rate": 0.045
+  },
+  {
+    "mobid": 7130100,
+    "equipmentName": "锂矿战盔",
+    "id": 1002095,
+    "level": 70,
+    "rate": 0.09
+  },
+  {
+    "mobid": 7130100,
+    "equipmentName": "蓝十字帽",
+    "id": 1002272,
+    "level": 80,
+    "rate": 0.09
+  },
+  {
+    "mobid": 7130100,
+    "equipmentName": "紫天空之帽",
+    "id": 1002283,
+    "level": 70,
+    "rate": 0.09
+  },
+  {
+    "mobid": 7130100,
+    "equipmentName": "白黄司令帽",
+    "id": 1002287,
+    "level": 70,
+    "rate": 0.09
+  },
+  {
+    "mobid": 7130100,
+    "equipmentName": "黑色飞行员头巾",
+    "id": 1002637,
+    "level": 70,
+    "rate": 0.09
+  },
+  {
+    "mobid": 7130100,
+    "equipmentName": "黑飞影之服",
+    "id": 1040100,
+    "level": 60,
+    "rate": 0.08
+  },
+  {
+    "mobid": 7130100,
+    "equipmentName": "蓝钢玉铠甲",
+    "id": 1041093,
+    "level": 60,
+    "rate": 0.08
+  },
+  {
+    "mobid": 7130100,
+    "equipmentName": "黑飞影之裤",
+    "id": 1060089,
+    "level": 60,
+    "rate": 0.08
+  },
+  {
+    "mobid": 7130100,
+    "equipmentName": "蓝钢玉裙",
+    "id": 1061092,
+    "level": 60,
+    "rate": 0.08
+  },
+  {
+    "mobid": 7130100,
+    "equipmentName": "红龙皮鞋",
+    "id": 1072163,
+    "level": 70,
+    "rate": 0.08
+  },
+  {
+    "mobid": 7130100,
+    "equipmentName": "绿飞翼鞋",
+    "id": 1072184,
+    "level": 80,
+    "rate": 0.08
+  },
+  {
+    "mobid": 7130100,
+    "equipmentName": "马尔斯绿拳套",
+    "id": 1082115,
+    "level": 80,
+    "rate": 0.06
+  },
+  {
+    "mobid": 7130100,
+    "equipmentName": "德古拉蓝手套",
+    "id": 1082118,
+    "level": 80,
+    "rate": 0.06
+  },
+  {
+    "mobid": 7130100,
+    "equipmentName": "蓝妖精披风",
+    "id": 1102027,
+    "level": 75,
+    "rate": 0.06
+  },
+  {
+    "mobid": 7130100,
+    "equipmentName": "赤神弓",
+    "id": 1452009,
+    "level": 70,
+    "rate": 0.05
+  },
+  {
+    "mobid": 7130100,
+    "equipmentName": "红闪电甲",
+    "id": 1472026,
+    "level": 70,
+    "rate": 0.05
+  },
+  {
+    "mobid": 7130100,
+    "equipmentName": "蓝天上之衣",
+    "id": 1050067,
+    "level": 68,
+    "rate": 0.045
+  },
+  {
+    "mobid": 7130100,
+    "equipmentName": "黑天上之衣",
+    "id": 1051055,
+    "level": 68,
+    "rate": 0.045
+  },
+  {
+    "mobid": 7130100,
+    "equipmentName": "绿飘云之衣",
+    "id": 1051064,
+    "level": 70,
+    "rate": 0.045
+  },
+  {
+    "mobid": 7130100,
+    "equipmentName": "暴风锤",
+    "id": 1322019,
+    "level": 70,
+    "rate": 0.045
+  },
+  {
+    "mobid": 7130100,
+    "equipmentName": "枫叶锤",
+    "id": 1422014,
+    "level": 43,
+    "rate": 0.04
+  },
+  {
+    "mobid": 6230601,
+    "equipmentName": "蓝黑太阳帽",
+    "id": 1002208,
+    "level": 50,
+    "rate": 0.09
+  },
+  {
+    "mobid": 6230601,
+    "equipmentName": "红和平之帽",
+    "id": 1002242,
+    "level": 60,
+    "rate": 0.09
+  },
+  {
+    "mobid": 6230601,
+    "equipmentName": "青铜忍者头巾",
+    "id": 1002247,
+    "level": 60,
+    "rate": 0.09
+  },
+  {
+    "mobid": 6230601,
+    "equipmentName": "蓝暴风甲",
+    "id": 1041097,
+    "level": 70,
+    "rate": 0.08
+  },
+  {
+    "mobid": 6230601,
+    "equipmentName": "蓝朱雀之甲",
+    "id": 1041101,
+    "level": 70,
+    "rate": 0.08
+  },
+  {
+    "mobid": 6230601,
+    "equipmentName": "蓝暴风裤",
+    "id": 1061096,
+    "level": 70,
+    "rate": 0.08
+  },
+  {
+    "mobid": 6230601,
+    "equipmentName": "蓝朱雀之裤",
+    "id": 1061100,
+    "level": 70,
+    "rate": 0.08
+  },
+  {
+    "mobid": 6230601,
+    "equipmentName": "绿飞影鞋",
+    "id": 1072172,
+    "level": 80,
+    "rate": 0.08
+  },
+  {
+    "mobid": 6230601,
+    "equipmentName": "红天使手套",
+    "id": 1082109,
+    "level": 80,
+    "rate": 0.06
+  },
+  {
+    "mobid": 6230601,
+    "equipmentName": "银龙枪",
+    "id": 1432007,
+    "level": 70,
+    "rate": 0.05
+  },
+  {
+    "mobid": 6230601,
+    "equipmentName": "保镖服",
+    "id": 1052122,
+    "level": 70,
+    "rate": 0.045
+  },
+  {
+    "mobid": 6230601,
+    "equipmentName": "黄金古盾牌",
+    "id": 1092017,
+    "level": 70,
+    "rate": 0.045
+  },
+  {
+    "mobid": 6230601,
+    "equipmentName": "天使之翼",
+    "id": 1372015,
+    "level": 68,
+    "rate": 0.045
+  },
+  {
+    "mobid": 6230601,
+    "equipmentName": "雷电斧",
+    "id": 1412008,
+    "level": 70,
+    "rate": 0.045
+  },
+  {
+    "mobid": 6230601,
+    "equipmentName": "方天戟",
+    "id": 1442010,
+    "level": 60,
+    "rate": 0.045
+  },
+  {
+    "mobid": 7130101,
+    "equipmentName": "白天空之帽",
+    "id": 1002284,
+    "level": 70,
+    "rate": 0.09
+  },
+  {
+    "mobid": 7130101,
+    "equipmentName": "褐色海盗帽",
+    "id": 1002327,
+    "level": 80,
+    "rate": 0.09
+  },
+  {
+    "mobid": 7130101,
+    "equipmentName": "绿钢玉铠甲",
+    "id": 1041091,
+    "level": 60,
+    "rate": 0.08
+  },
+  {
+    "mobid": 7130101,
+    "equipmentName": "红朱雀之甲",
+    "id": 1041103,
+    "level": 70,
+    "rate": 0.08
+  },
+  {
+    "mobid": 7130101,
+    "equipmentName": "绿钢玉裙",
+    "id": 1061090,
+    "level": 60,
+    "rate": 0.08
+  },
+  {
+    "mobid": 7130101,
+    "equipmentName": "红朱雀之裤",
+    "id": 1061102,
+    "level": 70,
+    "rate": 0.08
+  },
+  {
+    "mobid": 7130101,
+    "equipmentName": "黑箭魂鞋",
+    "id": 1072167,
+    "level": 70,
+    "rate": 0.08
+  },
+  {
+    "mobid": 7130101,
+    "equipmentName": "蓝宝石靴",
+    "id": 1072211,
+    "level": 80,
+    "rate": 0.08
+  },
+  {
+    "mobid": 7130101,
+    "equipmentName": "黑战魂手套",
+    "id": 1082100,
+    "level": 70,
+    "rate": 0.06
+  },
+  {
+    "mobid": 7130101,
+    "equipmentName": "锂矿暗影手套",
+    "id": 1082104,
+    "level": 70,
+    "rate": 0.06
+  },
+  {
+    "mobid": 7130101,
+    "equipmentName": "红妖精披风",
+    "id": 1102028,
+    "level": 75,
+    "rate": 0.06
+  },
+  {
+    "mobid": 7130101,
+    "equipmentName": "黄神弓",
+    "id": 1452011,
+    "level": 70,
+    "rate": 0.05
+  },
+  {
+    "mobid": 7130101,
+    "equipmentName": "强袭拳甲",
+    "id": 1482009,
+    "level": 70,
+    "rate": 0.05
+  },
+  {
+    "mobid": 7130101,
+    "equipmentName": "绿宫衣",
+    "id": 1050077,
+    "level": 80,
+    "rate": 0.045
+  },
+  {
+    "mobid": 7130101,
+    "equipmentName": "黑神圣服",
+    "id": 1051047,
+    "level": 58,
+    "rate": 0.045
+  },
+  {
+    "mobid": 7130101,
+    "equipmentName": "绿神仙之服",
+    "id": 1051056,
+    "level": 78,
+    "rate": 0.045
+  },
+  {
+    "mobid": 7130101,
+    "equipmentName": "褐飘云之衣",
+    "id": 1051063,
+    "level": 70,
+    "rate": 0.045
+  },
+  {
+    "mobid": 7130101,
+    "equipmentName": "银古盾牌",
+    "id": 1092016,
+    "level": 70,
+    "rate": 0.045
+  },
+  {
+    "mobid": 7130101,
+    "equipmentName": "死灵法杖",
+    "id": 1382010,
+    "level": 75,
+    "rate": 0.045
+  },
+  {
+    "mobid": 7130101,
+    "equipmentName": "雷电斧",
+    "id": 1412008,
+    "level": 70,
+    "rate": 0.045
+  },
+  {
+    "mobid": 7130101,
+    "equipmentName": "封魂之锤",
+    "id": 1422010,
+    "level": 70,
+    "rate": 0.045
+  },
+  {
+    "mobid": 7130103,
+    "equipmentName": "蓝钢玉铠甲",
+    "id": 1040092,
+    "level": 60,
+    "rate": 0.08
+  },
+  {
+    "mobid": 7130103,
+    "equipmentName": "红钢玉铠甲",
+    "id": 1041092,
+    "level": 60,
+    "rate": 0.08
+  },
+  {
+    "mobid": 7130103,
+    "equipmentName": "赤飞影之服",
+    "id": 1041095,
+    "level": 60,
+    "rate": 0.08
+  },
+  {
+    "mobid": 7130103,
+    "equipmentName": "蓝钢玉裤",
+    "id": 1060081,
+    "level": 60,
+    "rate": 0.08
+  },
+  {
+    "mobid": 7130103,
+    "equipmentName": "红钢玉裙",
+    "id": 1061091,
+    "level": 60,
+    "rate": 0.08
+  },
+  {
+    "mobid": 7130103,
+    "equipmentName": "赤飞影之裤",
+    "id": 1061094,
+    "level": 60,
+    "rate": 0.08
+  },
+  {
+    "mobid": 7130103,
+    "equipmentName": "绿飞影鞋",
+    "id": 1072172,
+    "level": 80,
+    "rate": 0.08
+  },
+  {
+    "mobid": 7130103,
+    "equipmentName": "绿密林之鞋",
+    "id": 1072177,
+    "level": 80,
+    "rate": 0.08
+  },
+  {
+    "mobid": 7130103,
+    "equipmentName": "蓝飞翼鞋",
+    "id": 1072182,
+    "level": 80,
+    "rate": 0.08
+  },
+  {
+    "mobid": 7130103,
+    "equipmentName": "红宝石靴",
+    "id": 1072210,
+    "level": 80,
+    "rate": 0.08
+  },
+  {
+    "mobid": 7130103,
+    "equipmentName": "青魔手",
+    "id": 1082207,
+    "level": 80,
+    "rate": 0.06
+  },
+  {
+    "mobid": 7130103,
+    "equipmentName": "蓝飘云之衣",
+    "id": 1050061,
+    "level": 70,
+    "rate": 0.045
+  },
+  {
+    "mobid": 7130103,
+    "equipmentName": "褐天上之衣",
+    "id": 1051054,
+    "level": 68,
+    "rate": 0.045
+  },
+  {
+    "mobid": 7130103,
+    "equipmentName": "褐飘云之衣",
+    "id": 1051063,
+    "level": 70,
+    "rate": 0.045
+  },
+  {
+    "mobid": 7130103,
+    "equipmentName": "铜狮鹫盾",
+    "id": 1092023,
+    "level": 80,
+    "rate": 0.045
+  }
+]

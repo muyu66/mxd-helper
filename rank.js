@@ -3,6 +3,10 @@ const todos = [
   { text: "波动的技能如何输入伤害值", status: "pending" },
   { text: "属性克制", status: "done" },
   { text: "等级经验衰减", status: "pending" },
+  { text: "怪物图片", status: "done" },
+  { text: "优化计算逻辑", status: "pending" },
+  { text: "开放所有怪物排行", status: "done" },
+  { text: "掉落装备等级计算", status: "done" },
 ];
 
 function renderChecklist() {
@@ -33,6 +37,7 @@ tippy('[data-tippy-content]', {
 });
 
 let monsterData = [];
+let equipMap = {}; // mobid → [{level, rate}, ...]
 let currentRanked = [];
 
 (async function loadData() {
@@ -45,18 +50,32 @@ let currentRanked = [];
   `;
 
   try {
-    const resp = await fetch("data.json");
-    if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
-    const json = await resp.json();
+    const [respData, respEquip] = await Promise.all([
+      fetch("data.json"),
+      fetch("equipment.json"),
+    ]);
+    if (!respData.ok) throw new Error(`data.json HTTP ${respData.status}`);
+
+    const json = await respData.json();
     monsterData = (json.items || []).filter(
       (m) => (m.maxMonsterCount ?? 0) >= 10,
     );
     document.getElementById("stat-total").textContent = monsterData.length;
+
+    // 构建装备查找表
+    if (respEquip.ok) {
+      const equipData = await respEquip.json();
+      for (const e of equipData) {
+        if (!equipMap[e.mobid]) equipMap[e.mobid] = [];
+        equipMap[e.mobid].push({ level: e.level, rate: e.rate });
+      }
+    }
+
     res.innerHTML = `
       <div class="empty-state">
         <div class="empty-icon">🎯</div>
         <p>输入参数后点击「计算排行」查看结果</p>
-        <span class="hint">Top 20 经验效率最高的怪物将显示在这里</span>
+        <span class="hint">全部怪物按经验效率排序</span>
       </div>
     `;
   } catch (err) {
@@ -124,11 +143,24 @@ function calc() {
     if (divisor <= 0) continue;
     const score = (exp / divisor) * C;
 
+    // 掉落装备加权平均等级
+    let _avgEquipLevel = null;
+    const eqList = equipMap[m.mobid];
+    if (eqList && eqList.length) {
+      let totalWeight = 0, weightedSum = 0;
+      for (const eq of eqList) {
+        weightedSum += eq.level * eq.rate;
+        totalWeight += eq.rate;
+      }
+      _avgEquipLevel = totalWeight > 0 ? weightedSum / totalWeight : null;
+    }
+
     ranked.push({
       ...m,
       _score: score,
       _perMp: score / M,
       _divisor: divisor,
+      _avgEquipLevel,
       _weakness: (m.elementTags || [])
         .map((t) => (t.label || t))
         .filter((l) => l.endsWith("弱点"))
@@ -152,13 +184,14 @@ function calc() {
 
   const COLS = [
     { key: "level", label: "等级", tip: "怪物等级" },
-    { key: "mobname", label: "怪物名", cls: "monster-name", tip: "怪物名称" },
+    { key: "mobname", label: "怪物", cls: "monster-name", tip: "怪物名称" },
     { key: "hp", label: "HP", tip: "怪物血量" },
     { key: "mp", label: "MP", tip: "怪物蓝量" },
     { key: "exp", label: "EXP", tip: "怪物经验值" },
     { key: "_score", label: "经验值比", tip: "值越大效率越高，单位时间内的经验值比" },
     { key: "_score_percent", label: "效率", cls: "score", tip: "与第一名相比的效率百分比，比如第三只有第一的70%" },
     { key: "_perMp", label: "每点蓝量经验比", cls: "per-mp", tip: "效率 ÷ 技能耗蓝，衡量蓝量利用效率" },
+    { key: "_avgEquipLevel", label: "掉落装等", cls: "avg-equip", tip: "掉落装备的掉率加权平均等级，越高说明该怪掉落的装备整体等级越高" },
     { key: "maxMonsterCount", label: "单地图最大数量", tip: "该怪物在单个地图中的最大刷新数量" },
     { key: "locationCount", label: "出现地图数", tip: "该怪物出现的地图数量" },
     { key: "_weakness", label: "弱点", tip: "怪物属性弱点" },
@@ -188,9 +221,7 @@ function calc() {
 
   function renderTable() {
     const sorted = sortData(ranked);
-    const top20 = sorted.slice(0, 20);
-
-    if (!top20.length) {
+    if (!sorted.length) {
       document.getElementById("result").innerHTML = `
         <div class="empty-state">
           <div class="empty-icon">🤷</div>
@@ -206,7 +237,7 @@ function calc() {
       return `<th class="${isSorted ? "sorted" : ""}" data-col="${c.key}" data-tippy-content="${c.tip || ""}">${c.label}${arrow ? `<span class="arrow">${arrow}</span>` : ""}</th>`;
     }).join("");
 
-    const rows = top20
+    const rows = sorted
       .map((m, i) => {
         const idx = ranked.indexOf(m) + 1;
         let rankHtml;
@@ -218,16 +249,21 @@ function calc() {
           rankHtml = `<span class="rank-badge rank-3">${idx}</span>`;
         else rankHtml = `<span class="rank-n">${idx}</span>`;
 
+        const iconSrc = m.icon ? m.icon.replace(/^\//, "") : "";
+        const iconHtml = iconSrc
+          ? `<img src="${esc(iconSrc)}" alt="${esc(m.mobname)}" class="mob-icon" loading="lazy" />`
+          : "";
         return `
     <tr>
       <td>${m.level}</td>
-      <td class="monster-name">${esc(m.mobname)}</td>
+      <td class="monster-name"><div class="mob-cell">${iconHtml}<span>${esc(m.mobname)}</span></div></td>
       <td>${Number(m.hp)}</td>
       <td>${Number(m.mp)}</td>
       <td>${Number(m.exp)}</td>
       <td>${m._score.toFixed(1)}</td>
       <td class="score">${(m._score_percent * 100).toFixed(0)}%</td>
       <td class="per-mp">${m._perMp.toFixed(2)}</td>
+      <td class="avg-equip">${m._avgEquipLevel != null ? "Lv." + m._avgEquipLevel.toFixed(0) : "--"}</td>
       <td>${m.maxMonsterCount ?? "--"}</td>
       <td>${m.locationCount ?? "--"}</td>
       <td>${m._weakness || "--"}</td>
@@ -240,7 +276,7 @@ function calc() {
       <div class="table-card-header">
         <div class="title">
           🏆 排行
-          <span class="badge">Top 20</span>
+          <span class="badge">全部</span>
         </div>
         <span style="font-size:0.8rem;color:var(--text-secondary)">
           X=${X} &nbsp; C=${C} &nbsp; M=${M}

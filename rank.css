@@ -231,7 +231,7 @@ body::after {
 }
 .checklist {
   display: grid;
-  grid-template-columns: 1fr 1fr 1fr;
+  grid-template-columns: 1fr 1fr 1fr 1fr;
   gap: 12px;
 }
 .checklist-item {
@@ -526,26 +526,26 @@ td {
   text-overflow: ellipsis;
 }
 
-/* fixed column widths — 11 columns */
+/* fixed column widths — 12 columns */
 th:nth-child(1),
 td:nth-child(1) {
-  width: 50px;
+  width: 65px;
 } /* 等级 */
 th:nth-child(2),
 td:nth-child(2) {
-  width: 110px;
-} /* 怪物名 */
+  width: 124px;
+} /* 怪物 */
 th:nth-child(3),
 td:nth-child(3) {
-  width: 70px;
+  width: 50px;
 } /* HP */
 th:nth-child(4),
 td:nth-child(4) {
-  width: 70px;
+  width: 50px;
 } /* MP */
 th:nth-child(5),
 td:nth-child(5) {
-  width: 65px;
+  width: 50px;
 } /* EXP */
 th:nth-child(6),
 td:nth-child(6) {
@@ -571,6 +571,10 @@ th:nth-child(11),
 td:nth-child(11) {
   width: 75px;
 } /* 弱点 */
+th:nth-child(12),
+td:nth-child(12) {
+  width: 72px;
+} /* 掉落装等 */
 tbody tr {
   transition: background 0.15s;
 }
@@ -611,7 +615,22 @@ tbody tr:last-child td {
 .monster-name {
   color: var(--cyan);
   font-weight: 600;
-  text-align: center;
+  vertical-align: middle;
+}
+.mob-cell {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+}
+.monster-name .mob-icon {
+  width: 36px;
+  height: 36px;
+  object-fit: contain;
+  flex-shrink: 0;
+}
+.monster-name span {
+  line-height: 1.4;
 }
 .score {
   color: var(--gold);
@@ -624,6 +643,10 @@ tbody tr:last-child td {
 .per-mp {
   color: var(--blue);
   font-weight: 600;
+}
+.avg-equip {
+  /* color: var(--cyan); */
+  /* font-weight: 600; */
 }
 .max-count {
   color: var(--green);
