@@ -1,12 +1,14 @@
 // ---- 待办清单数据 ----
 const todos = [
   { text: "波动的技能如何输入伤害值", status: "pending" },
-  { text: "属性克制", status: "done" },
-  { text: "等级经验衰减", status: "pending" },
-  { text: "怪物图片", status: "done" },
-  { text: "优化计算逻辑", status: "pending" },
-  { text: "开放所有怪物排行", status: "done" },
-  { text: "掉落装备等级计算", status: "done" },
+  { text: "属性克制", status: "done", date: "2026-08-07" },
+  { text: "怪物图片", status: "done", date: "2026-08-10" },
+  { text: "开放所有怪物排行", status: "done", date: "2026-08-10" },
+  { text: "掉落装备等级计算", status: "done", date: "2026-08-10" },
+  { text: "怪物密集程度计算", status: "pending" },
+  { text: "掉落装备平均价值", status: "done", date: "2026-08-10" },
+  { text: "修复属性克制公式", status: "done", date: "2026-08-07" },
+  { text: "计算时考虑MISS", status: "pending" },
 ];
 
 function renderChecklist() {
@@ -16,10 +18,14 @@ function renderChecklist() {
       const isDone = t.status === "done";
       const icon = isDone ? "✓" : "○";
       const cls = isDone ? "done" : "";
+      const dateHtml = isDone && t.date
+        ? `<span class="check-date">${esc(t.date)}</span>`
+        : "";
       return `
       <div class="checklist-item ${cls}">
         <span class="check-icon ${cls}">${icon}</span>
         <span class="check-text">${esc(t.text)}</span>
+        ${dateHtml}
       </div>`;
     })
     .join("");
@@ -67,7 +73,7 @@ let currentRanked = [];
       const equipData = await respEquip.json();
       for (const e of equipData) {
         if (!equipMap[e.mobid]) equipMap[e.mobid] = [];
-        equipMap[e.mobid].push({ level: e.level, rate: e.rate });
+        equipMap[e.mobid].push({ level: e.level, rate: e.rate, money: e.money });
       }
     }
 
@@ -96,7 +102,7 @@ function calc() {
 
   const X = parseFloat(document.getElementById("X").value) || 530;
   if (isNaN(X) || X <= 0) {
-    showError("X 必须是一个大于 0 的数字");
+    showError("较低单次伤害必须是一个大于 0 的数字");
     return;
   }
   const C = parseFloat(document.getElementById("C").value) || 1;
@@ -114,7 +120,7 @@ function calc() {
     return;
   }
 
-  // 属性克制: 无→A=1; 选中属性且怪物有对应弱点→A=1, 无弱点→A=0.5
+  // 属性克制: 无→A=1; 选中属性且怪物有对应弱点→A=1, 无弱点→A=0.8
   const elem = document.getElementById("elem").value;
   const weaknessMap = {
     雷: "雷弱点",
@@ -136,24 +142,33 @@ function calc() {
       const hasWeakness = tags.some(
         (t) => (t.label || t) === targetWeakness,
       );
-      A = hasWeakness ? 1 : 0.5;
+      A = hasWeakness ? 1 : 0.8;
     }
 
     const divisor = Math.ceil(hp / (X * A));
     if (divisor <= 0) continue;
     const score = (exp / divisor) * C;
 
-    // 掉落装备加权平均等级
-    let _avgEquipLevel = null;
+    // 掉落装备加权平均等级 & 价格
+    let _avgEquipLevel = null, _avgEquipMoney = null;
     const eqList = equipMap[m.mobid];
     if (eqList && eqList.length) {
-      let totalWeight = 0, weightedSum = 0;
+      let totalWeight = 0, weightedLevel = 0, weightedMoney = 0;
       for (const eq of eqList) {
-        weightedSum += eq.level * eq.rate;
+        weightedLevel += eq.level * eq.rate;
+        weightedMoney += (eq.money || 0) * eq.rate;
         totalWeight += eq.rate;
       }
-      _avgEquipLevel = totalWeight > 0 ? weightedSum / totalWeight : null;
+      if (totalWeight > 0) {
+        _avgEquipLevel = weightedLevel / totalWeight;
+        _avgEquipMoney = weightedMoney / totalWeight;
+      }
     }
+
+    // 耗蓝装备价值 = 总期望金币 / 总耗蓝
+    const _goldPerMp = _avgEquipMoney != null
+      ? (_avgEquipMoney * C) / (divisor * M)
+      : null;
 
     ranked.push({
       ...m,
@@ -161,6 +176,8 @@ function calc() {
       _perMp: score / M,
       _divisor: divisor,
       _avgEquipLevel,
+      _avgEquipMoney,
+      _goldPerMp,
       _weakness: (m.elementTags || [])
         .map((t) => (t.label || t))
         .filter((l) => l.endsWith("弱点"))
@@ -179,7 +196,7 @@ function calc() {
   });
 
   // default sort by score desc
-  const DEF_SORT = { col: "_score_percent", asc: false };
+  const DEF_SORT = { col: "level", asc: true };
   let sortState = { col: DEF_SORT.col, asc: DEF_SORT.asc };
 
   const COLS = [
@@ -188,10 +205,12 @@ function calc() {
     { key: "hp", label: "HP", tip: "怪物血量" },
     { key: "mp", label: "MP", tip: "怪物蓝量" },
     { key: "exp", label: "EXP", tip: "怪物经验值" },
-    { key: "_score", label: "经验值比", tip: "值越大效率越高，单位时间内的经验值比" },
-    { key: "_score_percent", label: "效率", cls: "score", tip: "与第一名相比的效率百分比，比如第三只有第一的70%" },
+    { key: "_score", label: "平均经验收益", tip: "每次攻击获得的经验" },
+    { key: "_score_percent", label: "效率", cls: "score", tip: "与最高效率相比的百分比" },
     { key: "_perMp", label: "每点蓝量经验比", cls: "per-mp", tip: "效率 ÷ 技能耗蓝，衡量蓝量利用效率" },
-    { key: "_avgEquipLevel", label: "掉落装等", cls: "avg-equip", tip: "掉落装备的掉率加权平均等级，越高说明该怪掉落的装备整体等级越高" },
+    { key: "_goldPerMp", label: "每点耗蓝收益比", cls: "gold-mp", tip: "每消耗1点蓝量期望获得的装备金币价值，不是直接收益，只是对比值" },
+    { key: "_avgEquipLevel", label: "平均掉落装等", cls: "avg-equip", tip: "掉落装备的掉率加权平均等级" },
+    { key: "_avgEquipMoney", label: "掉落装备平均价格", cls: "avg-money", tip: "掉落装备的加权平均售价（金币）" },
     { key: "maxMonsterCount", label: "单地图最大数量", tip: "该怪物在单个地图中的最大刷新数量" },
     { key: "locationCount", label: "出现地图数", tip: "该怪物出现的地图数量" },
     { key: "_weakness", label: "弱点", tip: "怪物属性弱点" },
@@ -263,7 +282,9 @@ function calc() {
       <td>${m._score.toFixed(1)}</td>
       <td class="score">${(m._score_percent * 100).toFixed(0)}%</td>
       <td class="per-mp">${m._perMp.toFixed(2)}</td>
+      <td class="gold-mp">${m._goldPerMp != null ? m._goldPerMp.toFixed(2) : "--"}</td>
       <td class="avg-equip">${m._avgEquipLevel != null ? "Lv." + m._avgEquipLevel.toFixed(0) : "--"}</td>
+      <td class="avg-money">${m._avgEquipMoney != null ? fmtMoney(m._avgEquipMoney) : "--"}</td>
       <td>${m.maxMonsterCount ?? "--"}</td>
       <td>${m.locationCount ?? "--"}</td>
       <td>${m._weakness || "--"}</td>
@@ -320,6 +341,12 @@ function showError(msg) {
   const errEl = document.getElementById("error");
   errEl.textContent = "❌ " + msg;
   errEl.style.display = "block";
+}
+
+function fmtMoney(n) {
+  if (n >= 10000) return (n / 10000).toFixed(2) + "w";
+  if (n >= 1000) return (n / 1000).toFixed(1) + "k";
+  return Math.round(n).toLocaleString();
 }
 
 function esc(s) {

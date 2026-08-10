@@ -77,7 +77,7 @@ body::after {
 }
 
 .container {
-  max-width: 1240px;
+  max-width: 1380px;
   margin: 0 auto;
   padding: 0 24px;
   position: relative;
@@ -273,6 +273,12 @@ body::after {
   font-size: 0.95rem;
   color: var(--text);
   line-height: 1.5;
+  flex: 1;
+}
+.check-date {
+  font-size: 0.75rem;
+  color: var(--text-tertiary);
+  flex-shrink: 0;
 }
 
 /* ---- weakness tags ---- */
@@ -476,16 +482,22 @@ body::after {
 }
 .table-wrap {
   overflow-x: auto;
+  overflow-y: auto;
+  max-height: 70vh;
 }
 table {
   width: 100%;
-  table-layout: fixed;
-  border-collapse: collapse;
+  table-layout: auto;
+  border-collapse: separate;
+  border-spacing: 0;
   font-size: 0.875rem;
   white-space: nowrap;
 }
-thead {
+thead th {
   background: #fafafa;
+  position: sticky;
+  top: 0;
+  z-index: 2;
 }
 th {
   padding: 14px 16px;
@@ -499,7 +511,6 @@ th {
   transition:
     background 0.15s,
     color 0.15s;
-  position: relative;
 }
 th:hover {
   background: #f0f0f0;
@@ -526,55 +537,7 @@ td {
   text-overflow: ellipsis;
 }
 
-/* fixed column widths — 12 columns */
-th:nth-child(1),
-td:nth-child(1) {
-  width: 65px;
-} /* 等级 */
-th:nth-child(2),
-td:nth-child(2) {
-  width: 124px;
-} /* 怪物 */
-th:nth-child(3),
-td:nth-child(3) {
-  width: 50px;
-} /* HP */
-th:nth-child(4),
-td:nth-child(4) {
-  width: 50px;
-} /* MP */
-th:nth-child(5),
-td:nth-child(5) {
-  width: 50px;
-} /* EXP */
-th:nth-child(6),
-td:nth-child(6) {
-  width: 65px;
-} /* 效率 */
-th:nth-child(7),
-td:nth-child(7) {
-  width: 55px;
-} /* 效率% */
-th:nth-child(8),
-td:nth-child(8) {
-  width: 110px;
-} /* 每点蓝量经验比 */
-th:nth-child(9),
-td:nth-child(9) {
-  width: 105px;
-} /* 单地图最大数量 */
-th:nth-child(10),
-td:nth-child(10) {
-  width: 80px;
-} /* 出现地图数 */
-th:nth-child(11),
-td:nth-child(11) {
-  width: 75px;
-} /* 弱点 */
-th:nth-child(12),
-td:nth-child(12) {
-  width: 72px;
-} /* 掉落装等 */
+/* table auto layout — column widths driven by content */
 tbody tr {
   transition: background 0.15s;
 }
@@ -633,7 +596,6 @@ tbody tr:last-child td {
   line-height: 1.4;
 }
 .score {
-  color: var(--gold);
   font-weight: 700;
 }
 .per-hp {
@@ -644,9 +606,11 @@ tbody tr:last-child td {
   color: var(--blue);
   font-weight: 600;
 }
-.avg-equip {
-  /* color: var(--cyan); */
-  /* font-weight: 600; */
+.avg-money {
+}
+.gold-mp {
+  color: var(--gold);
+  font-weight: 600;
 }
 .max-count {
   color: var(--green);
