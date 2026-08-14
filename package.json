@@ -6,9 +6,16 @@
   "scripts": {
     "data": "node data.js",
     "rank": "node rank.js",
-    "count": "node count.js"
+    "count": "node count.js",
+    "build": "node build.js",
+    "waigua": "node waigua-info.js",
+    "waigua:watch": "node waigua-info.js --watch"
   },
   "dependencies": {
     "console-table-printer": "^2.16.1"
+  },
+  "devDependencies": {
+    "javascript-obfuscator": "^5.5.0",
+    "tippy.js": "^6.3.7"
   }
 }

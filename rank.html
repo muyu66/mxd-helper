@@ -3,7 +3,6 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <meta name="app-version" content="4" />
     <meta
       http-equiv="Cache-Control"
       content="no-cache, no-store, must-revalidate"
@@ -11,15 +10,16 @@
     <meta http-equiv="Pragma" content="no-cache" />
     <meta http-equiv="Expires" content="0" />
     <title>冒险岛怀旧服 怪物价值排行 PC版</title>
-    <script>
-      var V = document.querySelector('meta[name="app-version"]').content;
-      document.write('<link rel="stylesheet" href="rank.css?v=' + V + '" />');
-    </script>
+    <!-- build:css -->
+    <link rel="stylesheet" href="rank.css?v=5" />
+    <!-- /build:css -->
+    <!-- build:libs -->
     <script src="https://unpkg.com/@popperjs/core@2"></script>
     <script src="https://unpkg.com/tippy.js@6"></script>
-    <script>
-      document.write('<script defer src="rank.js?v=' + V + '"><\/script>');
-    </script>
+    <!-- /build:libs -->
+    <!-- build:js -->
+    <script defer src="rank.js?v=5"></script>
+    <!-- /build:js -->
   </head>
   <body>
     <div class="container">
@@ -54,79 +54,14 @@
         <div class="stat-card">
           <div class="stat-icon gold">🏆</div>
           <div>
-            <div class="stat-val" id="stat-top">2026-08-10</div>
+            <div class="stat-val" id="stat-top">2026-08-13</div>
             <div class="stat-label">程序版本</div>
           </div>
         </div>
       </div>
 
-      <!-- checklist -->
-      <div class="card checklist-card">
-        <div class="checklist-title">📝 开发路线图</div>
-        <div class="checklist" id="checklist"></div>
-      </div>
-
-      <!-- form card -->
-      <div class="card">
-        <div class="form-row">
-          <div class="form-group">
-            <label for="X">较低单次伤害 <span class="required">*</span></label>
-            <input
-              type="number"
-              id="X"
-              placeholder="例：530"
-              step="any"
-              min="0.01"
-              required
-            />
-            <span class="hint">你单次攻击伤害偏低的数值记录</span>
-          </div>
-          <div class="form-group">
-            <label for="C">攻击数量</label>
-            <input
-              type="number"
-              id="C"
-              placeholder="默认 1"
-              step="any"
-              min="0.01"
-            />
-            <span class="hint">魔法双击填 1，雷电术填 6</span>
-          </div>
-          <div class="form-group">
-            <label for="M">技能耗蓝</label>
-            <input
-              type="number"
-              id="M"
-              placeholder="默认 20"
-              step="any"
-              min="0.01"
-            />
-            <span class="hint">技能蓝量消耗</span>
-          </div>
-          <div class="form-group">
-            <label for="elem">
-              伤害属性
-              <span
-                class="tip-icon"
-                data-tippy-content="如雷电术打蜗牛100伤害，则选无。打螃蟹200伤害，则选雷"
-                >?</span
-              >
-            </label>
-            <select id="elem">
-              <option value="none">无</option>
-              <option value="雷">雷属性</option>
-              <option value="冰">冰属性</option>
-              <option value="火">火属性</option>
-              <option value="圣">圣属性</option>
-            </select>
-            <span class="hint">单次伤害要填克制后的伤害</span>
-          </div>
-          <button class="btn" onclick="calc()"><span>🔍</span> 计算排行</button>
-        </div>
-        <div class="error-banner" id="error"></div>
-      </div>
-
       <!-- result -->
+      <div class="error-banner" id="error"></div>
       <div id="result">
         <div class="empty-state">
           <div class="empty-icon">🎯</div>
@@ -139,6 +74,13 @@
         Made by zhuzhu ❤️ &nbsp;·&nbsp; 数据来源 mxdc.dvg.cn
         <br />
         皖ICP备2025106435号-1
+        <br />
+        更多工具：<a
+          href="http://mxd.zhuzhu.website/waigua"
+          target="_blank"
+          rel="noreferrer"
+          >举报数据分析助手</a
+        >
       </div>
     </div>
   </body>

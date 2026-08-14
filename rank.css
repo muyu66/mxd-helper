@@ -77,7 +77,7 @@ body::after {
 }
 
 .container {
-  max-width: 1380px;
+  max-width: 1450px;
   margin: 0 auto;
   padding: 0 24px;
   position: relative;
@@ -215,70 +215,6 @@ body::after {
 .stat-card .stat-label {
   font-size: 0.9rem;
   color: var(--text-secondary);
-}
-
-/* ---- checklist ---- */
-.checklist-card {
-  margin-bottom: 24px;
-}
-.checklist-title {
-  font-size: 1rem;
-  font-weight: 600;
-  margin-bottom: 16px;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-.checklist {
-  display: grid;
-  grid-template-columns: 1fr 1fr 1fr 1fr;
-  gap: 12px;
-}
-.checklist-item {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  padding: 10px 16px;
-  border-radius: var(--radius);
-  background: #fafafa;
-  transition: background 0.2s;
-}
-.checklist-item:hover {
-  background: #f0f0f0;
-}
-.checklist-item.done .check-text {
-  color: var(--text-secondary);
-  text-decoration: line-through;
-}
-.check-icon {
-  width: 24px;
-  height: 24px;
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 0.8rem;
-  font-weight: 700;
-  flex-shrink: 0;
-  border: 2px solid #d9d9d9;
-  color: #d9d9d9;
-  background: #fff;
-}
-.check-icon.done {
-  background: var(--success);
-  border-color: var(--success);
-  color: #fff;
-}
-.check-text {
-  font-size: 0.95rem;
-  color: var(--text);
-  line-height: 1.5;
-  flex: 1;
-}
-.check-date {
-  font-size: 0.75rem;
-  color: var(--text-tertiary);
-  flex-shrink: 0;
 }
 
 /* ---- weakness tags ---- */
@@ -421,6 +357,43 @@ body::after {
   display: block;
 }
 
+/* ---- header controls（表头右侧：技能耗蓝 + 计算按钮）---- */
+.header-right {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+.header-right label {
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+  font-weight: 500;
+}
+.header-right input {
+  height: 32px;
+  width: 90px;
+  padding: 0 10px;
+  border: 1px solid #d9d9d9;
+  border-radius: 6px;
+  font-size: 0.85rem;
+  outline: none;
+  background: #fafafa;
+  transition: all 0.2s;
+}
+.header-right input:hover {
+  border-color: var(--primary-hover);
+  background: #fff;
+}
+.header-right input:focus {
+  border-color: var(--primary);
+  box-shadow: 0 0 0 2px rgba(22, 119, 255, 0.1);
+  background: #fff;
+}
+.header-meta {
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+}
+
 /* ---- button ---- */
 .btn {
   height: 80px;
@@ -438,6 +411,11 @@ body::after {
   align-items: center;
   gap: 8px;
   box-shadow: 0 2px 0 rgba(22, 119, 255, 0.1);
+}
+.btn-sm {
+  height: 32px;
+  padding: 0 14px;
+  font-size: 0.85rem;
 }
 .btn:hover {
   background: var(--primary-hover);
@@ -598,12 +576,12 @@ tbody tr:last-child td {
 .score {
   font-weight: 700;
 }
-.per-hp {
-  color: var(--error);
+.ratio {
+  color: var(--cyan);
   font-weight: 600;
 }
-.per-mp {
-  color: var(--blue);
+.per-hp {
+  color: var(--error);
   font-weight: 600;
 }
 .avg-money {
@@ -615,6 +593,216 @@ tbody tr:last-child td {
 .max-count {
   color: var(--green);
   font-weight: 600;
+}
+
+/* ---- 冻结前两列（等级、怪物），水平滚动时保持可见 ---- */
+/* th 保持基础规则的 z-index: 2（高于 td），否则纵向滚动时冻结的 td 会盖住表头 */
+thead th:nth-child(1) {
+  left: 0;
+}
+thead th:nth-child(2) {
+  left: var(--col1-w, 0);
+}
+tbody td:nth-child(1) {
+  position: sticky;
+  left: 0;
+  z-index: 1;
+}
+tbody td:nth-child(2) {
+  position: sticky;
+  left: var(--col1-w, 0);
+  z-index: 1;
+}
+/* 冻结列需要不透明背景，否则滚动时内容会透出来 */
+tbody td:nth-child(1),
+tbody td:nth-child(2) {
+  background: var(--bg-white);
+}
+tbody tr:hover td:nth-child(1),
+tbody tr:hover td:nth-child(2) {
+  background: #e6f4ff;
+}
+/* 冻结区右缘加一道浅阴影，区分滚动内容 */
+thead th:nth-child(2),
+tbody td:nth-child(2) {
+  box-shadow: 2px 0 6px -2px rgba(0, 0, 0, 0.12);
+}
+
+/* ---- filter popup ---- */
+.filter-wrap {
+  position: relative;
+  display: inline-flex;
+}
+.filter-btn {
+  height: 26px;
+  padding: 0 12px;
+  background: var(--primary-bg);
+  color: var(--primary);
+  border: 1px solid transparent;
+  border-radius: 100px;
+  font-size: 0.75rem;
+  font-weight: 500;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all 0.2s;
+}
+.filter-btn:hover {
+  border-color: var(--primary);
+}
+.filter-popup {
+  display: none;
+  position: absolute;
+  top: calc(100% + 8px);
+  left: 0;
+  z-index: 10;
+  min-width: 400px;
+  background: var(--bg-white);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  border: 1px solid var(--border);
+  padding: 12px;
+}
+.filter-popup.open {
+  display: block;
+}
+.filter-row {
+  display: flex;
+  gap: 6px;
+  margin-bottom: 8px;
+  align-items: center;
+}
+.filter-row select,
+.filter-row input {
+  height: 32px;
+  padding: 0 8px;
+  border: 1px solid #d9d9d9;
+  border-radius: 6px;
+  font-size: 0.8rem;
+  outline: none;
+  background: #fafafa;
+  transition: all 0.2s;
+}
+.filter-row select:hover,
+.filter-row input:hover {
+  border-color: var(--primary-hover);
+  background: #fff;
+}
+.filter-row select:focus,
+.filter-row input:focus {
+  border-color: var(--primary);
+  box-shadow: 0 0 0 2px rgba(22, 119, 255, 0.1);
+  background: #fff;
+}
+.filter-row .f-col {
+  flex: 1;
+  min-width: 0;
+  cursor: pointer;
+}
+.filter-row .f-op {
+  width: 60px;
+  flex-shrink: 0;
+  cursor: pointer;
+}
+/* 三种值控件统一放在固定宽度的槽位里，切换列时各选择框位置保持对齐 */
+.filter-row .f-val-slot {
+  width: 100px;
+  flex-shrink: 0;
+  display: flex;
+}
+.filter-row .f-val,
+.filter-row .f-val-name,
+.filter-row .f-val-weak {
+  width: 100%;
+  min-width: 0;
+}
+.filter-row .f-val-weak {
+  cursor: pointer;
+}
+.filter-row .f-logic {
+  width: 52px;
+  flex-shrink: 0;
+  cursor: pointer;
+  color: var(--text-secondary);
+  font-weight: 600;
+}
+.filter-row .f-logic-start {
+  width: 52px;
+  height: 32px;
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.8rem;
+  color: var(--text-tertiary);
+  background: #f5f5f5;
+  border-radius: 6px;
+  user-select: none;
+}
+.f-del {
+  width: 26px;
+  height: 26px;
+  flex-shrink: 0;
+  border: none;
+  background: transparent;
+  color: var(--text-tertiary);
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 0.8rem;
+  transition: all 0.2s;
+}
+.f-del:hover {
+  background: #fff2f0;
+  color: var(--error);
+}
+.filter-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 4px;
+}
+.f-add {
+  border: 1px dashed #d9d9d9;
+  background: transparent;
+  color: var(--text-secondary);
+  height: 30px;
+  padding: 0 12px;
+  border-radius: 6px;
+  font-size: 0.8rem;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+.f-add:hover {
+  border-color: var(--primary);
+  color: var(--primary);
+}
+.f-spacer {
+  flex: 1;
+}
+.f-clear,
+.f-apply {
+  height: 30px;
+  padding: 0 14px;
+  border-radius: 6px;
+  font-size: 0.8rem;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+.f-clear {
+  border: 1px solid #d9d9d9;
+  background: #fff;
+  color: var(--text);
+}
+.f-clear:hover {
+  border-color: var(--error);
+  color: var(--error);
+}
+.f-apply {
+  background: var(--primary);
+  border: 1px solid var(--primary);
+  color: #fff;
+}
+.f-apply:hover {
+  background: var(--primary-hover);
 }
 
 /* ---- empty / loading ---- */
@@ -674,7 +862,7 @@ tbody tr:last-child td {
   padding: 10px 16px;
   color: var(--error);
   font-size: 0.85rem;
-  margin-top: 12px;
+  margin: 12px 0;
 }
 
 /* ---- footer ---- */
@@ -683,4 +871,9 @@ tbody tr:last-child td {
   padding: 32px 0 48px;
   font-size: 0.9rem;
   color: var(--text-tertiary);
+}
+
+.footer a {
+  color: inherit;
+  text-decoration: underline;
 }

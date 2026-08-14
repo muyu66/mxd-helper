@@ -1,0 +1,1168 @@
+<!doctype html>
+<html lang="zh-CN" class="viz-root">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta
+      http-equiv="Cache-Control"
+      content="no-cache, no-store, must-revalidate"
+    />
+    <meta http-equiv="Pragma" content="no-cache" />
+    <meta http-equiv="Expires" content="0" />
+    <title>冒险岛怀旧服 举报数据分析助手</title>
+    <script>
+      // 数据以 <script> 方式加载：浏览器在 file:// 下禁用 fetch，
+      // 脚本引用则不受限，双击打开页面也能读到数据（?t= 用于绕过缓存）
+      const _waiguaTs = Date.now();
+      document.write(
+        '<script src="waigua-info/history.json.js?t=' +
+          _waiguaTs +
+          '"><\/script>',
+      );
+      document.write(
+        '<script src="waigua-info/today.json.js?t=' +
+          _waiguaTs +
+          '"><\/script>',
+      );
+    </script>
+    <style>
+      /* ---------- 数据可视化配色（dataviz 参考调色板，已通过校验） ---------- */
+      :root,
+      .viz-root {
+        color-scheme: light;
+        --surface-1: #fcfcfb; /* 图表卡片面 */
+        --page: #f9f9f7; /* 页面背景 */
+        --text-primary: #0b0b0b;
+        --text-secondary: #52514e;
+        --text-muted: #898781;
+        --gridline: #e1e0d9;
+        --baseline: #c3c2b7;
+        --border: rgba(11, 11, 11, 0.1);
+        --hover-wash: rgba(255, 255, 255, 0.4);
+        --accent-bg: rgba(42, 120, 214, 0.1); /* 图标底衬（色槽 1 的浅色阶） */
+        /* 分类色槽 1-8：固定顺序，禁止循环 */
+        --series-1: #2a78d6;
+        --series-2: #eb6834;
+        --series-3: #1baf7a;
+        --series-4: #eda100;
+        --series-5: #e87ba4;
+        --series-6: #008300;
+        --series-7: #4a3aa7;
+        --series-8: #e34948;
+      }
+      /* 深色模式：同一套色相按深色面重新定阶（已校验），不是自动翻转 */
+      @media (prefers-color-scheme: dark) {
+        :root:where(:not([data-theme="light"])) {
+          color-scheme: dark;
+          --surface-1: #1a1a19;
+          --page: #0d0d0d;
+          --text-primary: #ffffff;
+          --text-secondary: #c3c2b7;
+          --text-muted: #898781;
+          --gridline: #2c2c2a;
+          --baseline: #383835;
+          --border: rgba(255, 255, 255, 0.1);
+          --hover-wash: rgba(255, 255, 255, 0.09);
+          --accent-bg: rgba(57, 135, 229, 0.16);
+          --series-1: #3987e5;
+          --series-2: #d95926;
+          --series-3: #199e70;
+          --series-4: #c98500;
+          --series-5: #d55181;
+          --series-6: #008300;
+          --series-7: #9085e9;
+          --series-8: #e66767;
+        }
+      }
+      :root[data-theme="dark"] {
+        color-scheme: dark;
+        --surface-1: #1a1a19;
+        --page: #0d0d0d;
+        --text-primary: #ffffff;
+        --text-secondary: #c3c2b7;
+        --text-muted: #898781;
+        --gridline: #2c2c2a;
+        --baseline: #383835;
+        --border: rgba(255, 255, 255, 0.1);
+        --hover-wash: rgba(255, 255, 255, 0.09);
+        --series-1: #3987e5;
+        --series-2: #d95926;
+        --series-3: #199e70;
+        --series-4: #c98500;
+        --series-5: #d55181;
+        --series-6: #008300;
+        --series-7: #9085e9;
+        --series-8: #e66767;
+      }
+
+      * {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+      }
+
+      body {
+        font-family:
+          system-ui,
+          -apple-system,
+          "Segoe UI",
+          "PingFang SC",
+          "Noto Sans SC",
+          "Microsoft YaHei",
+          sans-serif;
+        background: var(--page);
+        color: var(--text-primary);
+        min-height: 100vh;
+        padding: 24px 16px 48px;
+      }
+
+      .container {
+        max-width: 1160px;
+        margin: 0 auto;
+      }
+
+      /* ---------- 页头 ---------- */
+      .hero {
+        text-align: center;
+        margin: 8px 0 24px;
+      }
+      .hero-icon {
+        font-size: 40px;
+        margin-bottom: 4px;
+      }
+      .hero h1 {
+        font-size: 24px;
+        font-weight: 700;
+        margin-bottom: 6px;
+      }
+      .hero .subtitle {
+        font-size: 14px;
+        color: var(--text-secondary);
+      }
+      .hero a {
+        color: var(--series-1);
+        text-decoration: none;
+      }
+      .hero a:hover {
+        text-decoration: underline;
+      }
+
+      /* ---------- 顶部统计 ---------- */
+      .stat-row {
+        display: grid;
+        /* 今日数据卡内容更多（4 个小格子），给它双倍宽度，其余各占一份 */
+        grid-template-columns: 2fr 1fr 1fr 1fr;
+        gap: 12px;
+        margin-bottom: 16px;
+      }
+      .stat-card {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        background: var(--surface-1);
+        border: 1px solid var(--border);
+        border-radius: 12px;
+        padding: 14px 16px;
+      }
+      .stat-icon {
+        width: 44px;
+        height: 44px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 22px;
+        line-height: 1;
+        border-radius: 10px;
+        background: var(--accent-bg);
+        flex: none;
+      }
+      .stat-val {
+        font-size: 22px;
+        font-weight: 600;
+        line-height: 1.2;
+        font-variant-numeric: tabular-nums;
+      }
+      .stat-card.small .stat-val {
+        font-size: 15px;
+        font-weight: 600;
+      }
+      .stat-label {
+        font-size: 12px;
+        color: var(--text-muted);
+      }
+
+      /* ---------- 图表卡片 ---------- */
+      .card {
+        background: var(--surface-1);
+        border: 1px solid var(--border);
+        border-radius: 12px;
+        padding: 20px 20px 16px;
+        margin-bottom: 16px;
+      }
+      .card h2 {
+        font-size: 16px;
+        font-weight: 600;
+      }
+      .card .sub {
+        font-size: 13px;
+        color: var(--text-secondary);
+        margin-top: 2px;
+      }
+      .legend {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 6px 18px;
+        margin: 12px 0 4px;
+      }
+      .legend .item {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        font-size: 13px;
+        color: var(--text-secondary);
+        white-space: nowrap;
+      }
+      .legend .linekey {
+        width: 16px;
+        height: 3px;
+        border-radius: 2px;
+        flex: none;
+      }
+
+      /* ---------- 服务器 / 处理结果筛选 ---------- */
+      .filter-row {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        margin: 12px 0 0;
+      }
+      .filter-label {
+        flex: none;
+        width: 52px;
+        font-size: 12px;
+        color: var(--text-muted);
+      }
+      .filter-row .chips {
+        margin: 0;
+      }
+      .chips {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        margin: 12px 0 4px;
+      }
+      .chips button {
+        font: inherit;
+        font-size: 13px;
+        color: var(--text-secondary);
+        background: transparent;
+        border: 1px solid var(--border);
+        border-radius: 999px;
+        padding: 4px 14px;
+        cursor: pointer;
+      }
+      .chips button:hover {
+        background: var(--gridline);
+      }
+      .chips button[aria-pressed="true"] {
+        background: var(--text-primary);
+        color: var(--surface-1);
+        border-color: var(--text-primary);
+      }
+
+      /* ---------- 今日数据小方格（顶部统计卡内：左边「今日数据」字样，右边一排 4 个） ---------- */
+      .stat-card.today {
+        align-items: center;
+        gap: 12px;
+      }
+      .today-label {
+        flex: none;
+        align-self: center;
+        writing-mode: vertical-rl;
+        letter-spacing: 3px;
+        font-size: 15px;
+        font-weight: 700;
+        color: var(--text-primary);
+      }
+      .tiles {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 8px;
+        flex: 1;
+        border-left: 1px solid var(--border);
+        padding-left: 12px;
+      }
+      .tile {
+        background: var(--accent-bg);
+        border-radius: 8px;
+        padding: 6px 4px;
+        text-align: center;
+      }
+      .tile .v {
+        font-size: 18px;
+        font-weight: 600;
+        line-height: 1.2;
+        font-variant-numeric: tabular-nums;
+      }
+      .tile .l {
+        font-size: 11px;
+        color: var(--text-muted);
+        margin-top: 2px;
+      }
+
+      /* ---------- 图表 ---------- */
+      .chart {
+        position: relative;
+      }
+      .chart svg {
+        display: block;
+      }
+      .chart svg text {
+        font-size: 12px;
+        fill: var(--text-muted);
+      }
+      .chart .empty {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        height: 300px;
+        color: var(--text-muted);
+        font-size: 14px;
+      }
+
+      /* ---------- 悬浮提示 ---------- */
+      .tooltip {
+        position: fixed;
+        z-index: 100;
+        pointer-events: none;
+        background: var(--surface-1);
+        color: var(--text-primary);
+        border: 1px solid var(--border);
+        border-radius: 8px;
+        box-shadow: 0 6px 16px rgba(0, 0, 0, 0.12);
+        padding: 8px 10px;
+        font-size: 12.5px;
+        max-width: 280px;
+      }
+      .tooltip .tt-head {
+        font-weight: 600;
+        margin-bottom: 6px;
+      }
+      .tooltip .tt-row {
+        display: flex;
+        align-items: center;
+        gap: 7px;
+        padding: 1px 0;
+        color: var(--text-secondary);
+      }
+      .tooltip .tt-row strong {
+        color: var(--text-primary);
+        font-variant-numeric: tabular-nums;
+        min-width: 3.5em;
+        text-align: right;
+      }
+      .tooltip .tt-linekey {
+        width: 12px;
+        height: 3px;
+        border-radius: 2px;
+        flex: none;
+      }
+
+      /* ---------- 页脚 & 其他 ---------- */
+      .footer {
+        text-align: center;
+        font-size: 12.5px;
+        color: var(--text-muted);
+        margin-top: 28px;
+        line-height: 1.8;
+      }
+      .footer a {
+        color: var(--text-secondary);
+      }
+      .error-banner {
+        background: #d03b3b;
+        color: #fff;
+        border-radius: 8px;
+        padding: 10px 14px;
+        margin-bottom: 16px;
+        font-size: 14px;
+      }
+      #theme-btn {
+        position: fixed;
+        top: 14px;
+        right: 14px;
+        width: 36px;
+        height: 36px;
+        font-size: 17px;
+        background: var(--surface-1);
+        border: 1px solid var(--border);
+        border-radius: 50%;
+        cursor: pointer;
+      }
+
+      @media (max-width: 900px) {
+        .stat-row {
+          grid-template-columns: repeat(2, 1fr);
+        }
+        .stat-card.today {
+          grid-column: 1 / -1; /* 窄屏时今日数据卡占满整行，小格子不挤 */
+        }
+      }
+
+      /* ---------- 移动端适配 ---------- */
+      @media (max-width: 640px) {
+        body {
+          padding: 14px 10px 32px;
+        }
+        .hero {
+          margin: 4px 0 18px;
+        }
+        .hero-icon {
+          font-size: 32px;
+        }
+        .hero h1 {
+          font-size: 20px;
+        }
+        .hero .subtitle {
+          font-size: 12.5px;
+        }
+
+        .stat-row {
+          /* 今日数据卡占整行，其余三张小卡并排一行 */
+          grid-template-columns: repeat(3, 1fr);
+          gap: 8px;
+          margin-bottom: 12px;
+        }
+        .stat-card {
+          padding: 12px 14px;
+          gap: 10px;
+        }
+        /* 三张小卡改竖排：图标在上，数字和标签居中在下 */
+        .stat-card:not(.today) {
+          flex-direction: column;
+          gap: 6px;
+          padding: 10px 6px;
+          text-align: center;
+        }
+        .stat-icon {
+          width: 32px;
+          height: 32px;
+          font-size: 16px;
+          border-radius: 8px;
+        }
+        .stat-val {
+          font-size: 16px;
+        }
+        .stat-card.small .stat-val {
+          font-size: 12px;
+        }
+        .stat-label {
+          font-size: 11px;
+          line-height: 1.3;
+        }
+        /* 今日数据卡：小格子 2×2，留足标签空间 */
+        .tiles {
+          grid-template-columns: repeat(2, 1fr);
+        }
+
+        .card {
+          padding: 14px 12px 12px;
+          border-radius: 10px;
+          margin-bottom: 12px;
+        }
+        .card h2 {
+          font-size: 15px;
+        }
+
+        .filter-row {
+          flex-direction: column;
+          align-items: stretch;
+          gap: 4px;
+          margin-top: 10px;
+        }
+        .filter-label {
+          width: auto;
+        }
+        .chips button {
+          font-size: 12.5px;
+          padding: 4px 12px;
+        }
+
+        #theme-btn {
+          top: 10px;
+          right: 10px;
+          width: 32px;
+          height: 32px;
+          font-size: 15px;
+        }
+
+        .footer {
+          font-size: 11.5px;
+          margin-top: 20px;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <button id="theme-btn" aria-label="切换深浅色模式">🌙</button>
+    <div class="container">
+      <div class="hero">
+        <div class="hero-icon">📊</div>
+        <h1>冒险岛怀旧服 举报数据分析助手</h1>
+        <p class="subtitle">数据每小时自动更新</p>
+      </div>
+
+      <div class="stat-row">
+        <div class="stat-card today">
+          <div class="today-label">今日数据</div>
+          <div class="tiles" id="stat-tiles"></div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon">📋</div>
+          <div>
+            <div class="stat-val" id="stat-total">--</div>
+            <div class="stat-label">总计举报次数</div>
+          </div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon">🎯</div>
+          <div>
+            <div class="stat-val" id="stat-violated">--</div>
+            <div class="stat-label">举证属实次数</div>
+          </div>
+        </div>
+        <div class="stat-card small">
+          <div class="stat-icon">🕒</div>
+          <div>
+            <div class="stat-val" id="stat-time">--</div>
+            <div class="stat-label">数据更新时间</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="error-banner" id="error" hidden></div>
+
+      <section class="card">
+        <p class="sub" id="c1-sub"></p>
+        <div class="filter-row">
+          <span class="filter-label">服务器</span>
+          <div
+            class="chips"
+            id="c1-chips"
+            role="group"
+            aria-label="服务器筛选"
+          ></div>
+        </div>
+        <div class="filter-row">
+          <span class="filter-label">处理结果</span>
+          <div
+            class="chips"
+            id="c1-result-chips"
+            role="group"
+            aria-label="处理结果筛选"
+          ></div>
+        </div>
+        <div class="legend" id="c1-legend"></div>
+        <div class="chart" id="c1"></div>
+      </section>
+
+      <div class="footer">
+        Made by zhuzhu ❤️ · 数据来源
+        <a
+          href="https://mxdcact.web.sdo.com/project/mxdts/index.asp"
+          target="_blank"
+          rel="noreferrer"
+          >官方视频举报列表</a
+        >
+        <br />
+        更多工具：
+        <a href="http://mxd.zhuzhu.website" target="_blank" rel="noreferrer"
+          >怪物价值排行</a
+        >
+      </div>
+    </div>
+
+    <script>
+      "use strict";
+
+      /* ================= PURE-DATA-START 数据准备（纯函数，与 DOM 无关） ================= */
+
+      const fmt = (n) => Number(n).toLocaleString("en-US"); // 千分位
+
+      // "2026-08-14 22:56:12" → "2026年8月14日 22时"（年月日时，非法值原样返回）
+      function fmtLocalTime(s) {
+        const m = (s || "").match(/^(\d{4})-(\d{2})-(\d{2}) (\d{2}):/);
+        if (!m) return s || "--";
+        return `${Number(m[1])}-${Number(m[2])}-${Number(m[3])}`;
+      }
+
+      // 服务器名为 "-" 的记录（站点对较早记录隐藏区服）统一归入「未知服务器」
+      const normServer = (s) => (s === "-" ? "未知服务器" : s);
+
+      // 显示用服务器名：去掉前面的编号数字，只留中文（未知服务器/全部 原样）
+      const shortServer = (s) => s.replace(/^\d+/, "");
+
+      // 处理结果归类为 3 类（判定顺序：审核中 > 举证失败 > 举证成功）。
+      // 注意先判失败：如「举报人严重违规（虚假举报…）」含“违规”但属于作废
+      function classifyResult(r) {
+        if (r.includes("等待审核")) return "等待审核中";
+        if (/作废|失效|未违规|有误|虚假|恶意|滥用/.test(r)) return "举证失败";
+        if (/违规|封号|工作室/.test(r)) return "举证成功";
+        return "举证失败"; // 未知类别默认按失败计
+      }
+
+      // 处理结果筛选可选的 3 个分类（固定语义顺序）
+      const RESULT_GROUPS = ["等待审核中", "举证失败", "举证成功"];
+
+      // 折线图数据：最近 days 天的分服务器举报数（最新快照口径，按举报发起日期归日）
+      function buildWeekData(H, T, days = 30) {
+        const newest = [...(H.entries || [])]
+          .sort((a, b) => Date.parse(a.at) - Date.parse(b.at))
+          .pop();
+        const byDate = (newest && newest.byDate) || {};
+        const dayList = Object.keys(byDate).sort().slice(-days);
+
+        const serverSet = new Set();
+        for (const d of dayList)
+          for (const s of Object.keys(byDate[d])) serverSet.add(normServer(s));
+        for (const s of Object.keys((T.byDate && T.byDate[T.date]) || {}))
+          serverSet.add(normServer(s));
+
+        const servers = [...serverSet].sort();
+        const series = servers.map((name, i) => ({
+          name,
+          colorIdx: i + 1, // 服务器 → 色槽，按名称固定映射，不随数量变化
+          points: dayList.map((d, di) => {
+            const m = byDate[d][name === "未知服务器" ? "-" : name] || {};
+            return {
+              d,
+              i: di,
+              v: Object.values(m).reduce((a, b) => a + b, 0),
+            };
+          }),
+        }));
+
+        // 全部 = 各服务器之和（含未知服务器），单独一条线（色槽 1）
+        const total = {
+          name: "全部",
+          colorIdx: 1,
+          points: dayList.map((d, di) => ({
+            d,
+            i: di,
+            v: Object.values(byDate[d] || {}).reduce(
+              (a, rm) => a + Object.values(rm).reduce((x, y) => x + y, 0),
+              0,
+            ),
+          })),
+        };
+
+        // 每个 服务器×处理结果类别（3 类） 的每日计数，供处理结果筛选
+        const rawServer = (name) => (name === "未知服务器" ? "-" : name);
+        const cells = {};
+        for (const name of servers) {
+          const byGroup = (cells[name] = {});
+          dayList.forEach((d, di) => {
+            const rm = byDate[d][rawServer(name)] || {};
+            for (const [r, c] of Object.entries(rm)) {
+              const g = classifyResult(r);
+              (byGroup[g] ||= new Array(dayList.length).fill(0))[di] += c;
+            }
+          });
+        }
+
+        return { days: dayList, series, total, cells, results: RESULT_GROUPS };
+      }
+
+      // 服务器 × 处理结果 筛选 → 单条线的每日序列（颜色跟随服务器：全部 = 色槽 1）
+      function filterSeries(LINE, server, result) {
+        const base =
+          server === "全部"
+            ? LINE.total
+            : LINE.series.find((s) => s.name === server);
+        const points = LINE.days.map((d, di) => {
+          let v;
+          if (result === "全部") {
+            v = base.points[di].v;
+          } else if (server === "全部") {
+            v = LINE.series.reduce(
+              (a, s) => a + ((LINE.cells[s.name][result] || [])[di] || 0),
+              0,
+            );
+          } else {
+            v = (LINE.cells[server][result] || [])[di] || 0;
+          }
+          return { d, i: di, v };
+        });
+        return { name: base.name, colorIdx: base.colorIdx, points };
+      }
+
+      // 今日举报汇总：与处理结果筛选同口径（3 类），再拆为 4 格数字
+      function todaySummary(T) {
+        const s = { violated: 0, pending: 0, rejected: 0 };
+        for (const rm of Object.values((T.byDate && T.byDate[T.date]) || {})) {
+          for (const [r, c] of Object.entries(rm)) {
+            const g = classifyResult(r);
+            if (g === "等待审核中") s.pending += c;
+            else if (g === "举证成功") s.violated += c;
+            else s.rejected += c;
+          }
+        }
+        return { total: T.recordCount, ...s };
+      }
+
+      /* ================= PURE-DATA-END ================= */
+
+      /* ================= 渲染（以下依赖 DOM） ================= */
+
+      const $ = (id) => document.getElementById(id);
+      const root = document.documentElement;
+      const css = (name) =>
+        getComputedStyle(root).getPropertyValue(name).trim();
+
+      let LINE = null; // buildWeekData 结果
+      let TODAY = null;
+      const state = { server: "全部", result: "全部" }; // 服务器 / 处理结果筛选
+
+      const tooltip = (() => {
+        const el = document.createElement("div");
+        el.className = "tooltip";
+        el.hidden = true;
+        document.body.appendChild(el);
+        return {
+          show(html, x, y) {
+            el.replaceChildren(html);
+            el.hidden = false;
+            // 先显示再测量，防止溢出右/下边缘
+            el.style.left = "0px";
+            el.style.top = "0px";
+            const r = el.getBoundingClientRect();
+            el.style.left =
+              Math.min(x + 14, window.innerWidth - r.width - 8) + "px";
+            el.style.top =
+              Math.min(y + 14, window.innerHeight - r.height - 8) + "px";
+          },
+          hide() {
+            el.hidden = true;
+          },
+        };
+      })();
+
+      // 只用 DOM 节点拼提示行：名称来自 JSON（不受信数据），一律走 textContent
+      function ttRow(keyNode, value, name) {
+        const row = document.createElement("div");
+        row.className = "tt-row";
+        row.appendChild(keyNode);
+        const v = document.createElement("strong");
+        v.textContent = fmt(value);
+        const n = document.createElement("span");
+        n.textContent = name;
+        row.append(v, n);
+        return row;
+      }
+
+      // ---------- 服务器 / 处理结果筛选 chips ----------
+
+      function renderChips() {
+        const host = $("c1-chips");
+        host.replaceChildren();
+        const options = ["全部", ...LINE.series.map((s) => s.name)];
+        for (const opt of options) {
+          const btn = document.createElement("button");
+          btn.textContent = shortServer(opt);
+          btn.setAttribute("aria-pressed", String(opt === state.server));
+          btn.addEventListener("click", () => {
+            if (state.server === opt) return;
+            state.server = opt;
+            renderChips();
+            renderChart1(); // 图例随图一起重绘
+          });
+          host.appendChild(btn);
+        }
+
+        const rHost = $("c1-result-chips");
+        rHost.replaceChildren();
+        const rOptions = ["全部", ...LINE.results];
+        for (const opt of rOptions) {
+          const btn = document.createElement("button");
+          btn.textContent = opt;
+          btn.setAttribute("aria-pressed", String(opt === state.result));
+          btn.addEventListener("click", () => {
+            if (state.result === opt) return;
+            state.result = opt;
+            renderChips();
+            renderChart1();
+          });
+          rHost.appendChild(btn);
+        }
+      }
+
+      // ---------- 今日举报汇总小方格 ----------
+
+      function renderTodayTiles() {
+        const host = $("stat-tiles");
+        host.replaceChildren();
+        if (!TODAY) return;
+        const s = todaySummary(TODAY);
+        const items = [
+          { label: "举报次数", v: s.total },
+          { label: "违规属实", v: s.violated },
+          { label: "等待审核中", v: s.pending },
+          { label: "已作废", v: s.rejected },
+        ];
+        for (const it of items) {
+          const tile = document.createElement("div");
+          tile.className = "tile";
+          const v = document.createElement("div");
+          v.className = "v";
+          v.textContent = fmt(it.v);
+          const l = document.createElement("div");
+          l.className = "l";
+          l.textContent = it.label;
+          tile.append(v, l);
+          host.appendChild(tile);
+        }
+      }
+
+      // ---------- 图例 ----------
+
+      // 两条线以上才需要图例框；单独查看一个服务器时标题/chip 已说明身份
+      function renderLegend1(series) {
+        const host = $("c1-legend");
+        host.replaceChildren();
+        if (series.length < 2) {
+          host.style.display = "none";
+          return;
+        }
+        host.style.display = "";
+        for (const s of series) {
+          const item = document.createElement("span");
+          item.className = "item";
+          const key = document.createElement("span");
+          key.className = "linekey";
+          key.style.background = css(`--series-${s.colorIdx}`);
+          const name = document.createElement("span");
+          name.textContent = shortServer(s.name);
+          item.append(key, name);
+          host.appendChild(item);
+        }
+      }
+
+      // ---------- 折线图：最近一周举报走势 ----------
+
+      function renderChart1() {
+        const host = $("c1");
+        host.replaceChildren();
+        if (!LINE) return;
+        const { days } = LINE;
+
+        // 服务器 × 处理结果 筛选 → 单条线（颜色跟随服务器，不随结果改变）
+        const s = filterSeries(LINE, state.server, state.result);
+        const series = [s];
+        renderLegend1(series);
+
+        if (!days.length) {
+          host.replaceChildren(emptyDiv("暂无快照数据，等待下一轮抓取"));
+          return;
+        }
+        const parts =
+          state.server === "全部" && state.result === "全部"
+            ? ["全部"]
+            : [
+                state.server === "全部"
+                  ? "全部服务器"
+                  : shortServer(state.server),
+                ...(state.result === "全部" ? [] : [state.result]),
+              ];
+        $("c1-sub").textContent =
+          `${parts.join(" · ")} · 最近 ${days.length} 天`;
+
+        const W = host.clientWidth || 800;
+        // 窄屏（移动端）：压缩边距、降低高度，线尾标注让位给悬浮提示
+        const narrow = W < 560;
+        // 窄屏没有线尾标注，把最新值附到副标题（触屏用户不需要悬浮）
+        if (narrow && series[0].points.length) {
+          const last = series[0].points[series[0].points.length - 1].v;
+          $("c1-sub").textContent += ` · 最新 ${fmt(last)}`;
+        }
+        const H = narrow ? 300 : 340;
+        const M = narrow
+          ? { l: 40, r: 12, t: 14, b: 34 }
+          : { l: 56, r: 128, t: 14, b: 32 };
+        const pw = W - M.l - M.r;
+        const ph = H - M.t - M.b;
+
+        // 横轴：按天等距
+        const x = (i) =>
+          days.length === 1 ? M.l + pw / 2 : M.l + (pw * i) / (days.length - 1);
+
+        const maxV = Math.max(
+          1,
+          ...series.flatMap((s) => s.points.map((p) => p.v)),
+        );
+        const step = niceStep(maxV);
+        const yMax = Math.ceil(maxV / step) * step;
+        const y = (v) => M.t + ph - (v / yMax) * ph;
+
+        const NS = "http://www.w3.org/2000/svg";
+        const svg = document.createElementNS(NS, "svg");
+        svg.setAttribute("width", W);
+        svg.setAttribute("height", H);
+        host.appendChild(svg);
+
+        const add = (tag, attrs) => {
+          const el = document.createElementNS(NS, tag);
+          for (const [k, v] of Object.entries(attrs)) el.setAttribute(k, v);
+          svg.appendChild(el);
+          return el;
+        };
+
+        // y 轴网格线 + 刻度
+        for (let v = 0; v <= yMax; v += step) {
+          add("line", {
+            x1: M.l,
+            y1: y(v),
+            x2: W - M.r,
+            y2: y(v),
+            stroke: css("--gridline"),
+            "stroke-width": 1,
+          });
+          const t = add("text", {
+            x: M.l - 8,
+            y: y(v) + 4,
+            "text-anchor": "end",
+          });
+          t.textContent = fmt(v);
+        }
+        // x 轴刻度：按宽度控制标签密度（窄屏约 5 个，宽屏约 10 个）
+        const tickEvery = Math.ceil(days.length / (narrow ? 5 : 10));
+        days.forEach((d, i) => {
+          if (i % tickEvery !== 0 && i !== days.length - 1) return;
+          const cx = x(i);
+          add("line", {
+            x1: cx,
+            y1: M.t + ph,
+            x2: cx,
+            y2: M.t + ph + 4,
+            stroke: css("--baseline"),
+            "stroke-width": 1,
+          });
+          const tx = add("text", {
+            x: cx,
+            y: M.t + ph + 18,
+            "text-anchor": "middle",
+          });
+          tx.textContent = d.slice(5); // "MM-DD"
+        });
+        // 基线
+        add("line", {
+          x1: M.l,
+          y1: M.t + ph,
+          x2: W - M.r,
+          y2: M.t + ph,
+          stroke: css("--baseline"),
+          "stroke-width": 1,
+        });
+
+        // 每条服务器线：天数少，每个点都画 8px 圆点（带 2px 面环）
+        const endDots = [];
+        for (const s of series) {
+          const color = css(`--series-${s.colorIdx}`);
+          const pts = s.points.map((p) => `${x(p.i)},${y(p.v)}`).join(" ");
+          if (s.points.length > 1) {
+            add("polyline", {
+              points: pts,
+              fill: "none",
+              stroke: color,
+              "stroke-width": 2,
+              "stroke-linecap": "round",
+              "stroke-linejoin": "round",
+            });
+          }
+          s.points.forEach((p, i) => {
+            if (i === s.points.length - 1)
+              endDots.push({ s, cx: x(p.i), cy: y(p.v) });
+            add("circle", {
+              cx: x(p.i),
+              cy: y(p.v),
+              r: 4,
+              fill: color,
+              stroke: css("--surface-1"),
+              "stroke-width": 2,
+            });
+          });
+        }
+
+        // 终点直接标注：按纵向位置贪心去重，撞了的不标（图例 + 悬浮兜底）。
+        // 窄屏绘图区太窄，不画线尾标注，数值放在副标题和悬浮提示里
+        if (!narrow) {
+          endDots.sort((a, b) => a.cy - b.cy);
+          let lastY = -Infinity;
+          for (const { s, cx, cy } of endDots) {
+            if (cy - lastY < 18) continue;
+            lastY = cy;
+            add("line", {
+              x1: cx + 5,
+              y1: cy,
+              x2: cx + 13,
+              y2: cy,
+              stroke: css(`--series-${s.colorIdx}`),
+              "stroke-width": 1.5,
+            });
+            const lb = add("text", { x: cx + 17, y: cy + 4 });
+            lb.textContent = `${shortServer(s.name)} ${fmt(
+              s.points[s.points.length - 1].v,
+            )}`;
+          }
+        }
+
+        // 悬浮：竖向十字线吸附最近一天，提示列出当前显示的服务器
+        const hair = add("line", {
+          y1: M.t,
+          y2: M.t + ph,
+          stroke: css("--text-muted"),
+          "stroke-width": 1,
+          visibility: "hidden",
+        });
+        const hoverDots = add("g", {});
+        const overlay = add("rect", {
+          x: M.l,
+          y: M.t,
+          width: pw,
+          height: ph,
+          fill: "transparent",
+        });
+        overlay.addEventListener("pointermove", (ev) => {
+          const rect = svg.getBoundingClientRect();
+          const px = ev.clientX - rect.left;
+          const idx =
+            days.length === 1
+              ? 0
+              : Math.max(
+                  0,
+                  Math.min(
+                    days.length - 1,
+                    Math.round(((px - M.l) / pw) * (days.length - 1)),
+                  ),
+                );
+          hair.setAttribute("x1", x(idx));
+          hair.setAttribute("x2", x(idx));
+          hair.setAttribute("visibility", "visible");
+          hoverDots.replaceChildren();
+          const rows = [];
+          for (const s of series) {
+            const p = s.points[idx];
+            if (!p) continue;
+            rows.push({ name: s.name, v: p.v, colorIdx: s.colorIdx });
+            const dot = document.createElementNS(NS, "circle");
+            dot.setAttribute("cx", x(idx));
+            dot.setAttribute("cy", y(p.v));
+            dot.setAttribute("r", 4);
+            dot.setAttribute("fill", css(`--series-${s.colorIdx}`));
+            dot.setAttribute("stroke", css("--surface-1"));
+            dot.setAttribute("stroke-width", 2);
+            hoverDots.appendChild(dot);
+          }
+          rows.sort((a, b) => b.v - a.v);
+          const box = document.createElement("div");
+          const head = document.createElement("div");
+          head.className = "tt-head";
+          head.textContent = days[idx];
+          box.appendChild(head);
+          for (const r of rows) {
+            const key = document.createElement("span");
+            key.className = "tt-linekey";
+            key.style.background = css(`--series-${r.colorIdx}`);
+            box.appendChild(ttRow(key, r.v, shortServer(r.name)));
+          }
+          tooltip.show(box, ev.clientX, ev.clientY);
+        });
+        overlay.addEventListener("pointerleave", () => {
+          hair.setAttribute("visibility", "hidden");
+          hoverDots.replaceChildren();
+          tooltip.hide();
+        });
+      }
+
+      // ---------- 工具 ----------
+
+      function niceStep(maxV, targetTicks = 4) {
+        const raw = maxV / targetTicks;
+        const p = Math.pow(10, Math.floor(Math.log10(raw)));
+        const n = raw / p;
+        return (n <= 1 ? 1 : n <= 2 ? 2 : n <= 5 ? 5 : 10) * p;
+      }
+
+      function emptyDiv(msg) {
+        const el = document.createElement("div");
+        el.className = "empty";
+        el.textContent = msg;
+        return el;
+      }
+
+      function renderAll() {
+        if (!LINE) return;
+        renderChips();
+        renderTodayTiles();
+        renderChart1();
+      }
+
+      // ---------- 主题切换 ----------
+
+      const themeBtn = $("theme-btn");
+      const darkQuery = window.matchMedia("(prefers-color-scheme: dark)");
+      function effectiveDark() {
+        return root.dataset.theme
+          ? root.dataset.theme === "dark"
+          : darkQuery.matches;
+      }
+      function syncThemeIcon() {
+        themeBtn.textContent = effectiveDark() ? "☀️" : "🌙";
+      }
+      themeBtn.addEventListener("click", () => {
+        root.dataset.theme = effectiveDark() ? "light" : "dark";
+        localStorage.setItem("waigua-theme", root.dataset.theme);
+        syncThemeIcon();
+        renderAll(); // SVG 颜色取自 CSS 变量，需重绘
+      });
+      const savedTheme = localStorage.getItem("waigua-theme");
+      if (savedTheme) root.dataset.theme = savedTheme;
+      syncThemeIcon();
+
+      // ---------- 加载数据 ----------
+
+      function main() {
+        // 数据由 <script src="*.json.js"> 注入为全局变量（window.WAIGUA_*）
+        const H = window.WAIGUA_HISTORY;
+        const T = window.WAIGUA_TODAY;
+        if (!H || !T) {
+          const banner = $("error");
+          banner.hidden = false;
+          banner.textContent =
+            "数据加载失败：未找到 waigua-info/history.json.js / today.json.js。" +
+            "请确认数据文件与 waigua.html 在同一目录结构下，且抓取脚本至少运行过一次。";
+          return;
+        }
+        TODAY = T;
+        LINE = buildWeekData(H, T);
+
+        // 顶部统计
+        const st = T.siteTotals || {};
+        $("stat-total").textContent = st.total != null ? fmt(st.total) : "--";
+        $("stat-violated").textContent =
+          st.violated != null ? fmt(st.violated) : "--";
+        $("stat-time").textContent = fmtLocalTime(T.localTime);
+
+        renderAll();
+      }
+
+      // 容器宽度变化（窗口缩放、移动端旋转）时重绘
+      const ro = new ResizeObserver(() => {
+        if (!LINE) return;
+        renderChart1();
+      });
+      ro.observe($("c1"));
+
+      main();
+    </script>
+  </body>
+</html>
