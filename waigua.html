@@ -115,6 +115,13 @@
         min-height: 100vh;
         padding: 24px 16px 48px;
       }
+      /* 共享顶栏/底栏贴边显示（本页 body 自带内边距，抵消后与其它工具页一致） */
+      .mh-topbar {
+        margin: -24px -16px 0;
+      }
+      .mh-footer {
+        margin: 0 -16px -48px;
+      }
 
       .container {
         max-width: 1160px;
@@ -389,7 +396,7 @@
       }
       #theme-btn {
         position: fixed;
-        top: 14px;
+        top: 66px;
         right: 14px;
         width: 36px;
         height: 36px;
@@ -489,7 +496,7 @@
         }
 
         #theme-btn {
-          top: 10px;
+          top: 62px; /* 让出共享顶栏 */
           right: 10px;
           width: 32px;
           height: 32px;
@@ -504,6 +511,7 @@
     </style>
   </head>
   <body>
+    <script src="header.js"></script>
     <button id="theme-btn" aria-label="切换深浅色模式">🌙</button>
     <div class="container">
       <div class="hero">
@@ -566,21 +574,9 @@
         <div class="chart" id="c1"></div>
       </section>
 
-      <div class="footer">
-        Made by zhuzhu ❤️ · 数据来源
-        <a
-          href="https://mxdcact.web.sdo.com/project/mxdts/index.asp"
-          target="_blank"
-          rel="noreferrer"
-          >官方视频举报列表</a
-        >
-        <br />
-        更多工具：
-        <a href="http://mxd.zhuzhu.website" target="_blank" rel="noreferrer"
-          >怪物价值排行</a
-        >
-      </div>
     </div>
+
+    <script src="footer.js"></script>
 
     <script>
       "use strict";

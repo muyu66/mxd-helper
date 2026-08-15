@@ -384,6 +384,7 @@
     </style>
   </head>
   <body>
+    <script src="header.js"></script>
     <div class="page">
       <header>
         <h1>🗡️ 冒险岛怀旧服 · 账号价格走势</h1>
@@ -448,12 +449,9 @@
         <div class="card-sub" id="list-sub"></div>
         <div class="list" id="list"></div>
       </section>
-
-      <footer>
-        数据来源 gmmsj.com 冒险岛怀旧服交易区<br />
-        运行 <b>node account-info.js</b> 更新数据
-      </footer>
     </div>
+
+    <script src="footer.js"></script>
 
     <script>
       (function () {
@@ -469,11 +467,15 @@
 
         const dayOf = (r) => String(r.update_time || "").slice(0, 10);
         // 把出现过的日期扩成从最早到最晚的连续区间：无数据的日期也要画出来（值为 0）
+        // x 轴日期区间：固定从 2026-08-03（开始抓数据的那天）到数据最新日期，
+        // 区间内无数据的日期一律补 0（与筛选无关，各筛选共用同一根时间轴）
+        const AXIS_START_DAY = "2026-08-03";
         function expandDays(days) {
           if (!days.length) return [];
           const DAY = 86400000;
-          const first = Date.parse(days[0] + "T00:00:00Z");
-          const last = Date.parse(days[days.length - 1] + "T00:00:00Z");
+          const first = Date.parse(AXIS_START_DAY + "T00:00:00Z");
+          const last = Date.parse(GLOBAL_LATEST_DAY + "T00:00:00Z");
+          if (Number.isNaN(last)) return [];
           const out = [];
           for (let t = first; t <= last; t += DAY)
             out.push(new Date(t).toISOString().slice(0, 10));
@@ -518,6 +520,16 @@
         // 读取数据时过滤空 Job 的记录（标题无 [职业 N级] 的挂单不参与统计）
         const RECORDS = DATA.records.filter((r) => r.job);
 
+        // 数据里最新的日期（= 每次查询数据的日期），x 轴终点的依据
+        const GLOBAL_LATEST_DAY = (() => {
+          let max = "";
+          for (const r of RECORDS) {
+            const d = dayOf(r);
+            if (d > max) max = d;
+          }
+          return max;
+        })();
+
         // 服务器与职业列表：按记录数降序；空 job 显示为「其他」
         const JOB_LABEL = (j) => j || "其他";
         const countBy = (key) => {
@@ -542,7 +554,8 @@
 
         // ---------- 状态 ----------
 
-        const state = { server: "全部", job: "全部", hidden: new Set() };
+        // job 模式：「全部」= 所有职业池成一条整体线；「对比」= Top 5 职业多条线
+        const state = { server: "全部", job: "对比", hidden: new Set() };
 
         // ---------- 聚合 ----------
 
@@ -550,7 +563,9 @@
           return RECORDS.filter(
             (r) =>
               (state.server === "全部" || r.server === state.server) &&
-              (state.job === "全部" || r.job === state.job),
+              (state.job === "全部" ||
+                state.job === "对比" ||
+                r.job === state.job),
           );
         }
 
@@ -565,13 +580,14 @@
             const d = dayOf(r);
             if (!byDay.has(d)) byDay.set(d, new Map());
             const jm = byDay.get(d);
-            if (!jm.has(r.job)) jm.set(r.job, []);
+            const k = state.job === "全部" ? "全部" : r.job; // 整体模式：所有职业池进一组
+            if (!jm.has(k)) jm.set(k, []);
             const v = num(mode === "price" ? r.price : r.level);
-            if (v != null) jm.get(r.job).push(v);
+            if (v != null) jm.get(k).push(v);
           }
 
           let jobs;
-          if (state.job === "全部") {
+          if (state.job === "对比") {
             // 取全局排行前 5 且当前有数据的职业，颜色保持全局色槽
             jobs = JOB_RANK.filter((j) => recs.some((r) => r.job === j)).slice(
               0,
@@ -580,7 +596,7 @@
             if (!jobs.length)
               jobs = [...new Set(recs.map((r) => r.job))].slice(0, 5);
           } else {
-            jobs = [state.job];
+            jobs = [state.job]; // 「全部」= 整体一条线；具体职业 = 单线
           }
 
           const series = jobs.map((job) => ({
@@ -588,8 +604,7 @@
             color: jobColor(job),
             points: days.map((d) => {
               const arr = byDay.get(d)?.get(job);
-              if (!arr || !arr.length)
-                return { v: 0, n: 0, min: 0, max: 0 }; // 无数据的日期补 0
+              if (!arr || !arr.length) return { v: 0, n: 0, min: 0, max: 0 }; // 无数据的日期补 0
               return {
                 v: median(arr),
                 n: arr.length,
@@ -613,11 +628,12 @@
             if (!d) continue;
             if (!byDay.has(d)) byDay.set(d, new Map());
             const jm = byDay.get(d);
-            jm.set(r.job, (jm.get(r.job) || 0) + 1);
+            const k = state.job === "全部" ? "全部" : r.job; // 整体模式：池成一组
+            jm.set(k, (jm.get(k) || 0) + 1);
           }
 
           let jobs;
-          if (state.job === "全部") {
+          if (state.job === "对比") {
             // 与价格/等级图一致：全局排行前 5 且当前有数据
             jobs = JOB_RANK.filter((j) => recs.some((r) => r.job === j)).slice(
               0,
@@ -626,7 +642,7 @@
             if (!jobs.length)
               jobs = [...new Set(recs.map((r) => r.job))].slice(0, 5);
           } else {
-            jobs = [state.job];
+            jobs = [state.job]; // 「全部」= 整体一条线；具体职业 = 单线
           }
 
           return {
@@ -731,13 +747,22 @@
           }
         }
 
-        function chipRow(hostId, items, labelFn, cur, onPick, colored) {
+        // prefix: 排在最前面的特殊选项（如职业筛选的「全部」「对比」），不带色点
+        function chipRow(
+          hostId,
+          items,
+          labelFn,
+          cur,
+          onPick,
+          colored,
+          prefix = ["全部"],
+        ) {
           const host = $(hostId);
           host.replaceChildren();
-          for (const it of ["全部", ...items]) {
+          for (const it of [...prefix, ...items]) {
             const c = document.createElement("div");
             c.className = "chip" + (cur === it ? " active" : "");
-            if (colored && it !== "全部") {
+            if (colored && !prefix.includes(it)) {
               const dot = document.createElement("span");
               dot.className = "dot";
               dot.style.background = jobColor(it);
@@ -774,6 +799,7 @@
               state.hidden.clear(); // 切换职业后重置图例显隐
             },
             true,
+            ["全部", "对比"], // 全部=整体一条线；对比=Top 5 多条线
           );
         }
 
@@ -833,7 +859,8 @@
 
           const W = host.clientWidth || 340;
           const H = 320;
-          const M = { l: 46, r: 12, t: 14, b: 30 };
+          // r 边距需容纳最后一个 x 轴刻度（"08-15" 中线锚点，半宽约 14px）
+          const M = { l: 46, r: 28, t: 14, b: 30 };
           const pw = W - M.l - M.r;
           const ph = H - M.t - M.b;
           const x = (i) =>
@@ -1060,7 +1087,11 @@
         function renderChart1() {
           const data = buildSeries("price");
           const jobPart =
-            state.job === "全部" ? "Top 5 职业" : JOB_LABEL(state.job);
+            state.job === "对比"
+              ? "Top 5 职业"
+              : state.job === "全部"
+                ? "全部职业"
+                : JOB_LABEL(state.job);
           renderLineChart({
             hostId: "c1",
             tipId: "tip1",
@@ -1077,7 +1108,11 @@
         function renderChart3() {
           const data = buildSeries("level");
           const jobPart =
-            state.job === "全部" ? "Top 5 职业" : JOB_LABEL(state.job);
+            state.job === "对比"
+              ? "Top 5 职业"
+              : state.job === "全部"
+                ? "全部职业"
+                : JOB_LABEL(state.job);
           renderLineChart({
             hostId: "c3",
             tipId: "tip3",
@@ -1094,7 +1129,11 @@
         function renderChart2() {
           const data = buildCountSeries();
           const jobPart =
-            state.job === "全部" ? "Top 5 职业" : JOB_LABEL(state.job);
+            state.job === "对比"
+              ? "Top 5 职业"
+              : state.job === "全部"
+                ? "全部职业"
+                : JOB_LABEL(state.job);
           renderLineChart({
             hostId: "c2",
             tipId: "tip2",

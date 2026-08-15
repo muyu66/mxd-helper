@@ -14,5 +14,16 @@ module.exports = {
       // 抓取循环在脚本内部实现，进程正常运行不会退出；
       // 若进程意外崩溃，pm2 默认自动拉起（autorestart 默认开启）
     },
+    {
+      name: "account-info",
+      script: "account-info.js",
+      cwd: __dirname,
+      time: true, // 日志带时间戳
+      // 单次执行脚本（抓完全部分页后正常退出），由 pm2 按 cron 每小时拉起一次：
+      // 每小时第 7 分钟执行，避免与整点任务挤在同一时刻
+      cron_restart: "7 * * * *",
+      autorestart: false, // 执行完退出后不立即重启，等下一个 cron 时刻
+      // 抓取失败（退出码 1）不覆盖本地数据，下一次 cron 自动重试
+    },
   ],
 };
