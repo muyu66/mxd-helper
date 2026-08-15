@@ -12,8 +12,10 @@
     <title>冒险岛怀旧服 举报数据分析助手</title>
     <script>
       // 数据以 <script> 方式加载：浏览器在 file:// 下禁用 fetch，
-      // 脚本引用则不受限，双击打开页面也能读到数据（?t= 用于绕过缓存）
-      const _waiguaTs = Date.now();
+      // 脚本引用则不受限，双击打开页面也能读到数据。
+      // 缓存策略：file:// 用 ?t= 时间戳强制新鲜；线上用固定版本号，
+      // 让浏览器缓存数据文件（更新后由服务器 Last-Modified 重验证）
+      const _waiguaTs = location.protocol === "file:" ? Date.now() : "v1";
       document.write(
         '<script src="waigua-info/history.json.js?t=' +
           _waiguaTs +

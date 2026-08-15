@@ -386,7 +386,21 @@ async function main() {
     records: merged,
   };
   atomicWrite(DATA_FILE, JSON.stringify(data, null, 2));
-  atomicWrite(DATA_JS_FILE, `window.ACCOUNT_DATA = ${safeJson(data)};`);
+
+  // 页面版数据：只保留 account.html 用到的字段（标题两个长字段不展示，
+  // 剔除后体积约省 40%），网页加载更快
+  const pageRecords = merged.map((r) => ({
+    book_id: r.book_id,
+    server: r.server,
+    job: r.job,
+    level: r.level,
+    price: r.price,
+    update_time: r.update_time,
+  }));
+  atomicWrite(
+    DATA_JS_FILE,
+    `window.ACCOUNT_DATA = ${safeJson({ ...data, records: pageRecords })};`,
+  );
 
   const added = merged.length - existing.length;
   console.log(
