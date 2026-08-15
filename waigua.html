@@ -422,7 +422,14 @@
       /* ---------- 移动端适配 ---------- */
       @media (max-width: 640px) {
         body {
-          padding: 14px 10px 32px;
+          /* 顶部不留内边距：共享顶栏贴边显示，与桌面端、其它工具页一致 */
+          padding: 0 10px 32px;
+        }
+        .mh-topbar {
+          margin: 0 -10px 14px; /* 顶栏通栏，下方保留原 14px 间距 */
+        }
+        .mh-footer {
+          margin: 0 -10px -32px;
         }
         .hero {
           margin: 4px 0 18px;

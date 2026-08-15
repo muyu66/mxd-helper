@@ -13,7 +13,7 @@
     "@media (prefers-color-scheme:dark){.mh-footer{color:#898781;}}" +
     "</style>" +
     '<div class="mh-footer">' +
-    "Made by zhuzhu ❤️ 数据来源网络搜集<br />" +
+    "Made by zhuzhu ❤️ 数据来源于网络搜集<br />" +
     "皖ICP备2025106435号-1<br />" +
     '<a href="https://live.bilibili.com/1978986435" target="_blank" rel="noreferrer">B站直播间</a>' +
     "</div>",
