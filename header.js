@@ -37,7 +37,7 @@
     "</style>" +
     '<div class="mh-topbar">' +
     '<div class="mh-inner">' +
-    '<div class="mh-brand">🗡️ 冒险岛怀旧服工具箱</div>' +
+    '<div class="mh-brand">🗡️ Tools</div>' +
     '<nav class="mh-nav">' +
     '<a class="mh-btn' + active("rank.html") + '" href="rank.html">怪物排行</a>' +
     '<a class="mh-btn' + active("waigua.html") + '" href="waigua.html">举报分析</a>' +
