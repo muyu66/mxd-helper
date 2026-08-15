@@ -115,11 +115,12 @@
         background: var(--page);
         color: var(--text-primary);
         min-height: 100vh;
-        padding: 24px 16px 48px;
+        /* 顶部不留内边距：共享顶栏贴边显示，避免移动端负 margin 把顶栏拉出屏幕 */
+        padding: 0 16px 48px;
       }
-      /* 共享顶栏/底栏贴边显示（本页 body 自带内边距，抵消后与其它工具页一致） */
+      /* 共享顶栏/底栏贴边显示（本页 body 自带左右内边距，抵消后与其它工具页一致） */
       .mh-topbar {
-        margin: -24px -16px 0;
+        margin: 0 -16px 24px; /* 顶栏下方保留原 24px 顶部间距 */
       }
       .mh-footer {
         margin: 0 -16px -48px;
