@@ -1,11 +1,16 @@
+// tippy 初始化：库缺失时静默跳过，不影响数据加载与表格渲染
+function initTippy(delayMs) {
+  if (typeof window.tippy !== "function") return;
+  tippy('[data-tippy-content]', {
+    placement: 'top',
+    arrow: true,
+    animation: 'shift-away',
+    delay: [delayMs, 0],
+    theme: 'light',
+  });
+}
 // 全局 tippy（表单等静态元素）
-tippy('[data-tippy-content]', {
-  placement: 'top',
-  arrow: true,
-  animation: 'shift-away',
-  delay: [200, 0],
-  theme: 'light',
-});
+initTippy(200);
 
 // 点击筛选面板外部时关闭面板
 // 用 composedPath 而非 target.closest：行内删除按钮会把所在行从 DOM 移除，
@@ -42,21 +47,26 @@ let filters = []; // 筛选条件 [{col, op, value, logic}]，logic 为该条与
   `;
 
   try {
-    const [respData, respEquip] = await Promise.all([
-      fetch("data.json"),
-      fetch("equipment.json"),
+    // 数据读取：优先用 <script> 注入的 window 全局（file:// 双击可用），
+    // 缺失时回退 fetch（兼容本地服务器等 http 环境）
+    const loadJson = (global, url) =>
+      window[global]
+        ? Promise.resolve(window[global])
+        : fetch(url).then((r) => {
+            if (!r.ok) throw new Error(`${url} HTTP ${r.status}`);
+            return r.json();
+          });
+    const [json, equipData] = await Promise.all([
+      loadJson("RANK_DATA", "data.json"),
+      loadJson("RANK_EQUIPMENT", "equipment.json").catch(() => null),
     ]);
-    if (!respData.ok) throw new Error(`data.json HTTP ${respData.status}`);
-
-    const json = await respData.json();
     monsterData = (json.items || []).filter(
       (m) => (m.maxMonsterCount ?? 0) >= 10,
     );
     document.getElementById("stat-total").textContent = monsterData.length;
 
     // 构建装备查找表
-    if (respEquip.ok) {
-      const equipData = await respEquip.json();
+    if (equipData) {
       for (const e of equipData) {
         if (!equipMap[e.mobid]) equipMap[e.mobid] = [];
         equipMap[e.mobid].push({ level: e.level, rate: e.rate, money: e.money });
@@ -517,13 +527,7 @@ function calc() {
     });
 
     // 激活 tippy tooltips
-    tippy('[data-tippy-content]', {
-      placement: 'top',
-      arrow: true,
-      animation: 'shift-away',
-      delay: [300, 0],
-      theme: 'light',
-    });
+    initTippy(300);
   }
 
   renderTable();

@@ -10,6 +10,11 @@ const DIST = "dist";
 const html = fs.readFileSync("rank.html", "utf8");
 const css = fs.readFileSync("rank.css", "utf8");
 const js = fs.readFileSync("rank.js", "utf8");
+// tippy 6 的 UMD bundle 仍依赖全局 Popper，需按序内联两者
+const popperBundle = fs.readFileSync(
+  "node_modules/@popperjs/core/dist/umd/popper.min.js",
+  "utf8",
+);
 const tippyBundle = fs.readFileSync(
   "node_modules/tippy.js/dist/tippy-bundle.umd.min.js",
   "utf8",
@@ -52,7 +57,7 @@ out = replaceMarker(out, "css", `<style>\n${css}\n    </style>`);
 out = replaceMarker(
   out,
   "libs",
-  `<script>\n${escapeScript(tippyBundle)}\n    </script>`,
+  `<script>\n${escapeScript(popperBundle)}\n    </script>\n    <script>\n${escapeScript(tippyBundle)}\n    </script>`,
 );
 out = replaceMarker(out, "js", ""); // rank.js 移到 body 末尾执行
 out = out.replace(

@@ -153,6 +153,9 @@ async function main() {
 
   // 写入最终结果
   fs.writeFileSync(OUTPUT_FILE, JSON.stringify(results, null, 2), "utf-8");
+  // 同步生成 rank.html 的脚本版数据（file:// 双击可用）
+  const safeJson = JSON.stringify(results).replace(/<\//g, "<\\/");
+  fs.writeFileSync(OUTPUT_FILE + ".js", `window.RANK_EQUIPMENT = ${safeJson};`, "utf-8");
   console.log(`\n\n完成！共 ${results.length} 条装备掉落记录 → equipment.json`);
 
   // 清理缓存

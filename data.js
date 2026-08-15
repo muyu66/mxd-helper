@@ -91,6 +91,9 @@ async function crawl() {
 
   const fs = await import("fs");
   fs.writeFileSync(OUTPUT_FILE, JSON.stringify(output, null, 2), "utf-8");
+  // 同步生成 rank.html 的脚本版数据（file:// 双击可用）
+  const safeJson = JSON.stringify(output).replace(/<\//g, "<\\/");
+  fs.writeFileSync(OUTPUT_FILE + ".js", `window.RANK_DATA = ${safeJson};`, "utf-8");
 
   console.log(`\n✅ 完成！共 ${allItems.length} 条数据，已保存至 ${OUTPUT_FILE}`);
 }

@@ -119,6 +119,9 @@ async function main() {
     }
   }
   fs.writeFileSync(EQUIP_FILE, JSON.stringify(equipData, null, 2), "utf-8");
+  // 同步生成 rank.html 的脚本版数据（file:// 双击可用）
+  const safeJson = JSON.stringify(equipData).replace(/<\//g, "<\\/");
+  fs.writeFileSync(EQUIP_FILE + ".js", `window.RANK_EQUIPMENT = ${safeJson};`, "utf-8");
 
   console.log(`\n\n完成！共 ${updated} 条补充了价格 → equipment.json`);
   console.log(`有价格的装备: ${Object.values(moneyMap).filter((v) => v != null).length}/${ids.length}`);
