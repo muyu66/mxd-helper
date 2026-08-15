@@ -1,0 +1,1140 @@
+<!doctype html>
+<html lang="zh-CN" class="viz-root">
+  <head>
+    <meta charset="UTF-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1.0, viewport-fit=cover"
+    />
+    <meta
+      http-equiv="Cache-Control"
+      content="no-cache, no-store, must-revalidate"
+    />
+    <meta http-equiv="Pragma" content="no-cache" />
+    <meta http-equiv="Expires" content="0" />
+    <title>冒险岛怀旧服 · 账号价格走势</title>
+    <script>
+      // 数据以 <script> 方式加载：浏览器在 file:// 下禁用 fetch，
+      // 脚本引用则不受限，双击打开页面也能读到数据（?t= 用于绕过缓存）
+      document.write(
+        '<script src="account-info.json.js?t=' + Date.now() + '"><\/script>',
+      );
+    </script>
+    <style>
+      /* ---------- 数据可视化配色（dataviz 参考调色板，已通过校验） ---------- */
+      :root,
+      .viz-root {
+        color-scheme: light;
+        --surface-1: #fcfcfb; /* 图表卡片面 */
+        --page: #f9f9f7; /* 页面背景 */
+        --text-primary: #0b0b0b;
+        --text-secondary: #52514e;
+        --text-muted: #898781;
+        --gridline: #e1e0d9;
+        --baseline: #c3c2b7;
+        --border: rgba(11, 11, 11, 0.1);
+        --hover-wash: rgba(255, 255, 255, 0.4);
+        --accent-bg: rgba(42, 120, 214, 0.1); /* 图标底衬（色槽 1 的浅色阶） */
+        /* 分类色槽 1-8：固定顺序，禁止循环 */
+        --series-1: #2a78d6;
+        --series-2: #eb6834;
+        --series-3: #1baf7a;
+        --series-4: #eda100;
+        --series-5: #e87ba4;
+        --series-6: #008300;
+        --series-7: #4a3aa7;
+        --series-8: #e34948;
+      }
+      /* 深色模式：同一套色相按深色面重新定阶（已校验），不是自动翻转 */
+      @media (prefers-color-scheme: dark) {
+        :root:where(:not([data-theme="light"])) {
+          color-scheme: dark;
+          --surface-1: #1a1a19;
+          --page: #0d0d0d;
+          --text-primary: #ffffff;
+          --text-secondary: #c3c2b7;
+          --text-muted: #898781;
+          --gridline: #2c2c2a;
+          --baseline: #383835;
+          --border: rgba(255, 255, 255, 0.1);
+          --hover-wash: rgba(255, 255, 255, 0.09);
+          --accent-bg: rgba(57, 135, 229, 0.16);
+          --series-1: #3987e5;
+          --series-2: #d95926;
+          --series-3: #199e70;
+          --series-4: #c98500;
+          --series-5: #d55181;
+          --series-6: #008300;
+          --series-7: #9085e9;
+          --series-8: #e66767;
+        }
+      }
+
+      * {
+        box-sizing: border-box;
+        margin: 0;
+      }
+
+      body {
+        font-family:
+          system-ui,
+          -apple-system,
+          "Segoe UI",
+          sans-serif;
+        background: var(--page);
+        color: var(--text-primary);
+        padding-bottom: 24px;
+        -webkit-tap-highlight-color: transparent;
+      }
+
+      .page {
+        max-width: 720px;
+        margin: 0 auto;
+        padding: 12px;
+      }
+
+      /* ---------- 头部 ---------- */
+      header {
+        padding: 10px 4px 4px;
+      }
+      header h1 {
+        font-size: 19px;
+        font-weight: 700;
+        letter-spacing: 0.2px;
+      }
+      header .sub {
+        margin-top: 4px;
+        font-size: 12.5px;
+        color: var(--text-muted);
+      }
+      #error {
+        margin: 8px 0;
+        padding: 12px 14px;
+        border: 1px solid var(--border);
+        border-radius: 10px;
+        background: var(--surface-1);
+        color: var(--text-secondary);
+        font-size: 13px;
+      }
+
+      /* ---------- 筛选条（多行换行，移动端直接看全） ---------- */
+      .filters {
+        padding: 8px 0;
+      }
+      .filters .row {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 8px;
+        padding: 4px 0;
+      }
+      .filters .label {
+        flex: none;
+        font-size: 12px;
+        color: var(--text-muted);
+      }
+      .chip {
+        flex: none;
+        display: inline-flex;
+        align-items: center;
+        height: 38px;
+        padding: 0 14px;
+        border: 1px solid var(--border);
+        border-radius: 19px;
+        background: var(--surface-1);
+        color: var(--text-secondary);
+        font-size: 13.5px;
+        cursor: pointer;
+        user-select: none;
+        touch-action: manipulation; /* 去掉移动端点击延迟，保证按压态即时出现 */
+        transition:
+          transform 0.08s ease,
+          background-color 0.12s ease,
+          color 0.12s ease;
+      }
+      .chip .dot {
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+        margin-right: 6px;
+      }
+      .chip.active {
+        border-color: var(--series-1);
+        color: var(--text-primary);
+        font-weight: 600;
+      }
+      /* 按下去的回馈：纯色蓝底 + 白字 + 缩放，效果明显；
+         JS 绑定的 .pressed 为主（部分触屏环境 :active 不生效），
+         :active 兜底。写在 .active 之后保证按压态压过选中态 */
+      .chip.pressed,
+      .chip:active {
+        transform: scale(0.92);
+        background: var(--series-1);
+        border-color: var(--series-1);
+        color: #ffffff;
+      }
+
+      /* ---------- 统计卡 ---------- */
+      .stats {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 8px;
+        margin: 8px 0 12px;
+      }
+      .stat-card {
+        background: var(--surface-1);
+        border: 1px solid var(--border);
+        border-radius: 10px;
+        padding: 10px 6px;
+        text-align: center;
+      }
+      .stat-val {
+        font-size: 16px;
+        font-weight: 700;
+        font-variant-numeric: tabular-nums;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+      .stat-label {
+        margin-top: 3px;
+        font-size: 11px;
+        color: var(--text-muted);
+      }
+
+      /* ---------- 卡片 ---------- */
+      .card {
+        background: var(--surface-1);
+        border: 1px solid var(--border);
+        border-radius: 12px;
+        padding: 14px 12px 10px;
+        margin-bottom: 12px;
+      }
+      .card-title {
+        font-size: 14px;
+        font-weight: 600;
+        padding: 0 4px;
+      }
+      .card-sub {
+        font-size: 12px;
+        color: var(--text-muted);
+        padding: 2px 4px 6px;
+      }
+      .chart {
+        position: relative;
+        touch-action: pan-y; /* 竖向滚动不受图表手势影响 */
+      }
+      .chart svg {
+        display: block;
+        width: 100%;
+        height: auto;
+      }
+      .chart svg text {
+        fill: var(--text-muted);
+        font-size: 11px;
+        font-family: inherit;
+      }
+      .chart .empty {
+        padding: 40px 0;
+        text-align: center;
+        color: var(--text-muted);
+        font-size: 13px;
+      }
+
+      /* ---------- 图例 ---------- */
+      .legend {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 6px 14px;
+        padding: 2px 4px 10px;
+      }
+      .legend .item {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        font-size: 12.5px;
+        color: var(--text-secondary);
+        cursor: pointer;
+        user-select: none;
+      }
+      .legend .item .dot {
+        width: 10px;
+        height: 10px;
+        border-radius: 50%;
+      }
+      .legend .item.off {
+        opacity: 0.4;
+        text-decoration: line-through;
+      }
+      .legend .item.pressed,
+      .legend .item:active {
+        opacity: 0.6;
+      }
+
+      /* ---------- 悬浮提示 ---------- */
+      .tip {
+        position: absolute;
+        z-index: 4;
+        pointer-events: none;
+        background: var(--surface-1);
+        border: 1px solid var(--border);
+        border-radius: 8px;
+        padding: 8px 10px;
+        font-size: 12px;
+        box-shadow: 0 4px 14px rgba(0, 0, 0, 0.12);
+        min-width: 108px;
+        max-width: 220px;
+        display: none;
+      }
+      .tip .t-date {
+        color: var(--text-muted);
+        margin-bottom: 4px;
+      }
+      .tip .t-row {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        color: var(--text-secondary);
+        margin-top: 2px;
+        font-variant-numeric: tabular-nums;
+      }
+      .tip .t-row b {
+        color: var(--text-primary);
+        font-weight: 600;
+      }
+      .tip .t-row .dot {
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+        flex: none;
+      }
+
+      /* ---------- 最强职业榜 Top20（一行两格 · 单行紧凑卡） ---------- */
+      .list {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 6px;
+        padding: 4px 0;
+      }
+      .list .empty {
+        grid-column: 1 / -1;
+      }
+      .list .cell {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        border: 1px solid var(--border);
+        border-radius: 8px;
+        background: var(--page);
+        padding: 7px 9px;
+        min-width: 0;
+      }
+      .list .rank {
+        flex: none;
+        width: 15px;
+        text-align: center;
+        font-size: 11.5px;
+        font-weight: 700;
+        font-variant-numeric: tabular-nums;
+        color: var(--text-muted);
+      }
+      .list .rank.top3 {
+        color: var(--series-4);
+      }
+      .list .r-level {
+        flex: none;
+        font-size: 14px;
+        font-weight: 700;
+        font-variant-numeric: tabular-nums;
+        color: var(--series-1);
+      }
+      .list .r-level .unit {
+        font-size: 10px;
+        font-weight: 400;
+        color: var(--text-muted);
+      }
+      .list .r-job {
+        flex: 1;
+        min-width: 0;
+        font-size: 12px;
+        color: var(--text-secondary);
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+      .list .r-price {
+        flex: none;
+        max-width: 45%;
+        font-size: 12px;
+        font-weight: 700;
+        font-variant-numeric: tabular-nums;
+        color: var(--text-primary);
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+
+      footer {
+        text-align: center;
+        font-size: 11.5px;
+        color: var(--text-muted);
+        line-height: 1.7;
+        padding: 8px 0 4px;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="page">
+      <header>
+        <h1>🗡️ 冒险岛怀旧服 · 账号价格走势</h1>
+        <div class="sub" id="sub">加载中 ...</div>
+      </header>
+
+      <div id="error" style="display: none"></div>
+
+      <div class="filters" id="filters" style="display: none">
+        <div class="row" id="server-chips"></div>
+        <div class="row" id="job-chips"></div>
+      </div>
+
+      <div class="stats" id="stats" style="display: none">
+        <div class="stat-card">
+          <div class="stat-val" id="stat-count">--</div>
+          <div class="stat-label">在售数量</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-val" id="stat-median">--</div>
+          <div class="stat-label">价格中位数</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-val" id="stat-medlevel">--</div>
+          <div class="stat-label">等级中位数</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-val" id="stat-maxlevel">--</div>
+          <div class="stat-label">最高等级</div>
+        </div>
+      </div>
+
+      <section class="card">
+        <div class="card-title">价格走势 · 每日价格中位数</div>
+        <div class="card-sub" id="c1-sub"></div>
+        <div class="legend" id="legend" style="display: none"></div>
+        <div class="chart" id="c1">
+          <div class="tip" id="tip1"></div>
+        </div>
+      </section>
+
+      <section class="card">
+        <div class="card-title">等级走势 · 每日等级中位数</div>
+        <div class="card-sub" id="c3-sub"></div>
+        <div class="legend" id="legend2" style="display: none"></div>
+        <div class="chart" id="c3">
+          <div class="tip" id="tip3"></div>
+        </div>
+      </section>
+
+      <section class="card">
+        <div class="card-title">每日在售数量</div>
+        <div class="card-sub" id="c2-sub"></div>
+        <div class="legend" id="legend3" style="display: none"></div>
+        <div class="chart" id="c2">
+          <div class="tip" id="tip2"></div>
+        </div>
+      </section>
+
+      <section class="card">
+        <div class="card-title">最强职业榜 Top20</div>
+        <div class="card-sub" id="list-sub"></div>
+        <div class="list" id="list"></div>
+      </section>
+
+      <footer>
+        数据来源 gmmsj.com 冒险岛怀旧服交易区<br />
+        运行 <b>node account-info.js</b> 更新数据
+      </footer>
+    </div>
+
+    <script>
+      (function () {
+        "use strict";
+        const DATA = window.ACCOUNT_DATA;
+        const $ = (id) => document.getElementById(id);
+        const css = (name) =>
+          getComputedStyle(document.documentElement)
+            .getPropertyValue(name)
+            .trim();
+
+        // ---------- 基础工具 ----------
+
+        const dayOf = (r) => String(r.update_time || "").slice(0, 10);
+        // 把出现过的日期扩成从最早到最晚的连续区间：无数据的日期也要画出来（值为 0）
+        function expandDays(days) {
+          if (!days.length) return [];
+          const DAY = 86400000;
+          const first = Date.parse(days[0] + "T00:00:00Z");
+          const last = Date.parse(days[days.length - 1] + "T00:00:00Z");
+          const out = [];
+          for (let t = first; t <= last; t += DAY)
+            out.push(new Date(t).toISOString().slice(0, 10));
+          return out;
+        }
+        const num = (v) => {
+          const n = Number(v);
+          return Number.isFinite(n) ? n : null;
+        };
+        const median = (a) => {
+          const s = [...a].sort((x, y) => x - y);
+          const m = s.length >> 1;
+          return s.length % 2 ? s[m] : (s[m - 1] + s[m]) / 2;
+        };
+        // 价格：整数不带小数，非整数保留两位
+        const fmtPrice = (v) =>
+          v == null
+            ? "–"
+            : "¥" +
+              (Number.isInteger(v)
+                ? v.toLocaleString("zh-CN")
+                : v.toLocaleString("zh-CN", {
+                    minimumFractionDigits: 2,
+                    maximumFractionDigits: 2,
+                  }));
+        const fmtPriceShort = (v) =>
+          v == null
+            ? "–"
+            : v >= 1000
+              ? "¥" + (v / 1000).toFixed(1) + "k"
+              : "¥" + Math.round(v);
+
+        // ---------- 数据准备 ----------
+
+        if (!DATA || !Array.isArray(DATA.records) || !DATA.records.length) {
+          $("error").style.display = "block";
+          $("error").textContent =
+            "未找到 account-info.json.js 数据，请先在项目目录运行 node account-info.js 生成。";
+          return;
+        }
+
+        // 读取数据时过滤空 Job 的记录（标题无 [职业 N级] 的挂单不参与统计）
+        const RECORDS = DATA.records.filter((r) => r.job);
+
+        // 服务器与职业列表：按记录数降序；空 job 显示为「其他」
+        const JOB_LABEL = (j) => j || "其他";
+        const countBy = (key) => {
+          const m = {};
+          for (const r of RECORDS) m[r[key]] = (m[r[key]] || 0) + 1;
+          return m;
+        };
+        const SERVERS = Object.entries(countBy("server"))
+          .sort((a, b) => b[1] - a[1])
+          .map(([k]) => k);
+        const JOB_RANK = Object.entries(countBy("job"))
+          .sort((a, b) => b[1] - a[1])
+          .map(([k]) => k); // 全局职业排行：颜色按此固定分配
+
+        // 颜色跟随实体：职业 → 固定色槽（排行取模；仅在单线视图出现的职业
+        // 永远不会与其他系列同屏，复用色槽不会造成混淆）
+        const jobColor = (job) => {
+          const idx = JOB_RANK.indexOf(job);
+          const slot = ((idx < 0 ? 0 : idx) % 8) + 1;
+          return css("--series-" + slot);
+        };
+
+        // ---------- 状态 ----------
+
+        const state = { server: "全部", job: "全部", hidden: new Set() };
+
+        // ---------- 聚合 ----------
+
+        function filteredRecords() {
+          return RECORDS.filter(
+            (r) =>
+              (state.server === "全部" || r.server === state.server) &&
+              (state.job === "全部" || r.job === state.job),
+          );
+        }
+
+        // 按 (日期, 职业) 聚合每日数值；mode: "price" | "level"
+        function buildSeries(mode) {
+          const recs = filteredRecords();
+          const days = expandDays(
+            [...new Set(recs.map(dayOf).filter(Boolean))].sort(),
+          );
+          const byDay = new Map(); // day -> job -> values[]
+          for (const r of recs) {
+            const d = dayOf(r);
+            if (!byDay.has(d)) byDay.set(d, new Map());
+            const jm = byDay.get(d);
+            if (!jm.has(r.job)) jm.set(r.job, []);
+            const v = num(mode === "price" ? r.price : r.level);
+            if (v != null) jm.get(r.job).push(v);
+          }
+
+          let jobs;
+          if (state.job === "全部") {
+            // 取全局排行前 5 且当前有数据的职业，颜色保持全局色槽
+            jobs = JOB_RANK.filter((j) => recs.some((r) => r.job === j)).slice(
+              0,
+              5,
+            );
+            if (!jobs.length)
+              jobs = [...new Set(recs.map((r) => r.job))].slice(0, 5);
+          } else {
+            jobs = [state.job];
+          }
+
+          const series = jobs.map((job) => ({
+            job,
+            color: jobColor(job),
+            points: days.map((d) => {
+              const arr = byDay.get(d)?.get(job);
+              if (!arr || !arr.length)
+                return { v: 0, n: 0, min: 0, max: 0 }; // 无数据的日期补 0
+              return {
+                v: median(arr),
+                n: arr.length,
+                min: Math.min(...arr),
+                max: Math.max(...arr),
+              };
+            }),
+          }));
+          return { days, series };
+        }
+
+        // 每日在售数量：选「全部职业」时按职业拆分对比，否则单线
+        function buildCountSeries() {
+          const recs = filteredRecords();
+          const days = expandDays(
+            [...new Set(recs.map(dayOf).filter(Boolean))].sort(),
+          );
+          const byDay = new Map(); // day -> job -> count
+          for (const r of recs) {
+            const d = dayOf(r);
+            if (!d) continue;
+            if (!byDay.has(d)) byDay.set(d, new Map());
+            const jm = byDay.get(d);
+            jm.set(r.job, (jm.get(r.job) || 0) + 1);
+          }
+
+          let jobs;
+          if (state.job === "全部") {
+            // 与价格/等级图一致：全局排行前 5 且当前有数据
+            jobs = JOB_RANK.filter((j) => recs.some((r) => r.job === j)).slice(
+              0,
+              5,
+            );
+            if (!jobs.length)
+              jobs = [...new Set(recs.map((r) => r.job))].slice(0, 5);
+          } else {
+            jobs = [state.job];
+          }
+
+          return {
+            days,
+            series: jobs.map((job) => ({
+              job,
+              color: jobColor(job),
+              points: days.map((d) => {
+                const n = byDay.get(d)?.get(job) || 0;
+                return { v: n, n, min: 0, max: 0 }; // 缺数据的日期计 0，折线落地
+              }),
+            })),
+          };
+        }
+
+        // ---------- 统计 ----------
+
+        function renderStats() {
+          const recs = filteredRecords();
+          const prices = recs.map((r) => num(r.price)).filter((v) => v != null);
+          const levels = recs.map((r) => num(r.level)).filter((v) => v != null);
+          $("stat-count").textContent = recs.length;
+          $("stat-median").textContent = prices.length
+            ? fmtPriceShort(median(prices))
+            : "–";
+          $("stat-maxlevel").textContent = levels.length
+            ? Math.max(...levels)
+            : "–";
+          $("stat-medlevel").textContent = levels.length
+            ? Math.round(median(levels))
+            : "–";
+        }
+
+        // ---------- 最强职业榜 Top20（等级降序，只显示等级/职业/价格） ----------
+
+        function renderTop() {
+          const recs = filteredRecords()
+            .map((r) => ({ ...r, lv: num(r.level) }))
+            .filter((r) => r.lv != null)
+            .sort(
+              (a, b) =>
+                b.lv - a.lv ||
+                (num(b.price) ?? 0) - (num(a.price) ?? 0) ||
+                String(a.book_id).localeCompare(String(b.book_id)),
+            )
+            .slice(0, 20);
+          const host = $("list");
+          host.replaceChildren();
+          $("list-sub").textContent =
+            "等级降序 · 当前筛选下有等级记录 " +
+            filteredRecords().filter((r) => num(r.level) != null).length +
+            " 条";
+          if (!recs.length) {
+            const div = document.createElement("div");
+            div.className = "empty";
+            div.textContent = "当前筛选下暂无数据";
+            host.appendChild(div);
+            return;
+          }
+          recs.forEach((r, i) => {
+            const cell = document.createElement("div");
+            cell.className = "cell";
+            const rank = document.createElement("div");
+            rank.className = "rank" + (i < 3 ? " top3" : "");
+            rank.textContent = i + 1;
+            const lv = document.createElement("div");
+            lv.className = "r-level";
+            lv.innerHTML = `${r.lv}<span class="unit">级</span>`;
+            const job = document.createElement("div");
+            job.className = "r-job";
+            job.textContent = JOB_LABEL(r.job);
+            const price = document.createElement("div");
+            price.className = "r-price";
+            price.textContent = fmtPrice(num(r.price));
+            cell.append(rank, lv, job, price);
+            host.appendChild(cell);
+          });
+        }
+
+        // ---------- 筛选 chips ----------
+
+        // 按压反馈：pointerdown 加 .pressed；抬起/移出/取消后延迟 150ms 移除，
+        // 让按压效果停留到肉眼可见。部分触屏环境 :active 不生效，JS 绑定保证稳定出现；
+        // 不支持 PointerEvent 的老 WebView 用 touch 事件兜底
+        function bindPress(el) {
+          const on = () => {
+            clearTimeout(el.__pressT);
+            el.classList.add("pressed");
+          };
+          const off = () => {
+            clearTimeout(el.__pressT);
+            el.__pressT = setTimeout(() => el.classList.remove("pressed"), 150);
+          };
+          if (window.PointerEvent) {
+            el.addEventListener("pointerdown", on);
+            for (const ev of ["pointerup", "pointerleave", "pointercancel"])
+              el.addEventListener(ev, off);
+          } else {
+            el.addEventListener("touchstart", on, { passive: true });
+            for (const ev of ["touchend", "touchcancel"])
+              el.addEventListener(ev, off);
+          }
+        }
+
+        function chipRow(hostId, items, labelFn, cur, onPick, colored) {
+          const host = $(hostId);
+          host.replaceChildren();
+          for (const it of ["全部", ...items]) {
+            const c = document.createElement("div");
+            c.className = "chip" + (cur === it ? " active" : "");
+            if (colored && it !== "全部") {
+              const dot = document.createElement("span");
+              dot.className = "dot";
+              dot.style.background = jobColor(it);
+              c.appendChild(dot);
+            }
+            c.textContent = labelFn(it);
+            bindPress(c);
+            c.addEventListener("click", () => {
+              if (cur === it) return;
+              onPick(it);
+              render();
+            });
+            host.appendChild(c);
+          }
+        }
+
+        function renderChips() {
+          chipRow(
+            "server-chips",
+            SERVERS,
+            (s) => s,
+            state.server,
+            (s) => {
+              state.server = s;
+            },
+          );
+          chipRow(
+            "job-chips",
+            JOB_RANK,
+            JOB_LABEL,
+            state.job,
+            (j) => {
+              state.job = j;
+              state.hidden.clear(); // 切换职业后重置图例显隐
+            },
+            true,
+          );
+        }
+
+        // ---------- 通用折线图渲染器 ----------
+
+        function niceStep(maxV) {
+          const raw = maxV / 4;
+          const pow = Math.pow(10, Math.floor(Math.log10(raw)));
+          for (const m of [1, 2, 2.5, 5, 10]) {
+            if (raw <= m * pow) return m * pow;
+          }
+          return 10 * pow;
+        }
+
+        // opts: { hostId, tipId, legendId, subId, subText, fmtY, fmtTip, seriesData }
+        function renderLineChart(opts) {
+          const host = $(opts.hostId);
+          const tip = $(opts.tipId);
+          tip.style.display = "none";
+          const { days, series } = opts.seriesData;
+          // 清掉旧的图，保留 tooltip
+          for (const el of [...host.children]) if (el !== tip) el.remove();
+
+          // 图例：多系列才有；点击切换显隐（三个图表共享隐藏状态）
+          const legend = $(opts.legendId); // 单系列图表可能没有图例容器
+          const visible = series.filter((s) => !state.hidden.has(s.job));
+          if (legend) {
+            legend.replaceChildren();
+            if (series.length >= 2) {
+              legend.style.display = "flex";
+              for (const s of series) {
+                const it = document.createElement("div");
+                it.className = "item" + (state.hidden.has(s.job) ? " off" : "");
+                it.innerHTML = `<span class="dot" style="background:${s.color}"></span>${JOB_LABEL(s.job)}`;
+                bindPress(it);
+                it.addEventListener("click", () => {
+                  if (state.hidden.has(s.job)) state.hidden.delete(s.job);
+                  else state.hidden.add(s.job);
+                  renderCharts();
+                });
+                legend.appendChild(it);
+              }
+            } else {
+              legend.style.display = "none";
+            }
+          }
+
+          if (opts.subId) $(opts.subId).textContent = opts.subText;
+
+          if (!days.length || !visible.length) {
+            const div = document.createElement("div");
+            div.className = "empty";
+            div.textContent = "当前筛选下暂无数据";
+            host.appendChild(div);
+            return;
+          }
+
+          const W = host.clientWidth || 340;
+          const H = 320;
+          const M = { l: 46, r: 12, t: 14, b: 30 };
+          const pw = W - M.l - M.r;
+          const ph = H - M.t - M.b;
+          const x = (i) =>
+            days.length === 1
+              ? M.l + pw / 2
+              : M.l + (pw * i) / (days.length - 1);
+
+          // y 轴范围：按当前筛选下可见数据自适应
+          const maxV = Math.max(
+            1,
+            ...visible.flatMap((s) => s.points.filter(Boolean).map((p) => p.v)),
+          );
+          const step = niceStep(maxV);
+          const yMax = Math.ceil(maxV / step) * step;
+          const y = (v) => M.t + ph - (v / yMax) * ph;
+
+          const NS = "http://www.w3.org/2000/svg";
+          const svg = document.createElementNS(NS, "svg");
+          svg.setAttribute("width", W);
+          svg.setAttribute("height", H);
+          svg.setAttribute("viewBox", `0 0 ${W} ${H}`);
+          host.appendChild(svg);
+          const add = (tag, attrs, parent = svg) => {
+            const el = document.createElementNS(NS, tag);
+            for (const [k, v] of Object.entries(attrs)) el.setAttribute(k, v);
+            parent.appendChild(el);
+            return el;
+          };
+
+          // y 轴网格 + 刻度
+          for (let v = 0; v <= yMax; v += step) {
+            add("line", {
+              x1: M.l,
+              y1: y(v),
+              x2: W - M.r,
+              y2: y(v),
+              stroke: css("--gridline"),
+              "stroke-width": 1,
+            });
+            const t = add("text", {
+              x: M.l - 8,
+              y: y(v) + 4,
+              "text-anchor": "end",
+            });
+            t.textContent = opts.fmtY(v);
+          }
+          // x 轴刻度（约 5 个）
+          const tickEvery = Math.ceil(days.length / 5);
+          days.forEach((d, i) => {
+            if (i % tickEvery !== 0 && i !== days.length - 1) return;
+            const cx = x(i);
+            add("line", {
+              x1: cx,
+              y1: M.t + ph,
+              x2: cx,
+              y2: M.t + ph + 4,
+              stroke: css("--baseline"),
+              "stroke-width": 1,
+            });
+            const t = add("text", {
+              x: cx,
+              y: M.t + ph + 18,
+              "text-anchor": "middle",
+            });
+            t.textContent = d.slice(5);
+          });
+          // 基线
+          add("line", {
+            x1: M.l,
+            y1: M.t + ph,
+            x2: W - M.r,
+            y2: M.t + ph,
+            stroke: css("--baseline"),
+            "stroke-width": 1,
+          });
+
+          // 绘图区裁剪：超出固定 y 轴范围的点在此处被裁掉，不画出绘图区
+          const clipId = "plotclip-" + opts.hostId;
+          const defs = add("defs", {});
+          const clip = add("clipPath", { id: clipId }, defs);
+          add(
+            "rect",
+            { x: M.l - 4, y: M.t - 4, width: pw + 8, height: ph + 8 },
+            clip,
+          );
+          const seriesG = add("g", { "clip-path": `url(#${clipId})` });
+
+          // 各系列折线（2px 线 + 圆点；不可见系列跳过）
+          for (const s of visible) {
+            const drawPath = (pts) =>
+              add(
+                "path",
+                {
+                  d: pts
+                    .map(
+                      (q, j) =>
+                        `${j ? "L" : "M"}${x(q.i).toFixed(1)} ${y(q.v).toFixed(1)}`,
+                    )
+                    .join(" "),
+                  fill: "none",
+                  stroke: s.color,
+                  "stroke-width": 2,
+                  "stroke-linecap": "round",
+                  "stroke-linejoin": "round",
+                },
+                seriesG,
+              );
+            const pts = s.points
+              .map((p, i) => (p ? { ...p, i } : null))
+              .filter(Boolean);
+            if (!pts.length) continue;
+            // 折线分段：数据已对无数据日期补 0，理论上无空缺；分段逻辑保留以防未来引入 null
+            let cur = [pts[0]];
+            for (const p of pts.slice(1)) {
+              if (p.i === cur[cur.length - 1].i + 1) cur.push(p);
+              else {
+                if (cur.length >= 2) drawPath(cur);
+                cur = [p];
+              }
+            }
+            if (cur.length >= 2) drawPath(cur);
+            // 数据点：表面描边环（区分重叠），透明命中区 ≥ 8px 便于点按
+            for (const p of pts) {
+              add(
+                "circle",
+                {
+                  cx: x(p.i),
+                  cy: y(p.v),
+                  r: 3.5,
+                  fill: s.color,
+                  stroke: css("--surface-1"),
+                  "stroke-width": 1.5,
+                },
+                seriesG,
+              );
+              add(
+                "circle",
+                {
+                  cx: x(p.i),
+                  cy: y(p.v),
+                  r: 12,
+                  fill: "transparent",
+                },
+                seriesG,
+              );
+            }
+          }
+
+          // 悬浮/触摸：十字线 + 提示
+          const cross = add("line", {
+            y1: M.t,
+            y2: M.t + ph,
+            stroke: css("--text-muted"),
+            "stroke-width": 1,
+            "stroke-dasharray": "3 3",
+            opacity: 0,
+          });
+          const findDay = (px) => {
+            let best = 0,
+              bd = Infinity;
+            days.forEach((_, i) => {
+              const d = Math.abs(x(i) - px);
+              if (d < bd) {
+                bd = d;
+                best = i;
+              }
+            });
+            return best;
+          };
+          const showTip = (i) => {
+            if (i < 0 || i >= days.length) return;
+            cross.setAttribute("x1", x(i));
+            cross.setAttribute("x2", x(i));
+            cross.setAttribute("opacity", 1);
+            let html = `<div class="t-date">${days[i]}</div>`;
+            for (const s of visible) {
+              const p = s.points[i];
+              if (!p) continue;
+              html +=
+                `<div class="t-row">` +
+                (s.job
+                  ? `<span class="dot" style="background:${s.color}"></span>${JOB_LABEL(s.job)} `
+                  : "") +
+                `<b>${opts.fmtTip(p.v)}</b>` +
+                (s.job ? ` · ${p.n}件` : " 件") +
+                `</div>`;
+            }
+            if (html === `<div class="t-date">${days[i]}</div>`) return;
+            tip.innerHTML = html;
+            tip.style.display = "block";
+            const rect = host.getBoundingClientRect();
+            const tw = tip.offsetWidth;
+            let lx = x(i) - rect.left + 10;
+            if (lx + tw + 12 > rect.width) lx = x(i) - rect.left - tw - 10;
+            tip.style.left = Math.max(4, lx) + "px";
+            tip.style.top = "4px";
+          };
+          svg.addEventListener("pointermove", (e) => {
+            const rect = svg.getBoundingClientRect();
+            showTip(findDay(e.clientX - rect.left));
+          });
+          svg.addEventListener("pointerleave", () => {
+            cross.setAttribute("opacity", 0);
+            tip.style.display = "none";
+          });
+          svg.addEventListener("pointerdown", (e) => {
+            const rect = svg.getBoundingClientRect();
+            showTip(findDay(e.clientX - rect.left));
+          });
+        }
+
+        function subTextFor(jobPart) {
+          return `【${state.server}】` + jobPart + ` · 近 ${countDays()} 天`;
+        }
+        function countDays() {
+          // 与图表 x 轴一致：按连续日期区间计数
+          return expandDays(
+            [...new Set(filteredRecords().map(dayOf).filter(Boolean))].sort(),
+          ).length;
+        }
+
+        // ---------- 三个图表 ----------
+
+        function renderChart1() {
+          const data = buildSeries("price");
+          const jobPart =
+            state.job === "全部" ? "Top 5 职业" : JOB_LABEL(state.job);
+          renderLineChart({
+            hostId: "c1",
+            tipId: "tip1",
+            legendId: "legend",
+            subId: "c1-sub",
+            subText: subTextFor(jobPart),
+            fmtY: fmtPriceShort,
+            fmtTip: fmtPrice,
+
+            seriesData: data,
+          });
+        }
+
+        function renderChart3() {
+          const data = buildSeries("level");
+          const jobPart =
+            state.job === "全部" ? "Top 5 职业" : JOB_LABEL(state.job);
+          renderLineChart({
+            hostId: "c3",
+            tipId: "tip3",
+            legendId: "legend2",
+            subId: "c3-sub",
+            subText: subTextFor(jobPart),
+            fmtY: (v) => Math.round(v),
+            fmtTip: (v) => "Lv" + Math.round(v),
+
+            seriesData: data,
+          });
+        }
+
+        function renderChart2() {
+          const data = buildCountSeries();
+          const jobPart =
+            state.job === "全部" ? "Top 5 职业" : JOB_LABEL(state.job);
+          renderLineChart({
+            hostId: "c2",
+            tipId: "tip2",
+            legendId: "legend3",
+            subId: "c2-sub",
+            subText: subTextFor(jobPart),
+            fmtY: (v) => Math.round(v),
+            fmtTip: (v) => Math.round(v),
+
+            seriesData: data,
+          });
+        }
+
+        // ---------- 整体渲染 ----------
+
+        function renderCharts() {
+          renderChart1();
+          renderChart3();
+          renderChart2();
+        }
+
+        function render() {
+          renderChips(); // 选中态跟随 state 重建 chips，高亮移到新选项
+          renderStats();
+          renderTop();
+          renderCharts();
+        }
+
+        // ---------- 启动 ----------
+
+        $("filters").style.display = "block";
+        $("stats").style.display = "grid";
+        const upd = new Date(DATA.updatedAt);
+        $("sub").textContent =
+          `数据更新时间 ${upd.toLocaleString("zh-CN")} · 累计 ${RECORDS.length} 条记录` +
+          ` · 共 ${new Set(RECORDS.map((r) => r.server)).size} 个服务器` +
+          ` · ${new Set(RECORDS.map((r) => r.job)).size} 个职业`;
+        render(); // 内部含 renderChips
+        window.addEventListener("resize", renderCharts);
+      })();
+    </script>
+  </body>
+</html>

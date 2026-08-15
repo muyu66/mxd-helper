@@ -9,7 +9,8 @@
     "count": "node count.js",
     "build": "node build.js",
     "waigua": "node waigua-info.js",
-    "waigua:watch": "node waigua-info.js --watch"
+    "waigua:watch": "node waigua-info.js --watch",
+    "account": "node account-info.js"
   },
   "dependencies": {
     "console-table-printer": "^2.16.1"
