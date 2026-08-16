@@ -53,9 +53,9 @@ let filters = []; // 筛选条件 [{col, op, value, logic}]，logic 为该条与
       window[global]
         ? Promise.resolve(window[global])
         : fetch(url).then((r) => {
-            if (!r.ok) throw new Error(`${url} HTTP ${r.status}`);
-            return r.json();
-          });
+          if (!r.ok) throw new Error(`${url} HTTP ${r.status}`);
+          return r.json();
+        });
     const [json, equipData] = await Promise.all([
       loadJson("RANK_DATA", "data.json"),
       loadJson("RANK_EQUIPMENT", "equipment.json").catch(() => null),
@@ -162,6 +162,8 @@ function calc() {
     entry._ratio1 = entry._goldMp1 != null && entry._eff1 > 0
       ? entry._goldMp1 / entry._eff1
       : null;
+    // 血量经验比 = 血量 ÷ 经验
+    entry._hpExp = exp > 0 ? hp / exp : null;
 
     ranked.push(entry);
   }
@@ -177,6 +179,7 @@ function calc() {
     { key: "mp", label: "MP", tip: "怪物蓝量" },
     { key: "mdd", label: "魔防", tip: "怪物魔防" },
     { key: "exp", label: "EXP", tip: "怪物经验值" },
+    { key: "_hpExp", label: "难度", tip: "怪物血量 ÷ 经验" },
     { key: "_ratio1", label: "性价比", cls: "ratio", tip: "一下秒的情况下，每1点经验的回本价值" },
     { key: "_eff1", label: "升级效率①", cls: "score", tip: "假设1下击杀怪物" },
     { key: "_eff2", label: "升级效率②", cls: "score", tip: "假设2下击杀怪物" },
@@ -294,8 +297,8 @@ function calc() {
       return `
         <div class="filter-row">
           ${i === 0
-            ? `<span class="f-logic-start">与</span>`
-            : `<select class="f-logic" title="与上方条件的关系">${logicSelectHtml((f && f.logic) || "AND")}</select>`}
+          ? `<span class="f-logic-start">与</span>`
+          : `<select class="f-logic" title="与上方条件的关系">${logicSelectHtml((f && f.logic) || "AND")}</select>`}
           <select class="f-col">${colSelectHtml(f ? f.col : FILTER_COLS[0].key)}</select>
           <select class="f-op">${opSelectHtml(opSel, ops)}</select>
           <span class="f-val-slot">
@@ -349,6 +352,7 @@ function calc() {
       <td>${Number(m.mp)}</td>
       <td>${Number(m.mdd)}</td>
       <td>${Number(m.exp)}</td>
+      <td>${m._hpExp != null ? m._hpExp.toFixed(1) : "--"}</td>
       <td class="ratio">${m._ratio1 != null ? m._ratio1.toFixed(1) : "--"}</td>
       <td class="score">${m._eff1.toFixed(1)}</td>
       <td class="score">${m._eff2.toFixed(1)}</td>
