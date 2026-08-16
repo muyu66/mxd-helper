@@ -9,6 +9,9 @@ module.exports = {
       script: "server.js",
       cwd: __dirname,
       time: true, // 日志带时间戳
+      env: {
+        HOST: "127.0.0.1", // 只监听本机：公网流量统一走 nginx 反代，不暴露 3000 端口
+      },
       max_memory_restart: "200M", // 内存 JSON 数据源 + gzip 缓存，异常涨内存时兜底重启
       // 常驻 HTTP 服务，pm2 默认自动拉起；JSON 变化由 server.js 内部 watchFile 轮询重载
     },

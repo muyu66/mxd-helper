@@ -25,6 +25,7 @@ import { fileURLToPath } from "node:url";
 
 const ROOT = path.dirname(fileURLToPath(import.meta.url));
 const PORT = Number(process.env.PORT) || 3000;
+const HOST = process.env.HOST || "0.0.0.0"; // 部署时经 nginx 反代应设为 127.0.0.1（见 ecosystem.config.cjs）
 
 /* ---------------- 内存 JSON 数据源 ---------------- */
 
@@ -268,8 +269,8 @@ const server = http.createServer((req, res) => {
   }
 });
 
-server.listen(PORT, () => {
-  console.log(`\n🚀 mxd-helper 混合端已启动：http://localhost:${PORT}/（默认 rank.html）`);
+server.listen(PORT, HOST, () => {
+  console.log(`\n🚀 mxd-helper 混合端已启动：http://${HOST}:${PORT}/（默认 rank.html）`);
   console.log(`   内存数据源：${Object.keys(DATA_FILES).join("、")}`);
   console.log("   监控中：JSON 文件变化后自动重载入内存\n");
 });
