@@ -4,6 +4,7 @@
   "description": "mxd-helper",
   "type": "module",
   "scripts": {
+    "serve": "node server.js",
     "data": "node data.js",
     "rank": "node rank.js",
     "count": "node count.js",

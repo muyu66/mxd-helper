@@ -33,11 +33,15 @@
     <script defer src="rank.js?v=5"></script>
     <!-- /build:js -->
     <script>
-      // 数据以 <script> 方式加载：file:// 双击打开也能读到数据；
-      // 线上用固定版本号让浏览器缓存（更新后由服务器重验证）
+      // 数据来源：Node 服务器（server.js）会在 <head> 注入 window.RANK_DATA / window.RANK_EQUIPMENT；
+      // 未注入时（file:// 双击打开）回退到 <script src="*.json.js"> 加载
       var _rankTs = location.protocol === "file:" ? Date.now() : "v1";
-      document.write('<script src="data.json.js?t=' + _rankTs + '"><\/script>');
-      document.write('<script src="equipment.json.js?t=' + _rankTs + '"><\/script>');
+      if (typeof window.RANK_DATA === "undefined") {
+        document.write('<script src="data.json.js?t=' + _rankTs + '"><\/script>');
+      }
+      if (typeof window.RANK_EQUIPMENT === "undefined") {
+        document.write('<script src="equipment.json.js?t=' + _rankTs + '"><\/script>');
+      }
     </script>
   </head>
   <body>

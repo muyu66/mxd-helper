@@ -5,6 +5,14 @@
 module.exports = {
   apps: [
     {
+      name: "mxd-server",
+      script: "server.js",
+      cwd: __dirname,
+      time: true, // 日志带时间戳
+      max_memory_restart: "200M", // 内存 JSON 数据源 + gzip 缓存，异常涨内存时兜底重启
+      // 常驻 HTTP 服务，pm2 默认自动拉起；JSON 变化由 server.js 内部 watchFile 轮询重载
+    },
+    {
       name: "waigua-info",
       script: "waigua-info.js",
       args: "--watch", // 传给脚本的参数：常驻模式，每 60 分钟抓取一次
