@@ -24,7 +24,7 @@ import zlib from "node:zlib";
 import { fileURLToPath } from "node:url";
 
 const ROOT = path.dirname(fileURLToPath(import.meta.url));
-const PORT = Number(process.env.PORT) || 3000;
+const PORT = Number(process.env.PORT) || 3001;
 const HOST = process.env.HOST || "0.0.0.0"; // 部署时经 nginx 反代应设为 127.0.0.1（见 ecosystem.config.cjs）
 
 /* ---------------- 内存 JSON 数据源 ---------------- */
@@ -67,7 +67,7 @@ function loadFile(rel, attempt = 0) {
     });
     console.log(
       `[data] ${rel} → window.${DATA_FILES[rel]} 已载入内存` +
-        `（磁盘 ${(stat.size / 1024).toFixed(0)} KB → 紧凑 ${(store.get(rel).text.length / 1024).toFixed(0)} KB）`,
+      `（磁盘 ${(stat.size / 1024).toFixed(0)} KB → 紧凑 ${(store.get(rel).text.length / 1024).toFixed(0)} KB）`,
     );
     return true;
   } catch (err) {
@@ -78,7 +78,7 @@ function loadFile(rel, attempt = 0) {
     }
     console.error(
       `[data] ${rel} 加载失败：${err.message} —— ` +
-        (store.has(rel) ? "继续使用内存中的旧数据" : "该数据暂不可用"),
+      (store.has(rel) ? "继续使用内存中的旧数据" : "该数据暂不可用"),
     );
     return false;
   }
