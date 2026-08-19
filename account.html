@@ -132,56 +132,77 @@
         border-bottom: 1px solid var(--border);
         padding: 8px 0;
       }
-      /* 行内单行横向滑动：不折行，吸顶栏在手机上不再多行堆叠占掉半屏。
-         滚动条在触屏隐藏（截断的 chip 边缘即提示可滑），桌面 hover 设备显示细滚动条 */
+      /* 筛选行 = 行首标签 + 横向滑动区。标签放在滚动容器之外：
+         chip 永远不会滑到标签底下遮挡文字（无 sticky 内滚动定位的兼容问题） */
       .filters .row {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding: 4px 0;
+      }
+      .filters .label {
+        flex: none;
+        min-width: 3em; /* 与「服务器」对齐，「职业」同宽，两行 chip 起点对齐 */
+        font-size: 12px;
+        color: var(--text-muted);
+      }
+      .filters .scroller {
+        position: relative;
         display: flex;
         flex-wrap: nowrap;
         align-items: center;
         gap: 8px;
-        padding: 4px 0;
+        flex: 1;
+        min-width: 0;
         overflow-x: auto;
         -webkit-overflow-scrolling: touch; /* 旧 iOS 惯性滚动 */
-        scrollbar-width: none;
+        scrollbar-width: none; /* 触屏不显示滚动条 */
       }
-      .filters .row::-webkit-scrollbar {
+      .filters .scroller::-webkit-scrollbar {
         display: none;
       }
-      /* 桌面（hover 设备）滚动条：细圆角胶囊，平时隐形，悬停该行时才浮现，
+      /* 右缘渐隐：可继续横向滑动的视觉提示。JS 在「可滑动且未滑到底」时加 .fade；
+         sticky right 钉在滑动区右缘，渐隐不占布局宽度、不挡 chip 点击 */
+      .filters .scroller::after {
+        content: "";
+        flex: none;
+        position: sticky;
+        right: 0;
+        width: 32px;
+        margin-left: -32px;
+        align-self: stretch;
+        background: linear-gradient(to left, var(--page), transparent);
+        pointer-events: none;
+        display: none;
+      }
+      .filters .scroller.fade::after {
+        display: block;
+      }
+      /* 桌面（hover 设备）滚动条：细圆角胶囊，平时隐形，悬停滑动区时才浮现，
          不常驻两条灰杠；Firefox 用 scrollbar-color 同步同样的显隐逻辑 */
       @media (hover: hover) {
-        .filters .row {
+        .filters .scroller {
           scrollbar-width: thin;
           scrollbar-color: transparent transparent; /* 平时隐形 */
         }
-        .filters .row:hover {
+        .filters .scroller:hover {
           scrollbar-color: var(--baseline) transparent;
         }
-        .filters .row::-webkit-scrollbar {
+        .filters .scroller::-webkit-scrollbar {
           display: block;
           height: 4px;
           background: transparent;
         }
-        .filters .row::-webkit-scrollbar-track {
+        .filters .scroller::-webkit-scrollbar-track {
           background: transparent;
         }
-        .filters .row::-webkit-scrollbar-thumb {
+        .filters .scroller::-webkit-scrollbar-thumb {
           background: transparent;
           border-radius: 999px;
         }
-        .filters .row:hover::-webkit-scrollbar-thumb {
+        .filters .scroller:hover::-webkit-scrollbar-thumb {
           background: var(--baseline);
         }
-      }
-      .filters .label {
-        position: sticky; /* 吸在行内左侧：横向滑动时标签不随 chip 滚走 */
-        left: 0;
-        flex: none;
-        font-size: 12px;
-        color: var(--text-muted);
-        background: var(--page); /* 盖住从标签下方滑过的 chip */
-        padding-right: 8px;
-        z-index: 1;
       }
       .chip {
         flex: none;
@@ -868,7 +889,7 @@
         }
 
         // prefix: 排在最前面的特殊选项（如职业筛选的「全部」「对比」），不带色点
-        // label: 行首标签（可选），吸在行内左侧不随横向滚动滚走
+        // label: 行首标签（可选），位于滑动区之外，chip 滑不到标签底下
         function chipRow(
           hostId,
           items,
@@ -887,6 +908,8 @@
             lb.textContent = label;
             host.appendChild(lb);
           }
+          const sc = document.createElement("div");
+          sc.className = "scroller";
           for (const it of [...prefix, ...items]) {
             const c = document.createElement("div");
             c.className = "chip" + (cur === it ? " active" : "");
@@ -904,19 +927,34 @@
               onPick(it);
               render();
             });
-            host.appendChild(c);
+            sc.appendChild(c);
           }
-          // 横向滚动行：把选中 chip 滚到行内视野中央（内容不满一行时保持 0）。
+          host.appendChild(sc);
+          // 把选中 chip 滚到行内视野中央（内容不满一行时保持 0）。
           // replaceChildren 后 scrollLeft 已归 0，用 rect 差值计算不受页面滚动影响
-          const active = host.querySelector(".chip.active");
+          const active = sc.querySelector(".chip.active");
           if (active) {
             const a = active.getBoundingClientRect();
-            const r = host.getBoundingClientRect();
-            host.scrollLeft = Math.max(
+            const r = sc.getBoundingClientRect();
+            sc.scrollLeft = Math.max(
               0,
-              a.left - r.left - (host.clientWidth - active.offsetWidth) / 2,
+              a.left - r.left - (sc.clientWidth - active.offsetWidth) / 2,
             );
           }
+          // 右缘渐隐提示（可滑动且未滑到底时显示）
+          updateRowFade(sc);
+          sc.addEventListener("scroll", () => updateRowFade(sc), {
+            passive: true,
+          });
+        }
+
+        // 右缘渐隐显隐：内容溢出且未滑到底时显示，滑到底/无溢出时隐藏
+        function updateRowFade(sc) {
+          const overflow = sc.scrollWidth > sc.clientWidth + 1;
+          sc.classList.toggle(
+            "fade",
+            overflow && sc.scrollLeft < sc.scrollWidth - sc.clientWidth - 1,
+          );
         }
 
         function renderChips() {
@@ -1354,7 +1392,13 @@
           ` · 共 ${new Set(RECORDS.map((r) => r.server)).size} 个服务器` +
           ` · ${new Set(RECORDS.map((r) => r.job)).size} 个职业`;
         render(); // 内部含 renderChips
-        window.addEventListener("resize", renderCharts);
+        window.addEventListener("resize", () => {
+          renderCharts();
+          // 窗口/横竖屏变化会改变滑动区溢出状态，重算渐隐显隐
+          document
+            .querySelectorAll("#filters .scroller")
+            .forEach(updateRowFade);
+        });
       })();
     </script>
   </body>
