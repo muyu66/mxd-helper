@@ -120,7 +120,7 @@
         font-size: 13px;
       }
 
-      /* ---------- 筛选条（多行换行，移动端直接看全） ---------- */
+      /* ---------- 筛选条（单行横向滑动，吸顶时不占屏） ---------- */
       /* 吸顶：滚动时筛选条始终可见，无需滚回顶部再筛选。
          不透明背景盖住下方滚过的内容（底色与 body 同为 --page，宽屏两侧无缝），
          底部细线在吸顶时充当与内容的视觉分隔 */
@@ -132,17 +132,56 @@
         border-bottom: 1px solid var(--border);
         padding: 8px 0;
       }
+      /* 行内单行横向滑动：不折行，吸顶栏在手机上不再多行堆叠占掉半屏。
+         滚动条在触屏隐藏（截断的 chip 边缘即提示可滑），桌面 hover 设备显示细滚动条 */
       .filters .row {
         display: flex;
-        flex-wrap: wrap;
+        flex-wrap: nowrap;
         align-items: center;
         gap: 8px;
         padding: 4px 0;
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch; /* 旧 iOS 惯性滚动 */
+        scrollbar-width: none;
+      }
+      .filters .row::-webkit-scrollbar {
+        display: none;
+      }
+      /* 桌面（hover 设备）滚动条：细圆角胶囊，平时隐形，悬停该行时才浮现，
+         不常驻两条灰杠；Firefox 用 scrollbar-color 同步同样的显隐逻辑 */
+      @media (hover: hover) {
+        .filters .row {
+          scrollbar-width: thin;
+          scrollbar-color: transparent transparent; /* 平时隐形 */
+        }
+        .filters .row:hover {
+          scrollbar-color: var(--baseline) transparent;
+        }
+        .filters .row::-webkit-scrollbar {
+          display: block;
+          height: 4px;
+          background: transparent;
+        }
+        .filters .row::-webkit-scrollbar-track {
+          background: transparent;
+        }
+        .filters .row::-webkit-scrollbar-thumb {
+          background: transparent;
+          border-radius: 999px;
+        }
+        .filters .row:hover::-webkit-scrollbar-thumb {
+          background: var(--baseline);
+        }
       }
       .filters .label {
+        position: sticky; /* 吸在行内左侧：横向滑动时标签不随 chip 滚走 */
+        left: 0;
         flex: none;
         font-size: 12px;
         color: var(--text-muted);
+        background: var(--page); /* 盖住从标签下方滑过的 chip */
+        padding-right: 8px;
+        z-index: 1;
       }
       .chip {
         flex: none;
@@ -462,7 +501,7 @@
       </section>
 
       <section class="card">
-        <div class="card-title">职业占比走势 · 每日职业数量占比</div>
+        <div class="card-title">职业占比走势</div>
         <div class="card-sub" id="c4-sub"></div>
         <div class="legend" id="legend4" style="display: none"></div>
         <div class="chart" id="c4">
@@ -829,6 +868,7 @@
         }
 
         // prefix: 排在最前面的特殊选项（如职业筛选的「全部」「对比」），不带色点
+        // label: 行首标签（可选），吸在行内左侧不随横向滚动滚走
         function chipRow(
           hostId,
           items,
@@ -837,9 +877,16 @@
           onPick,
           colored,
           prefix = ["全部"],
+          label = null,
         ) {
           const host = $(hostId);
           host.replaceChildren();
+          if (label) {
+            const lb = document.createElement("div");
+            lb.className = "label";
+            lb.textContent = label;
+            host.appendChild(lb);
+          }
           for (const it of [...prefix, ...items]) {
             const c = document.createElement("div");
             c.className = "chip" + (cur === it ? " active" : "");
@@ -859,6 +906,17 @@
             });
             host.appendChild(c);
           }
+          // 横向滚动行：把选中 chip 滚到行内视野中央（内容不满一行时保持 0）。
+          // replaceChildren 后 scrollLeft 已归 0，用 rect 差值计算不受页面滚动影响
+          const active = host.querySelector(".chip.active");
+          if (active) {
+            const a = active.getBoundingClientRect();
+            const r = host.getBoundingClientRect();
+            host.scrollLeft = Math.max(
+              0,
+              a.left - r.left - (host.clientWidth - active.offsetWidth) / 2,
+            );
+          }
         }
 
         function renderChips() {
@@ -870,6 +928,9 @@
             (s) => {
               state.server = s;
             },
+            undefined,
+            ["全部"],
+            "服务器",
           );
           chipRow(
             "job-chips",
@@ -882,6 +943,7 @@
             },
             true,
             ["全部", "对比"], // 全部=整体一条线；对比=Top 5 多条线
+            "职业",
           );
         }
 
@@ -1256,9 +1318,7 @@
             tipId: "tip4",
             legendId: "legend4",
             subId: "c4-sub",
-            subText:
-              subTextFor(jobPart) +
-              " · 占比 = 当日该职业数量 ÷ 当日全部职业总数（当前服务器筛选内），早期样本量少占比波动大",
+            subText: subTextFor(jobPart),
             fmtY: (v) => Math.round(v) + "%",
             fmtTip: (v) => v.toFixed(1) + "%",
             tipNote: (p) => ` · ${p.n}/${p.total} 件`,
