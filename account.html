@@ -120,7 +120,7 @@
         font-size: 13px;
       }
 
-      /* ---------- 筛选条（单行横向滑动，吸顶时不占屏） ---------- */
+      /* ---------- 筛选条（一行两个下拉框，吸顶时不占屏） ---------- */
       /* 吸顶：滚动时筛选条始终可见，无需滚回顶部再筛选。
          不透明背景盖住下方滚过的内容（底色与 body 同为 --page，宽屏两侧无缝），
          底部细线在吸顶时充当与内容的视觉分隔 */
@@ -132,125 +132,90 @@
         border-bottom: 1px solid var(--border);
         padding: 8px 0;
       }
-      /* 筛选行 = 行首标签 + 横向滑动区。标签放在滚动容器之外：
-         chip 永远不会滑到标签底下遮挡文字（无 sticky 内滚动定位的兼容问题） */
+      /* 筛选行 = 两个半区并排，各含行首标签 + 下拉选择框。
+         自定义胶囊外观叠一层透明原生 select：手机上弹出原生选择器（体验最佳），
+         闭合态保持视觉统一 */
       .filters .row {
         display: flex;
         align-items: center;
         gap: 8px;
         padding: 4px 0;
       }
-      .filters .label {
-        flex: none;
-        min-width: 3em; /* 与「服务器」对齐，「职业」同宽，两行 chip 起点对齐 */
-        font-size: 12px;
-        color: var(--text-muted);
-      }
-      .filters .scroller {
-        position: relative;
+      .filters-half {
         display: flex;
-        flex-wrap: nowrap;
         align-items: center;
         gap: 8px;
         flex: 1;
         min-width: 0;
-        overflow-x: auto;
-        -webkit-overflow-scrolling: touch; /* 旧 iOS 惯性滚动 */
-        scrollbar-width: none; /* 触屏不显示滚动条 */
       }
-      .filters .scroller::-webkit-scrollbar {
-        display: none;
-      }
-      /* 右缘渐隐：可继续横向滑动的视觉提示。JS 在「可滑动且未滑到底」时加 .fade；
-         sticky right 钉在滑动区右缘，渐隐不占布局宽度、不挡 chip 点击 */
-      .filters .scroller::after {
-        content: "";
+      .filters .label {
         flex: none;
-        position: sticky;
-        right: 0;
-        width: 32px;
-        margin-left: -32px;
-        align-self: stretch;
-        background: linear-gradient(to left, var(--page), transparent);
-        pointer-events: none;
-        display: none;
+        min-width: 3em; /* 「服务器」「职业」同宽，两个下拉框起点对齐 */
+        font-size: 12px;
+        color: var(--text-muted);
       }
-      .filters .scroller.fade::after {
-        display: block;
+      .filters .select-wrap {
+        position: relative;
+        flex: 1;
+        min-width: 0;
       }
-      /* 桌面（hover 设备）滚动条：细圆角胶囊，平时隐形，悬停滑动区时才浮现，
-         不常驻两条灰杠；Firefox 用 scrollbar-color 同步同样的显隐逻辑 */
-      @media (hover: hover) {
-        .filters .scroller {
-          scrollbar-width: thin;
-          scrollbar-color: transparent transparent; /* 平时隐形 */
-        }
-        .filters .scroller:hover {
-          scrollbar-color: var(--baseline) transparent;
-        }
-        .filters .scroller::-webkit-scrollbar {
-          display: block;
-          height: 4px;
-          background: transparent;
-        }
-        .filters .scroller::-webkit-scrollbar-track {
-          background: transparent;
-        }
-        .filters .scroller::-webkit-scrollbar-thumb {
-          background: transparent;
-          border-radius: 999px;
-        }
-        .filters .scroller:hover::-webkit-scrollbar-thumb {
-          background: var(--baseline);
-        }
-      }
-      .chip {
-        flex: none;
-        display: inline-flex;
+      /* 闭合态外观：胶囊 + 色点 + 当前值 + 下拉箭头 */
+      .filters .sel {
+        display: flex;
         align-items: center;
+        gap: 6px;
         height: 38px;
-        padding: 0 14px;
+        padding: 0 12px;
         border: 1px solid var(--border);
         border-radius: 19px;
         background: var(--surface-1);
-        color: var(--text-secondary);
+        color: var(--text-primary);
         font-size: 13.5px;
-        cursor: pointer;
-        user-select: none;
-        touch-action: manipulation; /* 去掉移动端点击延迟，保证按压态即时出现 */
-        transition:
-          transform 0.08s ease,
-          background-color 0.12s ease,
-          color 0.12s ease;
+        white-space: nowrap;
+        overflow: hidden;
       }
-      .chip .dot {
+      .filters .sel .dot {
+        flex: none;
         width: 8px;
         height: 8px;
         border-radius: 50%;
-        margin-right: 6px;
       }
-      .chip.active {
-        border-color: var(--series-1);
-        color: var(--text-primary);
-        font-weight: 600;
+      .filters .sel .sel-text {
+        flex: 1;
+        min-width: 0;
+        overflow: hidden;
+        text-overflow: ellipsis;
       }
-      /* 「对比」是模式选项而非具体职业：常驻蓝色加粗，与普通职业 chip 区分。
-         放在 .active 之后：选中态保留蓝描边，文字仍是蓝色加粗；
-         按压态规则在其后，按压时白字蓝底不受影响 */
-      .chip.compare {
+      .filters .sel .sel-arrow {
+        flex: none;
+        font-size: 10px;
+        color: var(--text-muted);
+      }
+      /* 「对比」被选中时单独蓝色（不加粗） */
+      .filters .sel.compare {
         color: var(--series-1);
-        font-weight: 700;
       }
-      /* 按下去的回馈：纯色蓝底 + 白字 + 缩放，效果明显；
-         JS 绑定的 .pressed 为主（部分触屏环境 :active 不生效），
-         :active 兜底。写在 .active 之后保证按压态压过选中态 */
-      .chip.pressed,
-      .chip:active {
-        transform: scale(0.92);
-        background: var(--series-1);
+      /* 原生下拉列表里的「对比」选项单独蓝色。
+         桌面浏览器（Chromium/Firefox）生效；移动端原生选择器不支持选项样式 */
+      .filters .sel-native option.opt-compare {
+        color: var(--series-1);
+      }
+      /* 键盘聚焦描蓝边（移动端点按打开选择器时短暂显示，无碍） */
+      .filters .select-wrap:focus-within .sel {
         border-color: var(--series-1);
-        color: #ffffff;
       }
+      /* 透明原生 select 铺满胶囊：点按任意位置打开原生选择器；
+         font-size 16px 防止 iOS 聚焦时页面自动缩放 */
+      .filters .sel-native {
+        position: absolute;
+        inset: 0;
+        width: 100%;
+        height: 100%;
+        opacity: 0;
+        font-size: 16px;
+        cursor: pointer;
+      }
+      /* 统计卡样式见下：筛选区不再使用 chip（已改为下拉选择框） */
 
       /* ---------- 统计卡 ---------- */
       .stats {
@@ -471,8 +436,10 @@
       <div id="error" style="display: none"></div>
 
       <div class="filters" id="filters" style="display: none">
-        <div class="row" id="server-chips"></div>
-        <div class="row" id="job-chips"></div>
+        <div class="row">
+          <div class="filters-half" id="server-chips"></div>
+          <div class="filters-half" id="job-chips"></div>
+        </div>
       </div>
 
       <div class="stats" id="stats" style="display: none">
@@ -889,8 +856,9 @@
         }
 
         // prefix: 排在最前面的特殊选项（如职业筛选的「全部」「对比」），不带色点
-        // label: 行首标签（可选），位于滑动区之外，chip 滑不到标签底下
-        function chipRow(
+        // label: 行首标签（可选）。下拉框 = 自定义胶囊外观 + 透明原生 select 叠层，
+        // 点按任意位置弹出原生选择列表，闭合态完全自绘（色点/当前值/箭头）
+        function selectRow(
           hostId,
           items,
           labelFn,
@@ -908,57 +876,45 @@
             lb.textContent = label;
             host.appendChild(lb);
           }
-          const sc = document.createElement("div");
-          sc.className = "scroller";
+          const wrap = document.createElement("div");
+          wrap.className = "select-wrap";
+          const view = document.createElement("div");
+          view.className = "sel" + (cur === "对比" ? " compare" : "");
+          view.setAttribute("aria-hidden", "true"); // 装饰层：读屏直接读原生 select
+          if (colored && !prefix.includes(cur)) {
+            const dot = document.createElement("span");
+            dot.className = "dot";
+            dot.style.background = jobColor(cur);
+            view.appendChild(dot);
+          }
+          const txt = document.createElement("span");
+          txt.className = "sel-text";
+          txt.textContent = labelFn(cur);
+          const arrow = document.createElement("span");
+          arrow.className = "sel-arrow";
+          arrow.textContent = "▾";
+          view.append(txt, arrow);
+          const sel = document.createElement("select");
+          sel.className = "sel-native";
           for (const it of [...prefix, ...items]) {
-            const c = document.createElement("div");
-            c.className = "chip" + (cur === it ? " active" : "");
-            if (colored && !prefix.includes(it)) {
-              const dot = document.createElement("span");
-              dot.className = "dot";
-              dot.style.background = jobColor(it);
-              c.appendChild(dot);
-            }
-            if (it === "对比") c.classList.add("compare"); // 模式选项：常驻蓝色加粗
-            c.textContent = labelFn(it);
-            bindPress(c);
-            c.addEventListener("click", () => {
-              if (cur === it) return;
-              onPick(it);
-              render();
-            });
-            sc.appendChild(c);
+            const o = document.createElement("option");
+            o.value = it;
+            o.textContent = labelFn(it);
+            if (it === cur) o.selected = true;
+            if (it === "对比") o.classList.add("opt-compare"); // 列表里单独蓝色
+            sel.appendChild(o);
           }
-          host.appendChild(sc);
-          // 把选中 chip 滚到行内视野中央（内容不满一行时保持 0）。
-          // replaceChildren 后 scrollLeft 已归 0，用 rect 差值计算不受页面滚动影响
-          const active = sc.querySelector(".chip.active");
-          if (active) {
-            const a = active.getBoundingClientRect();
-            const r = sc.getBoundingClientRect();
-            sc.scrollLeft = Math.max(
-              0,
-              a.left - r.left - (sc.clientWidth - active.offsetWidth) / 2,
-            );
-          }
-          // 右缘渐隐提示（可滑动且未滑到底时显示）
-          updateRowFade(sc);
-          sc.addEventListener("scroll", () => updateRowFade(sc), {
-            passive: true,
+          sel.addEventListener("change", () => {
+            if (sel.value === cur) return;
+            onPick(sel.value);
+            render();
           });
+          wrap.append(view, sel);
+          host.appendChild(wrap);
         }
 
-        // 右缘渐隐显隐：内容溢出且未滑到底时显示，滑到底/无溢出时隐藏
-        function updateRowFade(sc) {
-          const overflow = sc.scrollWidth > sc.clientWidth + 1;
-          sc.classList.toggle(
-            "fade",
-            overflow && sc.scrollLeft < sc.scrollWidth - sc.clientWidth - 1,
-          );
-        }
-
-        function renderChips() {
-          chipRow(
+        function renderFilters() {
+          selectRow(
             "server-chips",
             SERVERS,
             (s) => s,
@@ -970,7 +926,7 @@
             ["全部"],
             "服务器",
           );
-          chipRow(
+          selectRow(
             "job-chips",
             JOB_RANK,
             JOB_LABEL,
@@ -1376,7 +1332,7 @@
         }
 
         function render() {
-          renderChips(); // 选中态跟随 state 重建 chips，高亮移到新选项
+          renderFilters(); // 选中态跟随 state 重建下拉框外观
           renderStats();
           renderTop();
           renderCharts();
@@ -1392,13 +1348,7 @@
           ` · 共 ${new Set(RECORDS.map((r) => r.server)).size} 个服务器` +
           ` · ${new Set(RECORDS.map((r) => r.job)).size} 个职业`;
         render(); // 内部含 renderChips
-        window.addEventListener("resize", () => {
-          renderCharts();
-          // 窗口/横竖屏变化会改变滑动区溢出状态，重算渐隐显隐
-          document
-            .querySelectorAll("#filters .scroller")
-            .forEach(updateRowFade);
-        });
+        window.addEventListener("resize", renderCharts);
       })();
     </script>
   </body>
