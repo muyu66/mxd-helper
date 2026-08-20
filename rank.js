@@ -158,6 +158,8 @@ function calc() {
         ? _avgEquipMoney / (n * M)
         : null;
     }
+    // 升级效率⑥ = 经验 ÷ 6（假设6下击杀）
+    entry._eff6 = exp / 6;
     // 回本/升级比 = 回本效率① ÷ 升级效率①
     entry._ratio1 = entry._goldMp1 != null && entry._eff1 > 0
       ? entry._goldMp1 / entry._eff1
@@ -185,6 +187,7 @@ function calc() {
     { key: "_eff2", label: "升级效率②", cls: "score", tip: "假设2下击杀怪物" },
     { key: "_eff3", label: "升级效率③", cls: "score", tip: "假设3下击杀怪物" },
     { key: "_eff4", label: "升级效率④", cls: "score", tip: "假设4下击杀怪物" },
+    { key: "_eff6", label: "升级效率⑥", cls: "score", tip: "假设6下击杀怪物" },
     { key: "_goldMp1", label: "回本效率①", cls: "gold-mp", tip: "假设1下击杀时，每消耗1点蓝量期望获得的装备金币价值，不是直接收益，只是对比值" },
     { key: "_goldMp2", label: "回本效率②", cls: "gold-mp", tip: "假设2下击杀时，每消耗1点蓝量期望获得的装备金币价值，不是直接收益，只是对比值" },
     { key: "_goldMp3", label: "回本效率③", cls: "gold-mp", tip: "假设3下击杀时，每消耗1点蓝量期望获得的装备金币价值，不是直接收益，只是对比值" },
@@ -358,6 +361,7 @@ function calc() {
       <td class="score">${m._eff2.toFixed(1)}</td>
       <td class="score">${m._eff3.toFixed(1)}</td>
       <td class="score">${m._eff4.toFixed(1)}</td>
+      <td class="score">${m._eff6.toFixed(1)}</td>
       <td class="gold-mp">${m._goldMp1 != null ? m._goldMp1.toFixed(1) : "--"}</td>
       <td class="gold-mp">${m._goldMp2 != null ? m._goldMp2.toFixed(1) : "--"}</td>
       <td class="gold-mp">${m._goldMp3 != null ? m._goldMp3.toFixed(1) : "--"}</td>
