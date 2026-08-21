@@ -24,11 +24,16 @@ document.addEventListener("click", (e) => {
   }
 });
 
-// 表头右侧控件：技能耗蓝输入框 + 计算排行按钮
+// 表头右侧控件：技能耗蓝输入框 + 物防/魔防切换开关 + 计算排行按钮
 function headerControlsHtml(mValue) {
   return `
         <label for="M">技能耗蓝</label>
         <input type="number" id="M" placeholder="默认 20" step="any" min="0.01" value="${mValue}" />
+        <label class="def-toggle" title="切换物防/魔防展示">
+          <input type="checkbox" id="defToggle"${defenseMode === "pdd" ? " checked" : ""} />
+          <span class="def-opt def-mdd">魔防</span>
+          <span class="def-opt def-pdd">物防</span>
+        </label>
         <button class="btn btn-sm" onclick="calc()"><span>🔍</span> 计算排行</button>`;
 }
 
@@ -36,6 +41,15 @@ let monsterData = [];
 let equipMap = {}; // mobid → [{level, rate}, ...]
 let currentRanked = [];
 let filters = []; // 筛选条件 [{col, op, value, logic}]，logic 为该条与上一条的与/或关系（首条忽略）
+let defenseMode = "mdd"; // 防具列展示模式："mdd" 魔防 / "pdd" 物防
+let currentRender = null; // 最近一次 calc 的 renderTable，供切换开关触发重绘
+
+// 物防/魔防切换开关（模块级委托，初始加载页与结果页都能生效）
+document.addEventListener("change", (e) => {
+  if (e.target.id !== "defToggle") return;
+  defenseMode = e.target.checked ? "pdd" : "mdd";
+  if (currentRender) currentRender();
+});
 
 (async function loadData() {
   const res = document.getElementById("result");
@@ -179,7 +193,7 @@ function calc() {
     { key: "mobname", label: "怪物", cls: "monster-name", tip: "怪物名称" },
     { key: "hp", label: "HP", tip: "怪物血量" },
     { key: "mp", label: "MP", tip: "怪物蓝量" },
-    { key: "mdd", label: "魔防", tip: "怪物魔防" },
+    { key: "_defense", label: "魔防", tip: "怪物魔防" }, // 实际取 mdd/pdd，随 defenseMode 切换
     { key: "exp", label: "EXP", tip: "怪物经验值" },
     { key: "_hpExp", label: "难度", tip: "怪物血量 ÷ 经验" },
     { key: "_ratio1", label: "性价比", cls: "ratio", tip: "一下秒的情况下，每1点经验的回本价值" },
@@ -200,7 +214,8 @@ function calc() {
   ];
 
   function val(m, col) {
-    const raw = m[col];
+    // 防具列按当前展示模式取物防/魔防字段
+    const raw = col === "_defense" ? m[defenseMode] : m[col];
     if (raw == null || raw === "") return "";
     const n = parseFloat(raw);
     return isNaN(n) ? String(raw).toLowerCase() : n;
@@ -257,6 +272,11 @@ function calc() {
   }
 
   function renderTable() {
+    // 防具列列名/提示随物防、魔防切换模式更新
+    const defCol = COLS.find((c) => c.key === "_defense");
+    defCol.label = defenseMode === "pdd" ? "物防" : "魔防";
+    defCol.tip = defenseMode === "pdd" ? "怪物物防" : "怪物魔防";
+
     const sorted = sortData(applyFilters(ranked));
     const mValue = document.getElementById("M") ? document.getElementById("M").value : "";
 
@@ -353,7 +373,7 @@ function calc() {
       <td class="monster-name"><div class="mob-cell">${iconHtml}<span>${esc(m.mobname)}</span></div></td>
       <td>${Number(m.hp)}</td>
       <td>${Number(m.mp)}</td>
-      <td>${Number(m.mdd)}</td>
+      <td>${Number(m[defenseMode])}</td>
       <td>${Number(m.exp)}</td>
       <td>${m._hpExp != null ? m._hpExp.toFixed(1) : "--"}</td>
       <td class="ratio">${m._ratio1 != null ? m._ratio1.toFixed(1) : "--"}</td>
@@ -538,6 +558,7 @@ function calc() {
     initTippy(300);
   }
 
+  currentRender = renderTable;
   renderTable();
 }
 
