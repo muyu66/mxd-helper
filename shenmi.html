@@ -81,6 +81,32 @@
         margin: 0 0 18px;
       }
 
+      /* ---------- 顶部广告语 ---------- */
+      .slogan {
+        text-align: center;
+        margin: 6px 0 18px;
+      }
+      .slogan-main {
+        font-size: 21px;
+        font-weight: 800;
+        letter-spacing: 1px;
+        background: linear-gradient(90deg, #2a78d6, #1baf7a);
+        -webkit-background-clip: text;
+        background-clip: text;
+        color: transparent;
+      }
+      .slogan-tag {
+        display: inline-block;
+        margin-top: 8px;
+        padding: 3px 14px;
+        border-radius: 14px;
+        font-size: 13px;
+        font-weight: 700;
+        color: var(--accent);
+        background: var(--accent-weak);
+        border: 1px solid var(--border);
+      }
+
       /* ---------- 上传卡片 ---------- */
       .card {
         background: var(--surface);
@@ -276,10 +302,17 @@
     <script src="header.js"></script>
 
     <main class="wrap">
+      <div class="slogan">
+        <div class="slogan-main">玩家丨小猪猪丨倾力打造</div>
+        家族&nbsp;<span class="slogan-tag">梦回岛屿</span>
+      </div>
+
       <div class="card">
         <div class="dz-example-wrap">
           <img class="dz-example" src="test.png" alt="截图示例" />
-          <div class="dz-example-tip">↑ 截图示例：请按这样的形式截图（一行装备名 + 价格）</div>
+          <div class="dz-example-tip">
+            ↑ 截图示例：请按这样的形式截图（一行装备名 + 价格）
+          </div>
         </div>
         <div class="dropzone" id="dropzone">
           <span class="dz-icon">🖼️</span>
@@ -488,7 +521,9 @@
                 .then(function (q) {
                   if (run.id !== runId || !q.ok) return;
                   statusEl.textContent =
-                    q.waiting > 0 ? "当前正有 " + q.waiting + " 人排队中…" : "正在分析…";
+                    q.waiting > 0
+                      ? "当前正有 " + q.waiting + " 人排队中…"
+                      : "正在分析…";
                 })
                 .catch(function () {
                   /* 轮询失败忽略，不打扰主流程 */
