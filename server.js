@@ -21,7 +21,9 @@ import http from "node:http";
 import fs from "node:fs";
 import path from "node:path";
 import zlib from "node:zlib";
+import { spawn } from "node:child_process";
 import { fileURLToPath } from "node:url";
+import { searchGoodsAll } from "./gmmsj.mjs";
 
 const ROOT = path.dirname(fileURLToPath(import.meta.url));
 const PORT = Number(process.env.PORT) || 3001;
@@ -141,12 +143,228 @@ function cacheControlFor(ext) {
 /** 页面 gzip 产物缓存（页面只有 3 个，按 ETag 复用压缩结果，避免每次请求重复压缩大 JSON） */
 const gzipCache = new Map();
 
-function respond(req, res, { status = 200, type = "text/plain; charset=utf-8", cache = "no-cache", etag, body, compress = false }) {
-  const headers = { "Content-Type": type, "Cache-Control": cache };
+/* ---------------- OCR（POST /api/ocr，Python RapidOCR 中文识别） ---------------- */
+
+const OCR_LIMIT = 10 * 1024 * 1024; // 图片上限 10MB
+const OCR_TIMEOUT_MS = 60000; // python 识别超时（含模型初始化约 0.5s + 识别 1~2s）
+const PYTHON = process.env.PYTHON || "python"; // 部署新机器需先 pip install rapidocr_onnxruntime
+
+/** /api/* 接口的 CORS 头：file:// 双击打开页面时也能跨域调用本地服务 */
+const API_CORS = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
+  "Access-Control-Allow-Headers": "Content-Type",
+};
+
+/** 读请求体（限长，超限即断连） */
+function readBody(req, limit) {
+  return new Promise((resolve, reject) => {
+    const chunks = [];
+    let size = 0;
+    req.on("data", (c) => {
+      size += c.length;
+      if (size > limit) {
+        reject(new Error(`图片过大（上限 ${Math.round(limit / 1024 / 1024)}MB）`));
+        req.destroy();
+        return;
+      }
+      chunks.push(c);
+    });
+    req.on("end", () => resolve(Buffer.concat(chunks)));
+    req.on("error", reject);
+  });
+}
+
+/** 调用 python 识别：stdin 传图片二进制，stdout 收 JSON（ensure_ascii，无编码问题） */
+function runOcr(imageBuf) {
+  return new Promise((resolve, reject) => {
+    const py = spawn(PYTHON, ["-X", "utf8", path.join(ROOT, "ocr_service.py")], {
+      stdio: ["pipe", "pipe", "pipe"],
+      timeout: OCR_TIMEOUT_MS,
+    });
+    let out = "";
+    let err = "";
+    py.stdout.on("data", (d) => (out += d));
+    py.stderr.on("data", (d) => (err += d));
+    py.on("error", (e) => reject(new Error(`无法启动 python（${e.message}）`)));
+    py.on("close", (code) => {
+      if (code !== 0) {
+        return reject(new Error(`识别进程异常退出（${code}）${err ? "：" + err.slice(0, 300) : ""}`));
+      }
+      try {
+        const j = JSON.parse(out);
+        if (!j.ok) return reject(new Error(j.error || "OCR 失败"));
+        resolve(j.items);
+      } catch {
+        reject(new Error("OCR 输出解析失败" + (err ? "：" + err.slice(0, 300) : "")));
+      }
+    });
+    py.stdin.write(imageBuf);
+    py.stdin.end();
+  });
+}
+
+/** 串行队列：python 进程 + 模型加载吃内存，同时只跑一个识别，其余排队 */
+let ocrChain = Promise.resolve();
+function enqueueOcr(buf) {
+  const p = ocrChain.then(() => runOcr(buf));
+  ocrChain = p.catch(() => {}); // 单个失败不阻塞后续请求
+  return p;
+}
+
+/** POST /api/ocr：请求体为图片二进制（页面 fetch 直接上传 File） */
+function handleOcr(req, res) {
+  readBody(req, OCR_LIMIT)
+    .then((buf) => {
+      if (!buf.length) throw new Error("请求体为空");
+      return enqueueOcr(buf);
+    })
+    .then((items) => {
+      respond(req, res, {
+        type: "application/json; charset=utf-8",
+        headers: API_CORS,
+        body: Buffer.from(JSON.stringify({ ok: true, items })),
+      });
+    })
+    .catch((err) => {
+      console.error(`[ocr] 识别失败：${err.message}`);
+      respond(req, res, {
+        status: err.message.includes("图片过大") ? 413 : 500,
+        type: "application/json; charset=utf-8",
+        headers: API_CORS,
+        body: Buffer.from(JSON.stringify({ ok: false, error: err.message })),
+      });
+    });
+}
+
+/* ---------------- 询价（GET /api/price?keyword=，gmmsj 商品搜索） ---------------- */
+
+// JSON 文件当缓存库：30 分钟内的查询直接读缓存，不再翻页轰炸 gmmsj；
+// 缓存落盘到 price-cache.json，重启服务后启动时读回内存继续生效
+const PRICE_CACHE_FILE = path.join(ROOT, "price-cache.json");
+const PRICE_CACHE_TTL_MS = 30 * 60 * 1000; // 缓存有效期 30 分钟
+const PRICE_CACHE_MAX = 200; // 内存上限，超出时先清过期、再丢最旧的
+const priceCache = new Map(); // keyword → { t, lowest, avg, count, totalPage }
+
+function atomicWrite(file, content) {
+  fs.writeFileSync(file + ".tmp", content);
+  fs.renameSync(file + ".tmp", file);
+}
+
+/** 启动时读回磁盘缓存（仅保留 30 分钟内的记录） */
+function loadPriceCache() {
+  try {
+    const obj = JSON.parse(fs.readFileSync(PRICE_CACHE_FILE, "utf-8"));
+    const now = Date.now();
+    for (const [k, v] of Object.entries(obj)) {
+      if (v && typeof v.t === "number" && now - v.t < PRICE_CACHE_TTL_MS) priceCache.set(k, v);
+    }
+    console.log(`[price] 询价缓存载入 ${priceCache.size} 条（30 分钟内直接复用）`);
+  } catch {
+    // 首次运行或文件损坏：从空缓存开始
+  }
+}
+
+/** 缓存落盘（原子写：先写 .tmp 再 rename，防读到半截文件） */
+function savePriceCache() {
+  try {
+    atomicWrite(PRICE_CACHE_FILE, JSON.stringify(Object.fromEntries(priceCache)));
+  } catch (err) {
+    console.error(`[price] 缓存落盘失败：${err.message}`);
+  }
+}
+
+/** 聚合某个关键词的全部在售：最低价 / 均价 / 在售数量 */
+async function queryPrice(keyword) {
+  const hit = priceCache.get(keyword);
+  if (hit && Date.now() - hit.t < PRICE_CACHE_TTL_MS) return hit; // 缓存命中，直接返回
+
+  const { goodsList, totalPage } = await searchGoodsAll(keyword);
+  const prices = goodsList
+    .map((g) => Number(String(g.price ?? "").replace(/[^\d.]/g, ""))) // "1,750.00" → 1750
+    .filter((n) => Number.isFinite(n) && n > 0);
+  const data = {
+    t: Date.now(),
+    lowest: prices.length ? Math.min(...prices) : null,
+    avg: prices.length ? Math.round((prices.reduce((s, n) => s + n, 0) / prices.length) * 100) / 100 : null,
+    count: goodsList.length,
+    totalPage,
+  };
+  priceCache.set(keyword, data);
+  // 上限维护：先清过期，仍超则丢最旧的
+  for (const [k, v] of priceCache) {
+    if (Date.now() - v.t >= PRICE_CACHE_TTL_MS) priceCache.delete(k);
+  }
+  if (priceCache.size > PRICE_CACHE_MAX) {
+    const oldest = [...priceCache.entries()]
+      .sort((a, b) => a[1].t - b[1].t)
+      .slice(0, priceCache.size - PRICE_CACHE_MAX);
+    for (const [k] of oldest) priceCache.delete(k);
+  }
+  savePriceCache();
+  return data;
+}
+
+loadPriceCache(); // 启动即读回缓存（模块加载顺序上位于各函数定义之后）
+
+/** 并发受控队列：一张图最多 5 个装备同时询价，并发 3 个对接口保持克制 */
+let priceActive = 0;
+const PRICE_CONCURRENCY = 3;
+const priceQueue = [];
+function enqueuePrice(keyword) {
+  return new Promise((resolve, reject) => {
+    priceQueue.push({ keyword, resolve, reject });
+    pumpPrice();
+  });
+}
+function pumpPrice() {
+  while (priceActive < PRICE_CONCURRENCY && priceQueue.length) {
+    const { keyword, resolve, reject } = priceQueue.shift();
+    priceActive++;
+    queryPrice(keyword)
+      .then(resolve, reject)
+      .finally(() => {
+        priceActive--;
+        pumpPrice();
+      });
+  }
+}
+
+function handlePrice(req, res) {
+  const keyword = (new URL(req.url, "http://localhost").searchParams.get("keyword") || "").trim();
+  if (!keyword) {
+    return respond(req, res, {
+      status: 400,
+      type: "application/json; charset=utf-8",
+      headers: API_CORS,
+      body: Buffer.from(JSON.stringify({ ok: false, error: "缺少 keyword 参数" })),
+    });
+  }
+  enqueuePrice(keyword)
+    .then((data) => {
+      respond(req, res, {
+        type: "application/json; charset=utf-8",
+        headers: API_CORS,
+        body: Buffer.from(JSON.stringify({ ok: true, keyword, ...data })),
+      });
+    })
+    .catch((err) => {
+      console.error(`[price] 询价失败（${keyword}）：${err.message}`);
+      respond(req, res, {
+        status: 502,
+        type: "application/json; charset=utf-8",
+        headers: API_CORS,
+        body: Buffer.from(JSON.stringify({ ok: false, error: err.message })),
+      });
+    });
+}
+
+function respond(req, res, { status = 200, type = "text/plain; charset=utf-8", cache = "no-cache", etag, headers = {}, body, compress = false }) {
+  const h = { "Content-Type": type, "Cache-Control": cache, ...headers };
   if (etag) {
-    headers.ETag = etag;
+    h.ETag = etag;
     if (req.headers["if-none-match"] === etag) {
-      res.writeHead(304, headers);
+      res.writeHead(304, h);
       res.end();
       return;
     }
@@ -165,11 +383,11 @@ function respond(req, res, { status = 200, type = "text/plain; charset=utf-8", c
         gzipCache.set(etag, gz);
       }
     }
-    headers["Content-Encoding"] = "gzip";
-    headers.Vary = "Accept-Encoding";
+    h["Content-Encoding"] = "gzip";
+    h.Vary = "Accept-Encoding";
     payload = gz;
   }
-  res.writeHead(status, headers);
+  res.writeHead(status, h);
   res.end(payload);
 }
 
@@ -222,9 +440,6 @@ function serveStatic(req, res, filePath) {
 }
 
 function handle(req, res) {
-  if (req.method !== "GET" && req.method !== "HEAD") {
-    return respond(req, res, { status: 405, body: Buffer.from("405 Method Not Allowed\n") });
-  }
   // 目录穿越硬拦截：URL 解析器会把字面 /../ 归一化掉（编码的 %2e%2e 不会），
   // 这里直接对原始请求串检查，两种写法一律 404
   const rawPath = req.url.split("?")[0].split("#")[0];
@@ -237,6 +452,19 @@ function handle(req, res) {
     pathname = decodeURIComponent(new URL(req.url, "http://localhost").pathname);
   } catch {
     return respond(req, res, { status: 400, body: Buffer.from("400 Bad Request\n") });
+  }
+
+  // API 接口：OPTIONS 应答 CORS 预检（file:// 页面跨域用）
+  if (pathname === "/api/ocr" || pathname === "/api/price") {
+    if (req.method === "OPTIONS") {
+      return respond(req, res, { status: 204, headers: API_CORS, body: Buffer.alloc(0) });
+    }
+    if (pathname === "/api/ocr" && req.method === "POST") return handleOcr(req, res);
+    if (pathname === "/api/price" && req.method === "GET") return handlePrice(req, res);
+  }
+
+  if (req.method !== "GET" && req.method !== "HEAD") {
+    return respond(req, res, { status: 405, body: Buffer.from("405 Method Not Allowed\n") });
   }
 
   // 目录穿越 / 隐藏文件（.git 等）防护

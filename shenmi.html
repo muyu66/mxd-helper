@@ -1,0 +1,561 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta
+      http-equiv="Cache-Control"
+      content="no-cache, no-store, must-revalidate"
+    />
+    <meta http-equiv="Pragma" content="no-cache" />
+    <meta http-equiv="Expires" content="0" />
+    <title>冒险岛怀旧服 神秘商人</title>
+    <style>
+      /* ---------- 亮/暗色变量（与 waigua.html 同一套色值，配 header.js 顶栏） ---------- */
+      :root {
+        color-scheme: light;
+        --page: #f9f9f7;
+        --surface: #fcfcfb;
+        --text: #0b0b0b;
+        --text-2: #52514e;
+        --muted: #898781;
+        --border: rgba(11, 11, 11, 0.1);
+        --accent: #2a78d6;
+        --accent-weak: rgba(42, 120, 214, 0.1);
+        --danger: #c0392b;
+      }
+      @media (prefers-color-scheme: dark) {
+        :root:where(:not([data-theme="light"])) {
+          color-scheme: dark;
+          --page: #121211;
+          --surface: #1a1a19;
+          --text: #f5f4f0;
+          --text-2: #c3c2b7;
+          --muted: #898781;
+          --border: rgba(255, 255, 255, 0.1);
+          --accent: #3987e5;
+          --accent-weak: rgba(57, 135, 229, 0.15);
+          --danger: #e35d5d;
+        }
+      }
+      :root[data-theme="dark"] {
+        color-scheme: dark;
+        --page: #121211;
+        --surface: #1a1a19;
+        --text: #f5f4f0;
+        --text-2: #c3c2b7;
+        --muted: #898781;
+        --border: rgba(255, 255, 255, 0.1);
+        --accent: #3987e5;
+        --accent-weak: rgba(57, 135, 229, 0.15);
+        --danger: #e35d5d;
+      }
+
+      body {
+        margin: 0;
+        background: var(--page);
+        color: var(--text);
+        font-family:
+          system-ui,
+          -apple-system,
+          "Segoe UI",
+          sans-serif;
+      }
+      /* 兜底：display:flex/grid 等会覆盖 hidden 属性，统一强制隐藏 */
+      [hidden] {
+        display: none !important;
+      }
+      .wrap {
+        max-width: 900px;
+        margin: 0 auto;
+        padding: 26px 16px 8px;
+      }
+      h1 {
+        font-size: 22px;
+        margin: 0 0 6px;
+      }
+      .sub {
+        color: var(--text-2);
+        font-size: 13.5px;
+        line-height: 1.7;
+        margin: 0 0 18px;
+      }
+
+      /* ---------- 上传卡片 ---------- */
+      .card {
+        background: var(--surface);
+        border: 1px solid var(--border);
+        border-radius: 14px;
+        padding: 18px;
+      }
+      .dropzone {
+        border: 1.5px dashed var(--border);
+        border-radius: 12px;
+        padding: 26px 16px;
+        text-align: center;
+        color: var(--text-2);
+        cursor: pointer;
+        transition:
+          border-color 0.15s ease,
+          background-color 0.15s ease;
+      }
+      .dropzone:hover,
+      .dropzone.over {
+        border-color: var(--accent);
+        background: var(--accent-weak);
+      }
+      .dropzone.busy {
+        cursor: wait;
+        opacity: 0.7;
+      }
+      .dz-icon {
+        font-size: 30px;
+        display: block;
+        margin-bottom: 6px;
+      }
+      .dz-hint {
+        font-size: 12px;
+        color: var(--muted);
+        margin-top: 6px;
+      }
+      /* 截图示例：位于上传框上方，告知用户按这样的形式截图 */
+      .dz-example-wrap {
+        text-align: center;
+        margin-bottom: 14px;
+      }
+      .dz-example {
+        max-width: 100%;
+        max-height: 170px;
+        border: 1px solid var(--border);
+        border-radius: 8px;
+        background: #fff;
+      }
+      .dz-example-tip {
+        font-size: 12px;
+        color: var(--muted);
+        margin-top: 6px;
+      }
+      .dz-preview {
+        margin-top: 12px;
+        text-align: center;
+      }
+      .dz-preview img {
+        max-width: 100%;
+        max-height: 140px;
+        border: 1px solid var(--border);
+        border-radius: 8px;
+        background: #fff;
+      }
+
+      /* ---------- 处理中状态 ---------- */
+      .progress {
+        margin-top: 14px;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        font-size: 13px;
+        color: var(--text-2);
+      }
+      .spinner {
+        width: 16px;
+        height: 16px;
+        border: 2px solid var(--border);
+        border-top-color: var(--accent);
+        border-radius: 50%;
+        animation: spin 0.8s linear infinite;
+      }
+      @keyframes spin {
+        to {
+          transform: rotate(360deg);
+        }
+      }
+
+      .error-banner {
+        margin-top: 14px;
+        padding: 10px 14px;
+        border: 1px solid rgba(224, 74, 64, 0.35);
+        background: rgba(224, 74, 64, 0.08);
+        color: var(--danger);
+        border-radius: 10px;
+        font-size: 13px;
+        line-height: 1.6;
+        overflow-wrap: break-word;
+      }
+
+      .empty-state {
+        text-align: center;
+        padding: 36px 12px;
+        color: var(--text-2);
+        border: 1px dashed var(--border);
+        border-radius: 12px;
+        margin-top: 16px;
+      }
+      .empty-icon {
+        font-size: 32px;
+        margin-bottom: 8px;
+      }
+      .empty-state p {
+        margin: 0 0 4px;
+        font-size: 14.5px;
+      }
+      .hint {
+        font-size: 12.5px;
+        color: var(--muted);
+      }
+
+      /* ---------- 装备宫格（每行两个，给价格数字留足宽度） ---------- */
+      .grid {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 10px;
+        margin-top: 16px;
+      }
+      @media (max-width: 640px) {
+        .grid {
+          grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+        }
+      }
+      .cell {
+        background: var(--surface);
+        border: 1px solid var(--border);
+        border-radius: 12px;
+        padding: 12px 10px;
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+      }
+      .cname {
+        font-size: 14.5px;
+        font-weight: 700;
+        text-align: center;
+        overflow-wrap: break-word;
+        min-height: 2.4em;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+      .mini-row {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 6px;
+      }
+      .mini {
+        background: var(--page);
+        border: 1px solid var(--border);
+        border-radius: 8px;
+        padding: 6px 4px;
+        text-align: center;
+      }
+      .mlab {
+        font-size: 10.5px;
+        color: var(--muted);
+        line-height: 1;
+      }
+      .mval {
+        font-size: 13px;
+        font-weight: 700;
+        color: var(--text);
+        margin-top: 4px;
+        line-height: 1.2;
+        overflow-wrap: break-word;
+      }
+      .mval.num {
+        color: var(--accent);
+      }
+      .mval.err {
+        color: var(--danger);
+        font-size: 11px;
+      }
+      .mval.muted {
+        color: var(--muted);
+        font-weight: 400;
+      }
+    </style>
+  </head>
+  <body>
+    <script src="header.js"></script>
+
+    <main class="wrap">
+      <div class="card">
+        <div class="dz-example-wrap">
+          <img class="dz-example" src="test.png" alt="截图示例" />
+          <div class="dz-example-tip">↑ 截图示例：请按这样的形式截图（一行装备名 + 价格）</div>
+        </div>
+        <div class="dropzone" id="dropzone">
+          <span class="dz-icon">🖼️</span>
+          <div>点击选择或拖入图片</div>
+          <input type="file" id="fileInput" accept="image/*" hidden />
+        </div>
+        <div class="dz-preview" id="dzPreview" hidden></div>
+        <div class="progress" id="progress" hidden>
+          <div class="spinner"></div>
+          <span id="status">处理中…</span>
+        </div>
+      </div>
+
+      <div class="error-banner" id="error" hidden></div>
+
+      <div class="grid" id="grid" hidden></div>
+
+      <div class="empty-state" id="empty">
+        <div class="empty-icon">🎯</div>
+        <p>上传图片后自动查询价格</p>
+      </div>
+    </main>
+
+    <script>
+      (function () {
+        "use strict";
+
+        /* ---------- 元素引用 ---------- */
+        var $ = function (id) {
+          return document.getElementById(id);
+        };
+        var dropzone = $("dropzone");
+        var fileInput = $("fileInput");
+        var dzPreview = $("dzPreview");
+        var progressEl = $("progress");
+        var statusEl = $("status");
+        var errorEl = $("error");
+        var gridEl = $("grid");
+        var emptyEl = $("empty");
+
+        // file:// 双击打开时走绝对地址（server.js 默认端口 3001）；http 访问时走相对地址
+        var API_BASE =
+          location.protocol === "file:" ? "http://localhost:3001" : "";
+
+        var busy = false; // 处理中拒绝重复上传
+        var runId = 0; // 每次识别自增，旧任务的异步回调不再更新界面
+        var emptyHtml = ""; // 初始空状态文案（复用）
+
+        /* ---------- 噪声过滤 / 名称提取 ---------- */
+        // 商店促销类噪声词：装备名一般不含这些词，命中即丢弃
+        var NOISE_RE =
+          /打折|出售|绝版|商品|免费|领取|特价|折扣|限时|秒杀|活动|购买|点券|金币|价格|剩余|时间|数量|库存|点击|确认|取消|关闭|详情|上架|下架|售罄|已售|立即|仅售|新品|礼包|抽奖|绑定|交易|寄售|元宝|积分|声望|热卖|推荐|爆款|超值|抵扣|优惠|促销/;
+
+        /**
+         * 从 OCR 词条提取候选装备名：
+         * 每个词条取连续中文片段（允许「·－」连接符），过噪声词、限 2~12 字、去重。
+         * 最多返回 5 个（宫格为一行五列）。
+         */
+        function extractNames(text) {
+          var lines = text
+            .split("\n")
+            .map(function (s) {
+              return s.trim();
+            })
+            .filter(Boolean);
+          var seen = {};
+          var names = [];
+          lines.forEach(function (line) {
+            var runs =
+              line.match(/[一-鿿]{2,}(?:[·・\-－][一-鿿]{2,})*/g) || [];
+            runs.forEach(function (run) {
+              var t = run.replace(/[·・\-－]/g, "");
+              if (NOISE_RE.test(t) || t.length < 2 || t.length > 12) return;
+              if (!seen[t]) {
+                seen[t] = true;
+                names.push(t);
+              }
+            });
+          });
+          return names.slice(0, 5);
+        }
+
+        /* ---------- 渲染 ---------- */
+        function escapeHtml(s) {
+          return s.replace(/[&<>"']/g, function (c) {
+            return {
+              "&": "&amp;",
+              "<": "&lt;",
+              ">": "&gt;",
+              '"': "&quot;",
+              "'": "&#39;",
+            }[c];
+          });
+        }
+
+        function fmtPrice(n) {
+          if (n === null || n === undefined) return "—";
+          return Number.isInteger(n) ? String(n) : n.toFixed(2);
+        }
+
+        // 价格数值带「元」；无数据时保持「—」
+        function fmtMoney(n) {
+          return n === null || n === undefined ? "—" : fmtPrice(n) + "元";
+        }
+
+        function cellHtml(name) {
+          return (
+            '<div class="cell" data-name="' +
+            escapeHtml(name) +
+            '">' +
+            '<div class="cname">' +
+            escapeHtml(name) +
+            "</div>" +
+            '<div class="mini-row">' +
+            '<div class="mini"><div class="mlab">最低价</div><div class="mval loading" data-f="lowest">…</div></div>' +
+            '<div class="mini"><div class="mlab">均价</div><div class="mval loading" data-f="avg">…</div></div>' +
+            '<div class="mini"><div class="mlab">在售</div><div class="mval loading" data-f="count">…</div></div>' +
+            "</div>" +
+            "</div>"
+          );
+        }
+
+        /** 单个装备询价：数据到达即更新对应宫格（异步，互不阻塞） */
+        async function queryOne(name, run) {
+          var cell = gridEl.querySelector(
+            '.cell[data-name="' + CSS.escape(name) + '"]',
+          );
+          var setVal = function (f, text, cls) {
+            var el = cell && cell.querySelector('.mval[data-f="' + f + '"]');
+            if (!el) return;
+            el.textContent = text;
+            el.classList.remove("loading");
+            el.classList.add(cls || "num");
+          };
+          try {
+            var res = await fetch(
+              API_BASE + "/api/price?keyword=" + encodeURIComponent(name),
+            );
+            var j = await res.json();
+            if (run.id !== runId) return; // 已换图，丢弃过期结果
+            if (!res.ok || !j.ok)
+              throw new Error(j.error || "HTTP " + res.status);
+            if (!j.count) {
+              // 无在售：三个数值直接显示「暂无」，不额外占一行
+              setVal("lowest", "暂无", "muted");
+              setVal("avg", "暂无", "muted");
+              setVal("count", "暂无", "muted");
+            } else {
+              setVal("lowest", fmtMoney(j.lowest));
+              setVal("avg", fmtMoney(j.avg));
+              setVal("count", j.count + "件");
+            }
+          } catch (err) {
+            if (run.id !== runId) return;
+            console.error("[shenmi] 询价出错（" + name + "）：", err);
+            setVal("lowest", "失败", "err");
+            setVal("avg", "失败", "err");
+            setVal("count", "失败", "err");
+          }
+          // 本宫格完成，推进整体进度文案
+          if (run.id === runId) {
+            run.done++;
+            if (run.done >= run.total) progressEl.hidden = true;
+            else
+              statusEl.textContent =
+                "正在查询价格 " + run.done + "/" + run.total + " …";
+          }
+        }
+
+        function showError(msg) {
+          errorEl.textContent = msg;
+          errorEl.hidden = false;
+        }
+
+        /* ---------- 主流程：上传 → OCR → 宫格渲染 → 5 个装备异步询价 ---------- */
+        async function processFile(file) {
+          if (!file) return;
+          if (!/^image\//.test(file.type)) {
+            showError("请选择图片文件（png / jpg 等）");
+            return;
+          }
+          if (busy) return;
+          busy = true;
+          var run = { id: ++runId, done: 0, total: 0 };
+          dropzone.classList.add("busy");
+          errorEl.hidden = true;
+          gridEl.hidden = true;
+          emptyEl.innerHTML = emptyHtml;
+          emptyEl.hidden = true;
+          progressEl.hidden = false;
+
+          // 预览
+          dzPreview.hidden = false;
+          dzPreview.innerHTML = '<img alt="截图预览" />';
+          dzPreview.querySelector("img").src = URL.createObjectURL(file);
+
+          try {
+            statusEl.textContent = "正在分析…";
+            var res = await fetch(API_BASE + "/api/ocr", {
+              method: "POST",
+              body: file,
+            });
+            var j = await res.json();
+            if (!res.ok || !j.ok)
+              throw new Error(j.error || "OCR 失败（HTTP " + res.status + "）");
+            if (run.id !== runId) return;
+            var names = extractNames(
+              j.items
+                .map(function (it) {
+                  return it.text;
+                })
+                .join("\n"),
+            );
+
+            if (!names.length) {
+              emptyEl.hidden = false;
+              emptyEl.innerHTML =
+                '<div class="empty-icon">🔍</div><p>没有识别出装备名称</p>' +
+                '<span class="hint">请换一张更清晰的截图</span>';
+              progressEl.hidden = true;
+              return;
+            }
+
+            // 渲染宫格，每个装备立即异步询价
+            gridEl.innerHTML = names.map(cellHtml).join("");
+            gridEl.hidden = false;
+            run.done = 0;
+            run.total = names.length;
+            statusEl.textContent = "正在查询价格 0/" + names.length + " …";
+            names.forEach(function (n) {
+              queryOne(n, run);
+            });
+          } catch (err) {
+            console.error("[shenmi] 处理出错：", err);
+            showError(
+              "处理失败：" +
+                err.message +
+                "（如提示网络错误，请确认已启动后端：node server.js，然后通过 http://localhost:3001/shenmi.html 访问）",
+            );
+            progressEl.hidden = true;
+          } finally {
+            busy = false;
+            dropzone.classList.remove("busy");
+          }
+        }
+
+        /* ---------- 文件选择 / 拖放 ---------- */
+        emptyHtml = emptyEl.innerHTML; // 记录初始空状态，处理新图时复用
+
+        dropzone.addEventListener("click", function (e) {
+          if (e.target === fileInput || e.target.closest(".dz-preview")) return;
+          fileInput.click();
+        });
+        fileInput.addEventListener("change", function () {
+          processFile(fileInput.files[0]);
+          fileInput.value = ""; // 允许重复选择同一文件
+        });
+
+        ["dragenter", "dragover"].forEach(function (ev) {
+          dropzone.addEventListener(ev, function (e) {
+            e.preventDefault();
+            dropzone.classList.add("over");
+          });
+        });
+        ["dragleave", "drop"].forEach(function (ev) {
+          dropzone.addEventListener(ev, function (e) {
+            e.preventDefault();
+            dropzone.classList.remove("over");
+          });
+        });
+        dropzone.addEventListener("drop", function (e) {
+          processFile(e.dataTransfer.files[0]);
+        });
+      })();
+    </script>
+
+    <script src="footer.js"></script>
+  </body>
+</html>
