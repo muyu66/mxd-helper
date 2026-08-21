@@ -148,30 +148,53 @@ const gzipCache = new Map();
 const OCR_LIMIT = 10 * 1024 * 1024; // 图片上限 10MB
 const OCR_TIMEOUT_MS = 60000; // python 识别超时（含模型初始化约 0.5s + 识别 1~2s）
 
-/** 定位 python 解释器：
- *  - Linux（Ubuntu 服务器）：默认只有 python3，没有 python 命令，直接用它（可用 env.PYTHON 覆盖）
+/** 定位 python 解释器（优先选「装好了 rapidocr_onnxruntime」的那个）：
+ *  - Linux（Ubuntu 服务器）：默认只有 python3，没有 python 命令（可用 env.PYTHON 覆盖）
  *  - Windows：env.PYTHON 显式指定 > 常见安装目录探测 > py 启动器 > PATH 回退
- *    （pm2 服务启动时 PATH 常缺 Python，所以显式探测安装目录） */
+ *    （pm2 服务启动时 PATH 常缺 Python，所以显式探测安装目录；
+ *      一台机器可能装多个 Python，故逐个试 import，而不是只看路径存在） */
 function findPython() {
   if (process.env.PYTHON) return process.env.PYTHON;
-  if (process.platform !== "win32") return "python3";
   const candidates = [];
-  const local = process.env.LOCALAPPDATA;
-  if (local) {
-    // 用户级安装（python.org 安装器默认目录，最常见）
-    for (let v = 13; v >= 7; v--) {
-      candidates.push(path.join(local, "Programs", "Python", `Python3${v}`, "python.exe"));
+  // 项目内虚拟环境最优先（Ubuntu 24.04 全局 pip 受限，推荐部署方式：
+  //   python3 -m venv .venv && .venv/bin/pip install rapidocr_onnxruntime）
+  if (process.platform === "win32") {
+    candidates.push(path.join(ROOT, ".venv", "Scripts", "python.exe"));
+  } else {
+    candidates.push(path.join(ROOT, ".venv", "bin", "python3"), path.join(ROOT, ".venv", "bin", "python"));
+  }
+  if (process.platform === "win32") {
+    const local = process.env.LOCALAPPDATA;
+    if (local) {
+      // 用户级安装（python.org 安装器默认目录）
+      for (let v = 13; v >= 7; v--) {
+        candidates.push(path.join(local, "Programs", "Python", `Python3${v}`, "python.exe"));
+      }
+    }
+    // 全盘安装 / 常见盘符
+    for (const root of ["C:\\", "D:\\"]) {
+      for (let v = 13; v >= 7; v--) candidates.push(path.join(root, `Python3${v}`, "python.exe"));
+    }
+    candidates.push("C:\\Windows\\py.exe"); // Windows py 启动器
+  } else {
+    candidates.push("python3", "python");
+  }
+
+  // 第一轮：逐个实测能否 import rapidocr，能者优先（会多花 1~2 秒，仅启动时一次）
+  for (const c of candidates) {
+    if (!fs.existsSync(c)) continue;
+    try {
+      const r = spawnSync(c, ["-c", "import rapidocr_onnxruntime"], { timeout: 30_000 });
+      if (r.status === 0) return c;
+    } catch {
+      /* 试下一个 */
     }
   }
-  // 全盘安装 / 常见盘符
-  for (const root of ["C:\\", "D:\\"]) {
-    for (let v = 13; v >= 7; v--) candidates.push(path.join(root, `Python3${v}`, "python.exe"));
-  }
-  candidates.push("C:\\Windows\\py.exe"); // Windows py 启动器
+  // 第二轮：都没有装好依赖，退回第一个存在的（启动自检会提示缺什么）
   for (const c of candidates) {
     if (fs.existsSync(c)) return c;
   }
-  return "python"; // 最后回退 PATH
+  return process.platform === "win32" ? "python" : "python3";
 }
 
 const PYTHON = findPython();
@@ -185,11 +208,10 @@ function checkPython() {
       return;
     }
     console.warn(
-      `[ocr] ${PYTHON} 缺少 rapidocr_onnxruntime，识别不可用 —— 安装命令：` +
-        `python3 -m pip install rapidocr_onnxruntime` +
+      `[ocr] ${PYTHON} 缺少 rapidocr_onnxruntime，识别不可用 —— 推荐用项目内虚拟环境安装：` +
+        `python3 -m venv .venv && .venv/bin/pip install rapidocr_onnxruntime` +
         (process.platform === "linux"
-          ? `（Ubuntu 若提示 externally-managed-environment 加 --break-system-packages；` +
-            `另需系统库：sudo apt install libgomp1 libgl1）`
+          ? `（server.js 会自动使用 .venv；另需系统库：sudo apt install python3-venv libgomp1 libgl1）`
           : ""),
     );
   } catch (err) {

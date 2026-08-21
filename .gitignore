@@ -61,6 +61,7 @@ last-id-*.txt
 debug_*.html
 equipment_money_cache.json
 price-cache.json
+.venv/
 # 爬虫运行时生成的数据
 /waigua-info/
 /account-info.json

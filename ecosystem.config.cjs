@@ -11,9 +11,9 @@ module.exports = {
       time: true, // 日志带时间戳
       env: {
         HOST: "127.0.0.1", // 只监听本机：公网流量统一走 nginx 反代，不暴露 3000 端口
-        // OCR 依赖 python3 + rapidocr_onnxruntime（Ubuntu：python3 -m pip install rapidocr_onnxruntime）
-        // server.js 会自动使用 python3（Ubuntu）/ 探测 python.exe（Windows），
-        // 路径特殊时取消注释手动指定，如 "PYTHON": "/usr/bin/python3"
+        // OCR 依赖 python3 + rapidocr_onnxruntime。Ubuntu 24.04 全局 pip 受限，推荐项目内虚拟环境：
+        //   cd /var/www/mxd-helper && python3 -m venv .venv && .venv/bin/pip install rapidocr_onnxruntime
+        // server.js 会自动优先使用 .venv（无需配置这里）；特殊场景可手动指定，如 "PYTHON": "/usr/bin/python3"
         // PYTHON: "python3",
       },
       max_memory_restart: "200M", // 内存 JSON 数据源 + gzip 缓存，异常涨内存时兜底重启
