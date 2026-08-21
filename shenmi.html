@@ -336,7 +336,7 @@
         /**
          * 从 OCR 词条提取候选装备名：
          * 每个词条取连续中文片段（允许「·－」连接符），过噪声词、限 2~12 字、去重。
-         * 最多返回 5 个（宫格为一行五列）。
+         * 神秘商店每图固定 6 个装备，最多返回 6 个。
          */
         function extractNames(text) {
           var lines = text
@@ -359,7 +359,7 @@
               }
             });
           });
-          return names.slice(0, 5);
+          return names.slice(0, 6);
         }
 
         /* ---------- 渲染 ---------- */
@@ -376,13 +376,13 @@
         }
 
         function fmtPrice(n) {
-          if (n === null || n === undefined) return "—";
+          if (n === null || n === undefined) return "-";
           return Number.isInteger(n) ? String(n) : n.toFixed(2);
         }
 
-        // 价格数值带「元」；无数据时保持「—」
+        // 价格数值带「元」；无数据时显示「-」
         function fmtMoney(n) {
-          return n === null || n === undefined ? "—" : fmtPrice(n) + "元";
+          return n === null || n === undefined ? "-" : fmtPrice(n) + "元";
         }
 
         function cellHtml(name) {
@@ -423,10 +423,10 @@
             if (!res.ok || !j.ok)
               throw new Error(j.error || "HTTP " + res.status);
             if (!j.count) {
-              // 无在售：三个数值直接显示「暂无」，不额外占一行
-              setVal("lowest", "暂无", "muted");
-              setVal("avg", "暂无", "muted");
-              setVal("count", "暂无", "muted");
+              // 无在售：三个数值直接显示「-」
+              setVal("lowest", "-", "muted");
+              setVal("avg", "-", "muted");
+              setVal("count", "-", "muted");
             } else {
               setVal("lowest", fmtMoney(j.lowest));
               setVal("avg", fmtMoney(j.avg));
@@ -454,7 +454,7 @@
           errorEl.hidden = false;
         }
 
-        /* ---------- 主流程：上传 → OCR → 宫格渲染 → 5 个装备异步询价 ---------- */
+        /* ---------- 主流程：上传 → OCR → 宫格渲染 → 6 个装备异步询价 ---------- */
         async function processFile(file) {
           if (!file) return;
           if (!/^image\//.test(file.type)) {
