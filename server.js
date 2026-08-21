@@ -252,40 +252,83 @@ function readBody(req, limit) {
   });
 }
 
-/** 调用 python 识别：stdin 传图片二进制，stdout 收 JSON（ensure_ascii，无编码问题） */
-function runOcr(imageBuf) {
-  return new Promise((resolve, reject) => {
-    const py = spawn(PYTHON, ["-X", "utf8", path.join(ROOT, "ocr_service.py")], {
-      stdio: ["pipe", "pipe", "pipe"],
-      timeout: OCR_TIMEOUT_MS,
-    });
-    let out = "";
-    let err = "";
-    py.stdout.on("data", (d) => (out += d));
-    py.stderr.on("data", (d) => (err += d));
-    py.on("error", (e) =>
-      reject(
-        new Error(
-          `无法启动 python（${e.message}）—— 请确认服务器已安装 Python 并执行过 ` +
-            `python -m pip install rapidocr_onnxruntime；如解释器不在默认位置，` +
-            `可在 ecosystem.config.cjs 的 env.PYTHON 指定路径后重启`,
-        ),
+/* ---- 常驻 OCR 进程管理 ----
+ * 2核2G 小服务器适配：python + onnxruntime 模型只加载一次、进程长期存活，
+ * 避免每次识别都新起进程（单次峰值约 600MB，重复加载会把小内存服务器压到 OOM）。
+ * 协议：4 字节小端长度前缀 + 图片二进制 → 4 字节长度前缀 + JSON（见 ocr_service.py） */
+
+let ocrProc = null; // 长驻 python 进程（懒启动；异常退出后下次请求自动重建）
+let ocrPending = null; // { resolve, reject, timer } 同一时间只等一个响应
+let ocrBuf = Buffer.alloc(0); // stdout 粘包缓冲
+
+/** 拉起常驻进程 */
+function ensureOcrProc() {
+  if (ocrProc && ocrProc.exitCode === null) return ocrProc;
+  const py = spawn(PYTHON, ["-X", "utf8", path.join(ROOT, "ocr_service.py")], {
+    stdio: ["pipe", "pipe", "pipe"],
+  });
+  ocrProc = py;
+  py.stdin.on("error", () => {}); // 进程启动失败时 write 会触发 EPIPE，吞掉
+  py.stderr.on("data", (d) => console.error(`[ocr] python: ${String(d).trim()}`));
+  py.stdout.on("data", (d) => {
+    ocrBuf = Buffer.concat([ocrBuf, d]);
+    while (ocrPending && ocrBuf.length >= 4) {
+      const n = ocrBuf.readUInt32LE(0);
+      if (ocrBuf.length < 4 + n) break;
+      const payload = ocrBuf.subarray(4, 4 + n).toString("utf-8");
+      ocrBuf = ocrBuf.subarray(4 + n);
+      const p = ocrPending;
+      ocrPending = null;
+      clearTimeout(p.timer);
+      try {
+        const j = JSON.parse(payload);
+        if (j.ok) p.resolve(j.items);
+        else p.reject(new Error(j.error || "OCR 失败"));
+      } catch {
+        p.reject(new Error("OCR 输出解析失败"));
+      }
+    }
+  });
+  py.on("error", (e) => {
+    failOcr(
+      new Error(
+        `无法启动 python（${e.message}）—— 请确认服务器已安装 Python 并执行过 ` +
+          `python3 -m venv .venv && .venv/bin/pip install rapidocr_onnxruntime；` +
+          `如解释器路径特殊，可在 ecosystem.config.cjs 的 env.PYTHON 指定后重启`,
       ),
     );
-    py.on("close", (code) => {
-      if (code !== 0) {
-        return reject(new Error(`识别进程异常退出（${code}）${err ? "：" + err.slice(0, 300) : ""}`));
-      }
-      try {
-        const j = JSON.parse(out);
-        if (!j.ok) return reject(new Error(j.error || "OCR 失败"));
-        resolve(j.items);
-      } catch {
-        reject(new Error("OCR 输出解析失败" + (err ? "：" + err.slice(0, 300) : "")));
-      }
-    });
-    py.stdin.write(imageBuf);
-    py.stdin.end();
+  });
+  py.on("close", (code) => {
+    ocrProc = null; // 下次请求自动重新拉起
+    failOcr(new Error(`识别进程异常退出（${code}）`));
+  });
+  return ocrProc;
+}
+
+function failOcr(err) {
+  if (ocrPending) {
+    const p = ocrPending;
+    ocrPending = null;
+    clearTimeout(p.timer);
+    p.reject(err);
+  }
+  ocrBuf = Buffer.alloc(0);
+}
+
+/** 发送一张图给常驻进程（4 字节长度前缀 + 图片），超时杀掉进程重来 */
+function runOcr(imageBuf) {
+  return new Promise((resolve, reject) => {
+    const py = ensureOcrProc();
+    if (ocrPending) return reject(new Error("OCR 忙，请稍后重试"));
+    const timer = setTimeout(() => {
+      console.error("[ocr] 识别超时，杀掉 python 进程");
+      py.kill();
+      failOcr(new Error("OCR 超时"));
+    }, OCR_TIMEOUT_MS);
+    ocrPending = { resolve, reject, timer };
+    const head = Buffer.alloc(4);
+    head.writeUInt32LE(imageBuf.length);
+    py.stdin.write(Buffer.concat([head, imageBuf]));
   });
 }
 
@@ -567,6 +610,15 @@ function handle(req, res) {
   if (page) return servePage(req, res, filePath, page);
   return serveStatic(req, res, filePath);
 }
+
+// 退出时清理常驻 python 子进程，避免 pm2 重启后留下孤儿进程
+process.on("exit", () => {
+  try {
+    ocrProc?.kill();
+  } catch {
+    /* 忽略 */
+  }
+});
 
 const server = http.createServer((req, res) => {
   try {
