@@ -26,7 +26,10 @@ document.addEventListener("click", (e) => {
 
 // 表头右侧控件：技能耗蓝输入框 + 物防/魔防切换开关 + 计算排行按钮
 function headerControlsHtml(mValue) {
+  // 尚未计算排行（无表格）时禁用对比按钮
+  const cmpDisabled = !currentRender ? " disabled" : "";
   return `
+        <button class="btn btn-sm cmp-btn${compareMode ? " active" : ""}"${cmpDisabled} onclick="toggleCompare()" title="对比模式：先点击「计算排行」，开启后依次点击表格两行，第一行为原目标、第二行为对比目标">⚖️ 对比</button>
         <label for="M">技能耗蓝</label>
         <input type="number" id="M" placeholder="默认 20" step="any" min="0.01" value="${mValue}" />
         <label class="def-toggle" title="切换物防/魔防展示">
@@ -37,12 +40,26 @@ function headerControlsHtml(mValue) {
         <button class="btn btn-sm" onclick="calc()"><span>🔍</span> 计算排行</button>`;
 }
 
+// 对比模式开关：开启后依次点击表格两行；再次点击或关闭面板即退出并清空选择
+function toggleCompare() {
+  if (!currentRender) return; // 未计算排行（无表格）时按钮已禁用，双保险
+  compareMode = !compareMode;
+  if (!compareMode) {
+    compareAMobid = null;
+    compareBMobid = null;
+  }
+  currentRender();
+}
+
 let monsterData = [];
 let equipMap = {}; // mobid → [{level, rate}, ...]
 let currentRanked = [];
 let filters = []; // 筛选条件 [{col, op, value, logic}]，logic 为该条与上一条的与/或关系（首条忽略）
 let defenseMode = "mdd"; // 防具列展示模式："mdd" 魔防 / "pdd" 物防
 let currentRender = null; // 最近一次 calc 的 renderTable，供切换开关触发重绘
+let compareMode = false; // 对比模式开关：开启后点击表格行选择原目标/对比目标
+let compareAMobid = null; // 对比：原目标 mobid
+let compareBMobid = null; // 对比：对比目标 mobid
 
 // 物防/魔防切换开关（模块级委托，初始加载页与结果页都能生效）
 document.addEventListener("change", (e) => {
@@ -271,7 +288,11 @@ function calc() {
     });
   }
 
-  function renderTable() {
+  function renderTable(resetScroll) {
+    // 重渲染前记录旧表格滚动位置：对比行选择、排序等交互保持滚动位置不变
+    const oldWrap = document.querySelector("#result .table-wrap");
+    const oldScroll = oldWrap ? { left: oldWrap.scrollLeft, top: oldWrap.scrollTop } : null;
+
     // 防具列列名/提示随物防、魔防切换模式更新
     const defCol = COLS.find((c) => c.key === "_defense");
     defCol.label = defenseMode === "pdd" ? "物防" : "魔防";
@@ -279,6 +300,10 @@ function calc() {
 
     const sorted = sortData(applyFilters(ranked));
     const mValue = document.getElementById("M") ? document.getElementById("M").value : "";
+
+    // 对比模式：按 mobid 在当前数据集中还原选中的原目标 / 对比目标
+    const cmpA = compareAMobid != null ? ranked.find((x) => String(x.mobid) === String(compareAMobid)) : null;
+    const cmpB = compareBMobid != null ? ranked.find((x) => String(x.mobid) === String(compareBMobid)) : null;
 
     // ---- 筛选面板（列 + 操作符 + 值）----
     // 弱点列操作符固定 =，值为属性下拉；怪物名操作符固定 包含，值为文本；
@@ -335,6 +360,94 @@ function calc() {
     const activeFilters = filters.length ? filters : [null];
     const filterRowsHtml = activeFilters.map((f, i) => filterRowHtml(f, i)).join("");
 
+    // ---- 对比面板：列配置与格式化 ----
+    const CMP_COLS = [
+      { key: "level", label: "等级", dec: 0 },
+      { key: "hp", label: "HP", dec: 0 },
+      { key: "mp", label: "MP", dec: 0 },
+      { key: "_defense", label: defenseMode === "pdd" ? "物防" : "魔防", dec: 0 },
+      { key: "exp", label: "EXP", dec: 0 },
+      { key: "_hpExp", label: "难度", dec: 1 },
+      { key: "_ratio1", label: "性价比", dec: 1 },
+      { key: "_eff1", label: "升级效率①", dec: 1 },
+      { key: "_eff2", label: "升级效率②", dec: 1 },
+      { key: "_eff3", label: "升级效率③", dec: 1 },
+      { key: "_eff4", label: "升级效率④", dec: 1 },
+      { key: "_eff6", label: "升级效率⑥", dec: 1 },
+      { key: "_goldMp1", label: "回本效率①", dec: 1 },
+      { key: "_goldMp2", label: "回本效率②", dec: 1 },
+      { key: "_goldMp3", label: "回本效率③", dec: 1 },
+      { key: "_goldMp4", label: "回本效率④", dec: 1 },
+      { key: "_avgEquipLevel", label: "平均掉落装等", dec: 0, prefix: "Lv." },
+      { key: "_avgEquipMoney", label: "掉落装备平均价格", money: true },
+      { key: "maxMonsterCount", label: "单地图最大数量", dec: 0 },
+      { key: "locationCount", label: "出现地图数", dec: 0 },
+    ];
+
+    function fmtCmpVal(col, m) {
+      const v = val(m, col.key);
+      if (v === "") return "--";
+      if (col.money) return fmtMoney(v);
+      if (col.prefix) return col.prefix + Number(v).toFixed(col.dec);
+      return Number(v).toFixed(col.dec);
+    }
+
+    function fmtCmpDiff(col, a, b) {
+      const va = val(a, col.key);
+      const vb = val(b, col.key);
+      if (va === "" || vb === "") return '<span class="cmp-diff">--</span>';
+      const d = vb - va;
+      // 百分比变化 = 差值 ÷ 原目标；原目标为 0 时无法计算，显示 —
+      const pct = va !== 0 ? (d / va) * 100 : null;
+      const pctStr = pct == null ? "—" : (pct > 0 ? "+" : "") + pct.toFixed(1) + "%";
+      if (col.money) {
+        if (d === 0) return '<span class="cmp-diff zero">—</span>';
+        return `<span class="cmp-diff ${d > 0 ? "up" : "down"}">${d > 0 ? "↑" : "↓"} ${fmtMoney(Math.abs(d))}（${pctStr}）</span>`;
+      }
+      const r = Number(d.toFixed(col.dec));
+      if (r === 0) return '<span class="cmp-diff zero">—</span>';
+      return `<span class="cmp-diff ${r > 0 ? "up" : "down"}">${r > 0 ? "↑" : "↓"} ${Math.abs(r).toFixed(col.dec)}（${pctStr}）</span>`;
+    }
+
+    function cmpPanelHtml(a, b) {
+      const items = CMP_COLS.map((col) => `
+        <div class="cmp-item">
+          <div class="cmp-label">${col.label}</div>
+          <div class="cmp-vals"><span class="cmp-val-a">${fmtCmpVal(col, a)}</span><span class="cmp-vs">→</span><span class="cmp-val-b">${fmtCmpVal(col, b)}</span></div>
+          ${fmtCmpDiff(col, a, b)}
+        </div>`).join("");
+      const weakA = esc((a._weakElems || []).join(" / ") || "--");
+      const weakB = esc((b._weakElems || []).join(" / ") || "--");
+      return `
+      <div class="cmp-panel">
+        <div class="cmp-panel-header">
+          <span class="cmp-title">📊 怪物对比</span>
+          <span class="cmp-mobs">
+            <span class="cmp-mob-a">${esc(a.mobname)} (Lv.${a.level})</span>
+            <span class="cmp-arrow">→</span>
+            <span class="cmp-mob-b">${esc(b.mobname)} (Lv.${b.level})</span>
+          </span>
+          <button class="cmp-close" title="退出对比">✕</button>
+        </div>
+        <div class="cmp-grid">
+          ${items}
+          <div class="cmp-item">
+            <div class="cmp-label">弱点</div>
+            <div class="cmp-vals"><span class="cmp-val-a">${weakA}</span><span class="cmp-vs">→</span><span class="cmp-val-b">${weakB}</span></div>
+          </div>
+        </div>
+      </div>`;
+    }
+
+    function cmpHintHtml(a) {
+      return `
+      <div class="cmp-hint">${
+        a
+          ? `已选原目标「${esc(a.mobname)}」，请点击第二行作为对比目标（点击「⚖️ 对比」按钮可退出）`
+          : "对比模式：请点击第一行作为原目标（点击「⚖️ 对比」按钮可退出）"
+      }</div>`;
+    }
+
     // 结果为空时也保留表头，用户才能改参数/清筛选
     let bodyHtml;
     if (!sorted.length) {
@@ -354,6 +467,9 @@ function calc() {
       const rows = sorted
         .map((m, i) => {
           const idx = ranked.indexOf(m) + 1;
+          const isCmpA = !!cmpA && String(cmpA.mobid) === String(m.mobid);
+          const isCmpB = !!cmpB && String(cmpB.mobid) === String(m.mobid);
+          const rowCls = isCmpA ? ' class="cmp-a"' : isCmpB ? ' class="cmp-b"' : "";
           let rankHtml;
           if (idx === 1)
             rankHtml = `<span class="rank-badge rank-1">${idx}</span>`;
@@ -368,7 +484,7 @@ function calc() {
             ? `<img src="${esc(iconSrc)}" alt="${esc(m.mobname)}" class="mob-icon" loading="lazy" />`
             : "";
           return `
-    <tr>
+    <tr${rowCls} data-mobid="${esc(String(m.mobid))}">
       <td>${m.level}</td>
       <td class="monster-name"><div class="mob-cell">${iconHtml}<span>${esc(m.mobname)}</span></div></td>
       <td>${Number(m.hp)}</td>
@@ -397,7 +513,7 @@ function calc() {
 
       bodyHtml = `
       <div class="table-wrap">
-        <table>
+        <table${compareMode ? ' class="cmp-active"' : ""}>
           <thead><tr>${headerCells}</tr></thead>
           <tbody>${rows}</tbody>
         </table>
@@ -428,6 +544,7 @@ function calc() {
           ${filters.length ? `<span class="header-meta">已显示 ${sorted.length} / ${ranked.length} 条</span>` : ""}
         </div>
       </div>
+      ${cmpA && cmpB ? cmpPanelHtml(cmpA, cmpB) : compareMode ? cmpHintHtml(cmpA) : ""}
       ${bodyHtml}
     </div>`;
 
@@ -436,6 +553,39 @@ function calc() {
     if (table) {
       const firstTh = table.querySelector("thead th:first-child");
       table.style.setProperty("--col1-w", `${firstTh.offsetWidth}px`);
+    }
+
+    // 恢复重渲染前的滚动位置（calc 重算时 resetScroll=true，表格回到顶部）
+    const newWrap = document.querySelector("#result .table-wrap");
+    if (!resetScroll && oldScroll && newWrap) {
+      newWrap.scrollLeft = oldScroll.left;
+      newWrap.scrollTop = oldScroll.top;
+    }
+
+    // ---- 对比模式：点击行选择原目标 / 对比目标 ----
+    if (compareMode && table) {
+      table.querySelector("tbody").addEventListener("click", (e) => {
+        const tr = e.target.closest("tr");
+        if (!tr || !tr.dataset.mobid) return;
+        const mobid = tr.dataset.mobid;
+        if (compareAMobid != null && compareBMobid == null) {
+          if (compareAMobid === mobid) return; // 点击已选原目标行忽略
+          compareBMobid = mobid;
+        } else {
+          compareAMobid = mobid;
+          compareBMobid = null;
+        }
+        renderTable();
+      });
+    }
+    const cmpClose = document.querySelector(".cmp-close");
+    if (cmpClose) {
+      cmpClose.addEventListener("click", () => {
+        compareMode = false;
+        compareAMobid = null;
+        compareBMobid = null;
+        renderTable();
+      });
     }
 
     // ---- 筛选面板事件 ----
@@ -559,7 +709,7 @@ function calc() {
   }
 
   currentRender = renderTable;
-  renderTable();
+  renderTable(true); // 重新计算排行后表格回到顶部
 }
 
 function showError(msg) {

@@ -842,6 +842,158 @@ tbody td:nth-child(2) {
   background: var(--primary-hover);
 }
 
+/* ---- 对比功能 ---- */
+.cmp-btn.active,
+.cmp-btn.active:hover {
+  background: var(--gold);
+  box-shadow: 0 4px 12px rgba(212, 136, 6, 0.3);
+}
+/* 未计算排行时禁用（置灰） */
+.cmp-btn:disabled,
+.cmp-btn:disabled:hover,
+.cmp-btn:disabled:active {
+  background: #d9d9d9;
+  color: rgba(255, 255, 255, 0.85);
+  cursor: not-allowed;
+  box-shadow: none;
+  transform: none;
+}
+/* 对比模式下整行可点击 */
+table.cmp-active tbody tr {
+  cursor: pointer;
+}
+/* 原目标 / 对比目标行高亮（置于 hover 规则之后，靠同优先级+顺序覆盖） */
+tbody tr.cmp-a td,
+tbody tr.cmp-a:hover td,
+tbody tr.cmp-a td:nth-child(1),
+tbody tr.cmp-a td:nth-child(2),
+tbody tr.cmp-a:hover td:nth-child(1),
+tbody tr.cmp-a:hover td:nth-child(2) {
+  background: #e6f4ff;
+}
+tbody tr.cmp-b td,
+tbody tr.cmp-b:hover td,
+tbody tr.cmp-b td:nth-child(1),
+tbody tr.cmp-b td:nth-child(2),
+tbody tr.cmp-b:hover td:nth-child(1),
+tbody tr.cmp-b:hover td:nth-child(2) {
+  background: #fff7e6;
+}
+/* 对比提示条 */
+.cmp-hint {
+  padding: 10px 24px;
+  background: #fffbe6;
+  border-bottom: 1px solid #ffe58f;
+  color: var(--gold);
+  font-size: 0.85rem;
+  font-weight: 500;
+}
+/* 对比结果面板 */
+.cmp-panel {
+  padding: 16px 24px;
+  border-bottom: 1px solid var(--border);
+  background: #fafcff;
+}
+.cmp-panel-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 12px;
+  flex-wrap: wrap;
+}
+.cmp-panel-header .cmp-title {
+  font-size: 0.95rem;
+  font-weight: 600;
+}
+.cmp-mobs {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+.cmp-mob-a {
+  color: var(--primary);
+  background: var(--primary-bg);
+  padding: 2px 10px;
+  border-radius: 100px;
+}
+.cmp-mob-b {
+  color: var(--gold);
+  background: #fffbe6;
+  padding: 2px 10px;
+  border-radius: 100px;
+}
+.cmp-mobs .cmp-arrow {
+  color: var(--text-tertiary);
+}
+.cmp-close {
+  margin-left: auto;
+  width: 26px;
+  height: 26px;
+  border: none;
+  background: transparent;
+  color: var(--text-tertiary);
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 0.8rem;
+  transition: all 0.2s;
+}
+.cmp-close:hover {
+  background: #fff2f0;
+  color: var(--error);
+}
+.cmp-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(170px, 1fr));
+  gap: 10px;
+}
+.cmp-item {
+  background: var(--bg-white);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 10px 12px;
+}
+.cmp-item .cmp-label {
+  font-size: 0.75rem;
+  color: var(--text-secondary);
+  margin-bottom: 4px;
+}
+.cmp-item .cmp-vals {
+  font-size: 0.9rem;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+.cmp-val-a {
+  color: var(--primary);
+}
+.cmp-val-b {
+  color: var(--gold);
+}
+.cmp-vs {
+  color: var(--text-tertiary);
+  font-weight: 400;
+  font-size: 0.75rem;
+}
+.cmp-item .cmp-diff {
+  font-size: 0.8rem;
+  font-weight: 600;
+  margin-top: 2px;
+}
+/* 上升红色、下降绿色（涨红跌绿惯例） */
+.cmp-diff.up {
+  color: var(--error);
+}
+.cmp-diff.down {
+  color: var(--green);
+}
+.cmp-diff.zero {
+  color: var(--text-tertiary);
+}
+
 /* ---- empty / loading ---- */
 .empty-state {
   text-align: center;
