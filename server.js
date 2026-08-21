@@ -332,12 +332,41 @@ function runOcr(imageBuf) {
   });
 }
 
-/** 串行队列：python 进程 + 模型加载吃内存，同时只跑一个识别，其余排队 */
-let ocrChain = Promise.resolve();
+/** 串行队列：同一时间只有一个请求使用 OCR（2核2G 小服务器 + 常驻 python 进程），其余排队 */
+let ocrActive = false; // 是否有请求正在识别
+const ocrQueue = []; // 排队中的请求 { buf, resolve, reject }
+
 function enqueueOcr(buf) {
-  const p = ocrChain.then(() => runOcr(buf));
-  ocrChain = p.catch(() => {}); // 单个失败不阻塞后续请求
-  return p;
+  return new Promise((resolve, reject) => {
+    ocrQueue.push({ buf, resolve, reject });
+    pumpOcr();
+  });
+}
+
+function pumpOcr() {
+  if (ocrActive || !ocrQueue.length) return;
+  const { buf, resolve, reject } = ocrQueue.shift();
+  ocrActive = true;
+  runOcr(buf)
+    .then(resolve, reject)
+    .finally(() => {
+      ocrActive = false;
+      pumpOcr(); // 当前完成立即放行下一个
+    });
+}
+
+/** 队列状态：页面轮询展示「当前正有 xx 人排队中」 */
+function ocrQueueStatus() {
+  return { active: ocrActive, waiting: ocrQueue.length };
+}
+
+/** GET /api/ocr/queue：查询 OCR 队列状态（0.5~1s 轮询一次，不占资源） */
+function handleOcrQueue(req, res) {
+  respond(req, res, {
+    type: "application/json; charset=utf-8",
+    headers: API_CORS,
+    body: Buffer.from(JSON.stringify({ ok: true, ...ocrQueueStatus() })),
+  });
 }
 
 /** POST /api/ocr：请求体为图片二进制（页面 fetch 直接上传 File） */
@@ -583,11 +612,12 @@ function handle(req, res) {
   }
 
   // API 接口：OPTIONS 应答 CORS 预检（file:// 页面跨域用）
-  if (pathname === "/api/ocr" || pathname === "/api/price") {
+  if (pathname.startsWith("/api/")) {
     if (req.method === "OPTIONS") {
       return respond(req, res, { status: 204, headers: API_CORS, body: Buffer.alloc(0) });
     }
     if (pathname === "/api/ocr" && req.method === "POST") return handleOcr(req, res);
+    if (pathname === "/api/ocr/queue" && req.method === "GET") return handleOcrQueue(req, res);
     if (pathname === "/api/price" && req.method === "GET") return handlePrice(req, res);
   }
 

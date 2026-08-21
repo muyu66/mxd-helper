@@ -476,8 +476,24 @@
           dzPreview.innerHTML = '<img alt="截图预览" />';
           dzPreview.querySelector("img").src = URL.createObjectURL(file);
 
+          var poll = null; // 排队状态轮询句柄（finally 统一清理）
           try {
             statusEl.textContent = "正在分析…";
+            // OCR 同一时间只服务一个请求：轮询队列状态，有人在前时提示排队人数
+            poll = setInterval(function () {
+              fetch(API_BASE + "/api/ocr/queue")
+                .then(function (r) {
+                  return r.json();
+                })
+                .then(function (q) {
+                  if (run.id !== runId || !q.ok) return;
+                  statusEl.textContent =
+                    q.waiting > 0 ? "当前正有 " + q.waiting + " 人排队中…" : "正在分析…";
+                })
+                .catch(function () {
+                  /* 轮询失败忽略，不打扰主流程 */
+                });
+            }, 800);
             var res = await fetch(API_BASE + "/api/ocr", {
               method: "POST",
               body: file,
@@ -521,6 +537,7 @@
             );
             progressEl.hidden = true;
           } finally {
+            if (poll) clearInterval(poll); // 任何路径都停掉排队轮询
             busy = false;
             dropzone.classList.remove("busy");
           }
