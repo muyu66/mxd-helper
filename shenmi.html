@@ -536,7 +536,7 @@
         var OCR_WAIT_MS = 120 * 1000; // 排队+识别最长等待时间，超过提示稍后再试
 
         /* ---------- 暗号门：输入暗号解锁页面，接口请求都带 X-Shenmi-Code 头 ---------- */
-        var CODE_KEY = "mxd-shenmi-code"; // sessionStorage 键：关掉页面即失效
+        var CODE_KEY = "mxd-shenmi-code"; // localStorage 键：关掉浏览器后仍保留
         var shenmiCode = null; // 当前会话的暗号（解锁后所有接口请求带上）
         var gateEl = $("gate");
         var uploadCard = $("uploadCard"); // 解锁后与暗号门互换显示
@@ -558,7 +558,7 @@
         function showGate() {
           shenmiCode = null;
           try {
-            sessionStorage.removeItem(CODE_KEY);
+            localStorage.removeItem(CODE_KEY);
           } catch (e) {
             /* 存储不可用时忽略 */
           }
@@ -575,7 +575,7 @@
         function hideGate(code) {
           shenmiCode = code;
           try {
-            sessionStorage.setItem(CODE_KEY, code);
+            localStorage.setItem(CODE_KEY, code);
           } catch (e) {
             /* 存储不可用时忽略 */
           }
@@ -629,10 +629,10 @@
           if (e.key === "Enter") submitCode();
         });
 
-        // 本次会话输入过一次就记住（暗号仍由服务端在每个接口上校验，改了会自动重新上锁）
+        // 解锁过一次就记住（暗号仍由服务端在每个接口上校验，改了会自动重新上锁）
         var saved = null;
         try {
-          saved = sessionStorage.getItem(CODE_KEY);
+          saved = localStorage.getItem(CODE_KEY);
         } catch (e) {
           /* 存储不可用时忽略 */
         }
