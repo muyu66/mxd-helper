@@ -65,6 +65,57 @@
       [hidden] {
         display: none !important;
       }
+
+      /* ---------- 暗号门：解锁后才显示上传卡片与查询结果 ---------- */
+      .gate-title {
+        font-size: 18px;
+        font-weight: 800;
+        letter-spacing: 2px;
+        margin-bottom: 6px;
+      }
+      .gate-sub {
+        font-size: 13px;
+        color: var(--text-2);
+        margin-bottom: 14px;
+      }
+      .gate-row {
+        display: flex;
+        gap: 8px;
+      }
+      .gate-input {
+        flex: 1;
+        min-width: 0;
+        padding: 9px 12px;
+        border: 1px solid var(--border);
+        border-radius: 10px;
+        background: var(--page);
+        color: var(--text);
+        font-size: 14px;
+        outline: none;
+      }
+      .gate-input:focus {
+        border-color: var(--accent);
+      }
+      .gate-btn {
+        padding: 9px 18px;
+        border: none;
+        border-radius: 10px;
+        background: var(--accent);
+        color: #fff;
+        font-size: 14px;
+        font-weight: 700;
+        cursor: pointer;
+      }
+      .gate-btn:disabled {
+        opacity: 0.6;
+        cursor: wait;
+      }
+      .gate-err {
+        margin-top: 12px;
+        font-size: 12.5px;
+        color: var(--danger);
+        text-align: left;
+      }
       .wrap {
         max-width: 900px;
         margin: 0 auto;
@@ -368,10 +419,10 @@
     <div class="notice" id="notice">
       <div class="notice-inner">
         <span class="notice-tag">更新</span>
-        <span class="notice-text"
-          >架构优化，稳定性提升 ｜ 支持截图粘贴</span
-        >
-        <button class="notice-close" id="noticeClose" aria-label="关闭">✕</button>
+        <span class="notice-text">架构优化，稳定性提升 ｜ 支持截图粘贴</span>
+        <button class="notice-close" id="noticeClose" aria-label="关闭">
+          ✕
+        </button>
       </div>
     </div>
 
@@ -392,7 +443,26 @@
         </div>
       </div>
 
-      <div class="card">
+      <!-- 暗号门：输入正确暗号（服务端校验）后才解锁上传与查询，接口请求也会带暗号头 -->
+      <div class="card" id="gate">
+        <div class="gate-title">🔐 暗号入口</div>
+        <div class="gate-sub">
+          价格查询是为家族成员与直播间粉丝提供的私密功能，请输入暗号后使用
+        </div>
+        <div class="gate-row">
+          <input
+            class="gate-input"
+            id="gateInput"
+            type="password"
+            placeholder="请输入暗号"
+            autocomplete="off"
+          />
+          <button class="gate-btn" id="gateBtn">进入</button>
+        </div>
+        <div class="gate-err" id="gateErr" hidden></div>
+      </div>
+
+      <div class="card" id="uploadCard" hidden>
         <div class="dz-example-wrap">
           <img class="dz-example" src="test.png" alt="截图示例" />
           <div class="dz-example-tip">
@@ -416,7 +486,7 @@
 
       <div class="grid" id="grid" hidden></div>
 
-      <div class="empty-state" id="empty">
+      <div class="empty-state" id="empty" hidden>
         <div class="empty-icon">🎯</div>
         <p>上传图片后自动查询价格</p>
       </div>
@@ -464,6 +534,121 @@
         var runId = 0; // 每次识别自增，旧任务的异步回调不再更新界面
         var emptyHtml = ""; // 初始空状态文案（复用）
         var OCR_WAIT_MS = 120 * 1000; // 排队+识别最长等待时间，超过提示稍后再试
+
+        /* ---------- 暗号门：输入暗号解锁页面，接口请求都带 X-Shenmi-Code 头 ---------- */
+        var CODE_KEY = "mxd-shenmi-code"; // sessionStorage 键：关掉页面即失效
+        var shenmiCode = null; // 当前会话的暗号（解锁后所有接口请求带上）
+        var gateEl = $("gate");
+        var uploadCard = $("uploadCard"); // 解锁后与暗号门互换显示
+        var gateInput = $("gateInput");
+        var gateBtn = $("gateBtn");
+        var gateErr = $("gateErr");
+
+        /** 统一请求出口：带上暗号头；接口回 403（暗号失效/被改）就重新上锁 */
+        function apiFetch(url, opts) {
+          opts = opts || {};
+          opts.headers = opts.headers || {};
+          if (shenmiCode) opts.headers["X-Shenmi-Code"] = shenmiCode;
+          return fetch(url, opts).then(function (res) {
+            if (res.status === 403) showGate();
+            return res;
+          });
+        }
+
+        function showGate() {
+          shenmiCode = null;
+          try {
+            sessionStorage.removeItem(CODE_KEY);
+          } catch (e) {
+            /* 存储不可用时忽略 */
+          }
+          // 上锁：暗号门换下上传卡片，查询结果一并隐藏
+          uploadCard.hidden = true;
+          gridEl.hidden = true;
+          emptyEl.hidden = true;
+          gateEl.hidden = false;
+          gateInput.value = "";
+          gateErr.hidden = true;
+          gateInput.focus();
+        }
+
+        function hideGate(code) {
+          shenmiCode = code;
+          try {
+            sessionStorage.setItem(CODE_KEY, code);
+          } catch (e) {
+            /* 存储不可用时忽略 */
+          }
+          // 解锁：上传卡片与初始空状态换下暗号门（查询结果待上传后出现）
+          gateEl.hidden = true;
+          uploadCard.hidden = false;
+          emptyEl.hidden = false;
+        }
+
+        /** 用服务端确认暗号是否正确（/api/shenmi/verify 本身不校验暗号） */
+        function verifyCode(code) {
+          return apiFetch(API_BASE + "/api/shenmi/verify", {
+            headers: { "X-Shenmi-Code": code },
+          })
+            .then(function (res) {
+              return res.json();
+            })
+            .then(function (j) {
+              return !!(j && j.ok);
+            });
+        }
+
+        var unlocking = false; // 验证中拒绝重复提交
+        function submitCode() {
+          if (unlocking) return;
+          var code = gateInput.value.trim();
+          if (!code) return;
+          unlocking = true;
+          gateBtn.disabled = true;
+          verifyCode(code)
+            .then(function (ok) {
+              unlocking = false;
+              gateBtn.disabled = false;
+              if (ok) hideGate(code);
+              else {
+                gateErr.textContent = "暗号错误，请重新输入";
+                gateErr.hidden = false;
+              }
+            })
+            .catch(function (err) {
+              console.error("[shenmi] 暗号验证出错：", err);
+              unlocking = false;
+              gateBtn.disabled = false;
+              gateErr.textContent = "验证失败（服务不可用），请稍后再试";
+              gateErr.hidden = false;
+            });
+        }
+
+        gateBtn.addEventListener("click", submitCode);
+        gateInput.addEventListener("keydown", function (e) {
+          if (e.key === "Enter") submitCode();
+        });
+
+        // 本次会话输入过一次就记住（暗号仍由服务端在每个接口上校验，改了会自动重新上锁）
+        var saved = null;
+        try {
+          saved = sessionStorage.getItem(CODE_KEY);
+        } catch (e) {
+          /* 存储不可用时忽略 */
+        }
+        if (saved) {
+          verifyCode(saved).then(
+            function (ok) {
+              if (ok) hideGate(saved);
+              else showGate();
+            },
+            function () {
+              showGate();
+            },
+          );
+        } else {
+          showGate();
+        }
 
         /* ---------- 噪声过滤 / 名称提取 ---------- */
         // 商店促销类噪声词：装备名一般不含这些词，命中即丢弃
@@ -552,7 +737,7 @@
             el.classList.add(cls || "num");
           };
           try {
-            var res = await fetch(
+            var res = await apiFetch(
               API_BASE + "/api/price?keyword=" + encodeURIComponent(name),
             );
             var j = await res.json();
@@ -594,6 +779,7 @@
         /* ---------- 主流程：上传 → OCR → 宫格渲染 → 6 个装备异步询价 ---------- */
         async function processFile(file) {
           if (!file) return;
+          if (!shenmiCode) return; // 未解锁：拒绝处理（防粘贴等绕过暗号门的入口）
           if (!/^image\//.test(file.type)) {
             showError("请选择图片文件（png / jpg 等）");
             return;
@@ -618,7 +804,7 @@
             statusEl.textContent = "正在上传图片…";
             // OCR 由独立服务排队逐个识别：先上传拿任务号（立即返回，后端不被拖住），
             // 再轮询任务结果，期间按任务状态提示排队人数
-            var res = await fetch(API_BASE + "/api/ocr", {
+            var res = await apiFetch(API_BASE + "/api/ocr", {
               method: "POST",
               body: file,
             });
@@ -633,7 +819,7 @@
             while (true) {
               var pj = null;
               try {
-                var pr = await fetch(
+                var pr = await apiFetch(
                   API_BASE + "/api/ocr/result?id=" + encodeURIComponent(j.id),
                 );
                 pj = await pr.json();
@@ -737,6 +923,7 @@
 
         /* ---------- 剪贴板粘贴：页面任意位置 Ctrl+V 即处理剪贴板里的截图 ---------- */
         document.addEventListener("paste", function (e) {
+          if (!shenmiCode) return; // 未解锁：不响应粘贴
           if (e.target && /^(INPUT|TEXTAREA)$/.test(e.target.tagName)) return; // 输入框内粘贴不拦截
           var items = (e.clipboardData && e.clipboardData.items) || [];
           for (var i = 0; i < items.length; i++) {

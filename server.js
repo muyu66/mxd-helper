@@ -17,6 +17,9 @@
  *   5. OCR 识别已拆分到独立服务 ocr_worker.js（默认 127.0.0.1:3002）：
  *      本进程只负责接收图片、转交任务并立即返回任务号，排队与识别全部
  *      发生在 OCR 进程内，页面请求不再被识别拖住。
+ *   6. shenmi 专属接口（/api/ocr*、/api/price）统一要求暗号头 X-Shenmi-Code，
+ *      防止绕过 shenmi.html 直接刷接口；暗号由环境变量 SHENMI_CODE 配置，
+ *      默认 zhuzhu（页面解锁校验走 /api/shenmi/verify）。
  *
  * 用法：node server.js（PORT 环境变量可改端口，默认 3001）+ node ocr_worker.js（OCR 服务）
  */
@@ -30,6 +33,7 @@ import { searchGoodsAll } from "./gmmsj.mjs";
 const ROOT = path.dirname(fileURLToPath(import.meta.url));
 const PORT = Number(process.env.PORT) || 3001;
 const HOST = process.env.HOST || "0.0.0.0"; // 部署时经 nginx 反代应设为 127.0.0.1（见 ecosystem.config.cjs）
+const SHENMI_CODE = process.env.SHENMI_CODE || "zhuzhu"; // shenmi 暗号：页面解锁与 /api/ocr*、/api/price 校验用
 
 /* ---------------- 内存 JSON 数据源 ---------------- */
 
@@ -160,8 +164,32 @@ const OCR_LIMIT = 10 * 1024 * 1024; // 图片上限 10MB（上传到本进程时
 const API_CORS = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
-  "Access-Control-Allow-Headers": "Content-Type",
+  "Access-Control-Allow-Headers": "Content-Type, X-Shenmi-Code", // 暗号头参与 CORS 预检（file:// 跨域需要）
 };
+
+/** 校验请求携带的 shenmi 暗号头是否与配置一致 */
+function checkShenmiCode(req) {
+  return req.headers["x-shenmi-code"] === SHENMI_CODE;
+}
+
+/** 暗号不匹配的统一 403 应答 */
+function rejectShenmiCode(req, res) {
+  respond(req, res, {
+    status: 403,
+    type: "application/json; charset=utf-8",
+    headers: API_CORS,
+    body: Buffer.from(JSON.stringify({ ok: false, error: "暗号错误" })),
+  });
+}
+
+/** GET /api/shenmi/verify：页面解锁前用它确认暗号（本接口本身不校验暗号，避免死锁） */
+function handleShenmiVerify(req, res) {
+  respond(req, res, {
+    type: "application/json; charset=utf-8",
+    headers: API_CORS,
+    body: Buffer.from(JSON.stringify({ ok: checkShenmiCode(req) })),
+  });
+}
 
 /** 读请求体（限长，超限即断连） */
 function readBody(req, limit) {
@@ -505,6 +533,9 @@ function handle(req, res) {
     if (req.method === "OPTIONS") {
       return respond(req, res, { status: 204, headers: API_CORS, body: Buffer.alloc(0) });
     }
+    if (pathname === "/api/shenmi/verify" && req.method === "GET") return handleShenmiVerify(req, res);
+    // 其余 shenmi 专属接口统一过暗号：防止绕过页面直接刷接口
+    if (!checkShenmiCode(req)) return rejectShenmiCode(req, res);
     if (pathname === "/api/ocr" && req.method === "POST") return handleOcr(req, res);
     if (pathname === "/api/ocr/result" && req.method === "GET") return handleOcrResult(req, res);
     if (pathname === "/api/ocr/queue" && req.method === "GET") return handleOcrQueue(req, res);
@@ -549,5 +580,6 @@ server.listen(PORT, HOST, () => {
   console.log(`\n🚀 mxd-helper 混合端已启动：http://${HOST}:${PORT}/（默认 rank.html）`);
   console.log(`   内存数据源：${Object.keys(DATA_FILES).join("、")}`);
   console.log(`   OCR 转交：http://${OCR_HOST}:${OCR_PORT}/（独立服务 ocr_worker.js，需另行启动）`);
+  console.log("   shenmi 暗号：已启用（环境变量 SHENMI_CODE 可修改，默认 zhuzhu）");
   console.log("   监控中：JSON 文件变化后自动重载入内存\n");
 });
