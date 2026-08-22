@@ -14,14 +14,16 @@
  *      waigua-info.js）更新文件后，自动重新读入内存，页面下次请求即为新数据。
  *      抓取脚本可能非原子写入（读到半截文件），解析失败会短延时重试，
  *      重试仍失败则保留旧数据继续服务，不会因坏文件下线。
+ *   5. OCR 识别已拆分到独立服务 ocr_worker.js（默认 127.0.0.1:3002）：
+ *      本进程只负责接收图片、转交任务并立即返回任务号，排队与识别全部
+ *      发生在 OCR 进程内，页面请求不再被识别拖住。
  *
- * 用法：node server.js（PORT 环境变量可改端口，默认 3000）
+ * 用法：node server.js（PORT 环境变量可改端口，默认 3001）+ node ocr_worker.js（OCR 服务）
  */
 import http from "node:http";
 import fs from "node:fs";
 import path from "node:path";
 import zlib from "node:zlib";
-import { spawn, spawnSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
 import { searchGoodsAll } from "./gmmsj.mjs";
 
@@ -143,88 +145,16 @@ function cacheControlFor(ext) {
 /** 页面 gzip 产物缓存（页面只有 3 个，按 ETag 复用压缩结果，避免每次请求重复压缩大 JSON） */
 const gzipCache = new Map();
 
-/* ---------------- OCR（POST /api/ocr，Python RapidOCR 中文识别） ---------------- */
+/* ---------------- OCR（转交独立服务 ocr_worker.js） ----------------
+ * 原来 OCR 在本进程内排队执行：排队期间 HTTP 请求一直挂起（浏览器 Pending），
+ * 且 python + onnxruntime 的 CPU/内存压力与页面服务同进程，高峰时站点整体变卡。
+ * 现已拆分：本进程只负责接收图片、转交独立 OCR 服务（默认 127.0.0.1:3002）并
+ * 立即返回任务号，页面轮询 /api/ocr/result 拿结果；排队与识别完全发生在
+ * OCR 进程内，不再影响页面/数据请求的响应速度。 */
 
-const OCR_LIMIT = 10 * 1024 * 1024; // 图片上限 10MB
-const OCR_TIMEOUT_MS = 60000; // python 识别超时（含模型初始化约 0.5s + 识别 1~2s）
-
-/** 定位 python 解释器（优先选「装好了 rapidocr_onnxruntime」的那个）：
- *  - Linux（Ubuntu 服务器）：默认只有 python3，没有 python 命令（可用 env.PYTHON 覆盖）
- *  - Windows：env.PYTHON 显式指定 > 常见安装目录探测 > py 启动器 > PATH 回退
- *    （pm2 服务启动时 PATH 常缺 Python，所以显式探测安装目录；
- *      一台机器可能装多个 Python，故逐个试 import，而不是只看路径存在） */
-function findPython() {
-  if (process.env.PYTHON) return process.env.PYTHON;
-  const candidates = [];
-  // 项目内虚拟环境最优先（Ubuntu 24.04 全局 pip 受限，推荐部署方式：
-  //   python3 -m venv .venv && .venv/bin/pip install rapidocr_onnxruntime）
-  if (process.platform === "win32") {
-    candidates.push(path.join(ROOT, ".venv", "Scripts", "python.exe"));
-  } else {
-    candidates.push(path.join(ROOT, ".venv", "bin", "python3"), path.join(ROOT, ".venv", "bin", "python"));
-  }
-  if (process.platform === "win32") {
-    const local = process.env.LOCALAPPDATA;
-    if (local) {
-      // 用户级安装（python.org 安装器默认目录）
-      for (let v = 13; v >= 7; v--) {
-        candidates.push(path.join(local, "Programs", "Python", `Python3${v}`, "python.exe"));
-      }
-    }
-    // 全盘安装 / 常见盘符
-    for (const root of ["C:\\", "D:\\"]) {
-      for (let v = 13; v >= 7; v--) candidates.push(path.join(root, `Python3${v}`, "python.exe"));
-    }
-    candidates.push("C:\\Windows\\py.exe"); // Windows py 启动器
-  } else {
-    candidates.push("python3", "python");
-  }
-
-  // 第一轮：逐个实测能否 import rapidocr，能者优先（会多花 1~2 秒，仅启动时一次）
-  for (const c of candidates) {
-    if (!fs.existsSync(c)) continue;
-    try {
-      const r = spawnSync(c, ["-c", "import rapidocr_onnxruntime"], { timeout: 30_000 });
-      if (r.status === 0) return c;
-    } catch {
-      /* 试下一个 */
-    }
-  }
-  // 第二轮：都没有装好依赖，退回第一个存在的（启动自检会提示缺什么）
-  for (const c of candidates) {
-    if (fs.existsSync(c)) return c;
-  }
-  return process.platform === "win32" ? "python" : "python3";
-}
-
-const PYTHON = findPython();
-
-/** 启动自检：解释器可用 + rapidocr 已装（部署新机器需 pip install rapidocr_onnxruntime） */
-function checkPython() {
-  try {
-    const r = spawnSync(PYTHON, ["-c", "import rapidocr_onnxruntime"], { timeout: 30_000 });
-    if (r.status === 0) {
-      console.log(`[ocr] python 就绪：${PYTHON}`);
-      return;
-    }
-    console.warn(
-      `[ocr] ${PYTHON} 缺少 rapidocr_onnxruntime，识别不可用 —— 推荐用项目内虚拟环境安装：` +
-        `python3 -m venv .venv && .venv/bin/pip install rapidocr_onnxruntime` +
-        (process.platform === "linux"
-          ? `（server.js 会自动使用 .venv；另需系统库：sudo apt install python3-venv libgomp1 libgl1）`
-          : ""),
-    );
-  } catch (err) {
-    console.warn(
-      `[ocr] python 不可用（${err.message}），识别接口将报错 —— ` +
-        (process.platform === "linux"
-          ? `请先 sudo apt install python3 python3-pip，或在 ecosystem.config.cjs 的 env.PYTHON 指定解释器`
-          : `请在 ecosystem.config.cjs 的 env.PYTHON 指定解释器路径`) +
-        `后重启`,
-    );
-  }
-}
-setTimeout(checkPython, 1000); // 延后执行，避免拖慢启动日志
+const OCR_HOST = "127.0.0.1"; // OCR 独立服务地址（同机 ocr_worker.js，不对外）
+const OCR_PORT = Number(process.env.OCR_PORT) || 3002; // 与 ocr_worker.js 的 PORT 对应
+const OCR_LIMIT = 10 * 1024 * 1024; // 图片上限 10MB（上传到本进程时先拦一道）
 
 /** /api/* 接口的 CORS 头：file:// 双击打开页面时也能跨域调用本地服务 */
 const API_CORS = {
@@ -252,146 +182,105 @@ function readBody(req, limit) {
   });
 }
 
-/* ---- 常驻 OCR 进程管理 ----
- * 2核2G 小服务器适配：python + onnxruntime 模型只加载一次、进程长期存活，
- * 避免每次识别都新起进程（单次峰值约 600MB，重复加载会把小内存服务器压到 OOM）。
- * 协议：4 字节小端长度前缀 + 图片二进制 → 4 字节长度前缀 + JSON（见 ocr_service.py） */
-
-let ocrProc = null; // 长驻 python 进程（懒启动；异常退出后下次请求自动重建）
-let ocrPending = null; // { resolve, reject, timer } 同一时间只等一个响应
-let ocrBuf = Buffer.alloc(0); // stdout 粘包缓冲
-
-/** 拉起常驻进程 */
-function ensureOcrProc() {
-  if (ocrProc && ocrProc.exitCode === null) return ocrProc;
-  const py = spawn(PYTHON, ["-X", "utf8", path.join(ROOT, "ocr_service.py")], {
-    stdio: ["pipe", "pipe", "pipe"],
-  });
-  ocrProc = py;
-  py.stdin.on("error", () => {}); // 进程启动失败时 write 会触发 EPIPE，吞掉
-  py.stderr.on("data", (d) => console.error(`[ocr] python: ${String(d).trim()}`));
-  py.stdout.on("data", (d) => {
-    ocrBuf = Buffer.concat([ocrBuf, d]);
-    while (ocrPending && ocrBuf.length >= 4) {
-      const n = ocrBuf.readUInt32LE(0);
-      if (ocrBuf.length < 4 + n) break;
-      const payload = ocrBuf.subarray(4, 4 + n).toString("utf-8");
-      ocrBuf = ocrBuf.subarray(4 + n);
-      const p = ocrPending;
-      ocrPending = null;
-      clearTimeout(p.timer);
-      try {
-        const j = JSON.parse(payload);
-        if (j.ok) p.resolve(j.items);
-        else p.reject(new Error(j.error || "OCR 失败"));
-      } catch {
-        p.reject(new Error("OCR 输出解析失败"));
-      }
+/** 调用 OCR 服务（JSON 接口，超时即失败）；返回 { status, body } */
+function ocrServiceRequest(pathname, { method = "GET", body = null, timeoutMs = 30000 } = {}) {
+  return new Promise((resolve, reject) => {
+    const headers = {};
+    if (body) {
+      headers["Content-Type"] = "application/octet-stream";
+      headers["Content-Length"] = String(body.length);
     }
-  });
-  py.on("error", (e) => {
-    failOcr(
-      new Error(
-        `无法启动 python（${e.message}）—— 请确认服务器已安装 Python 并执行过 ` +
-          `python3 -m venv .venv && .venv/bin/pip install rapidocr_onnxruntime；` +
-          `如解释器路径特殊，可在 ecosystem.config.cjs 的 env.PYTHON 指定后重启`,
-      ),
+    const req = http.request(
+      { host: OCR_HOST, port: OCR_PORT, path: pathname, method, headers },
+      (res) => {
+        const chunks = [];
+        let size = 0;
+        res.on("data", (c) => {
+          size += c.length;
+          if (size > 1024 * 1024) {
+            // 响应只是几百字节的 JSON，超 1MB 视为异常
+            req.destroy();
+            return reject(new Error("OCR 服务响应异常"));
+          }
+          chunks.push(c);
+        });
+        res.on("end", () => {
+          let j;
+          try {
+            j = JSON.parse(Buffer.concat(chunks).toString("utf-8"));
+          } catch {
+            return reject(new Error("OCR 服务响应解析失败"));
+          }
+          resolve({ status: res.statusCode, body: j });
+        });
+      },
     );
-  });
-  py.on("close", (code) => {
-    ocrProc = null; // 下次请求自动重新拉起
-    failOcr(new Error(`识别进程异常退出（${code}）`));
-  });
-  return ocrProc;
-}
-
-function failOcr(err) {
-  if (ocrPending) {
-    const p = ocrPending;
-    ocrPending = null;
-    clearTimeout(p.timer);
-    p.reject(err);
-  }
-  ocrBuf = Buffer.alloc(0);
-}
-
-/** 发送一张图给常驻进程（4 字节长度前缀 + 图片），超时杀掉进程重来 */
-function runOcr(imageBuf) {
-  return new Promise((resolve, reject) => {
-    const py = ensureOcrProc();
-    if (ocrPending) return reject(new Error("OCR 忙，请稍后重试"));
-    const timer = setTimeout(() => {
-      console.error("[ocr] 识别超时，杀掉 python 进程");
-      py.kill();
-      failOcr(new Error("OCR 超时"));
-    }, OCR_TIMEOUT_MS);
-    ocrPending = { resolve, reject, timer };
-    const head = Buffer.alloc(4);
-    head.writeUInt32LE(imageBuf.length);
-    py.stdin.write(Buffer.concat([head, imageBuf]));
+    req.setTimeout(timeoutMs, () => req.destroy(new Error("OCR 服务响应超时")));
+    req.on("error", reject);
+    if (body) req.write(body);
+    req.end();
   });
 }
 
-/** 串行队列：同一时间只有一个请求使用 OCR（2核2G 小服务器 + 常驻 python 进程），其余排队 */
-let ocrActive = false; // 是否有请求正在识别
-const ocrQueue = []; // 排队中的请求 { buf, resolve, reject }
-
-function enqueueOcr(buf) {
-  return new Promise((resolve, reject) => {
-    ocrQueue.push({ buf, resolve, reject });
-    pumpOcr();
-  });
-}
-
-function pumpOcr() {
-  if (ocrActive || !ocrQueue.length) return;
-  const { buf, resolve, reject } = ocrQueue.shift();
-  ocrActive = true;
-  runOcr(buf)
-    .then(resolve, reject)
-    .finally(() => {
-      ocrActive = false;
-      pumpOcr(); // 当前完成立即放行下一个
-    });
-}
-
-/** 队列状态：页面轮询展示「当前正有 xx 人排队中」 */
-function ocrQueueStatus() {
-  return { active: ocrActive, waiting: ocrQueue.length };
-}
-
-/** GET /api/ocr/queue：查询 OCR 队列状态（0.5~1s 轮询一次，不占资源） */
-function handleOcrQueue(req, res) {
+/** 把 OCR 服务的响应原样回给浏览器（status 一并透传） */
+function relayOcr(req, res, r) {
   respond(req, res, {
+    status: r.status,
     type: "application/json; charset=utf-8",
     headers: API_CORS,
-    body: Buffer.from(JSON.stringify({ ok: true, ...ocrQueueStatus() })),
+    body: Buffer.from(JSON.stringify(r.body)),
   });
 }
 
-/** POST /api/ocr：请求体为图片二进制（页面 fetch 直接上传 File） */
+/** OCR 服务不可用（进程没起 / 超时）时的统一 502 应答 */
+function respondOcrDown(req, res, err) {
+  console.error(`[ocr] OCR 服务调用失败：${err.message}`);
+  respond(req, res, {
+    status: 502,
+    type: "application/json; charset=utf-8",
+    headers: API_CORS,
+    body: Buffer.from(
+      JSON.stringify({ ok: false, error: "OCR 识别服务不可用" }),
+    ),
+  });
+}
+
+/** POST /api/ocr：接收图片 → 转交 OCR 服务入队 → 立即返回任务号（页面轮询结果） */
 function handleOcr(req, res) {
   readBody(req, OCR_LIMIT)
     .then((buf) => {
-      if (!buf.length) throw new Error("请求体为空");
-      return enqueueOcr(buf);
-    })
-    .then((items) => {
-      respond(req, res, {
-        type: "application/json; charset=utf-8",
-        headers: API_CORS,
-        body: Buffer.from(JSON.stringify({ ok: true, items })),
-      });
+      if (!buf.length) throw Object.assign(new Error("请求体为空"), { status: 400 });
+      return ocrServiceRequest("/task", { method: "POST", body: buf }).then((r) => relayOcr(req, res, r));
     })
     .catch((err) => {
-      console.error(`[ocr] 识别失败：${err.message}`);
-      respond(req, res, {
-        status: err.message.includes("图片过大") ? 413 : 500,
-        type: "application/json; charset=utf-8",
-        headers: API_CORS,
-        body: Buffer.from(JSON.stringify({ ok: false, error: err.message })),
-      });
+      if (err.status || err.message.includes("图片过大")) {
+        // 本地校验失败（空请求体 / 图片过大），与 OCR 服务无关
+        return respond(req, res, {
+          status: err.status || 413,
+          type: "application/json; charset=utf-8",
+          headers: API_CORS,
+          body: Buffer.from(JSON.stringify({ ok: false, error: err.message })),
+        });
+      }
+      respondOcrDown(req, res, err);
     });
+}
+
+/** GET /api/ocr/result?id=：查询任务结果（queued 排队中 / running 识别中 / done 完成 / error 失败） */
+function handleOcrResult(req, res) {
+  const id = new URL(req.url, "http://localhost").searchParams.get("id") || "";
+  ocrServiceRequest("/task?id=" + encodeURIComponent(id)).then(
+    (r) => relayOcr(req, res, r),
+    (err) => respondOcrDown(req, res, err),
+  );
+}
+
+/** GET /api/ocr/queue：查询 OCR 全局队列状态（是否识别中 / 几人排队） */
+function handleOcrQueue(req, res) {
+  ocrServiceRequest("/queue").then(
+    (r) => relayOcr(req, res, r),
+    (err) => respondOcrDown(req, res, err),
+  );
 }
 
 /* ---------------- 询价（GET /api/price?keyword=，gmmsj 商品搜索） ---------------- */
@@ -617,6 +506,7 @@ function handle(req, res) {
       return respond(req, res, { status: 204, headers: API_CORS, body: Buffer.alloc(0) });
     }
     if (pathname === "/api/ocr" && req.method === "POST") return handleOcr(req, res);
+    if (pathname === "/api/ocr/result" && req.method === "GET") return handleOcrResult(req, res);
     if (pathname === "/api/ocr/queue" && req.method === "GET") return handleOcrQueue(req, res);
     if (pathname === "/api/price" && req.method === "GET") return handlePrice(req, res);
   }
@@ -641,15 +531,6 @@ function handle(req, res) {
   return serveStatic(req, res, filePath);
 }
 
-// 退出时清理常驻 python 子进程，避免 pm2 重启后留下孤儿进程
-process.on("exit", () => {
-  try {
-    ocrProc?.kill();
-  } catch {
-    /* 忽略 */
-  }
-});
-
 const server = http.createServer((req, res) => {
   try {
     handle(req, res);
@@ -667,5 +548,6 @@ const server = http.createServer((req, res) => {
 server.listen(PORT, HOST, () => {
   console.log(`\n🚀 mxd-helper 混合端已启动：http://${HOST}:${PORT}/（默认 rank.html）`);
   console.log(`   内存数据源：${Object.keys(DATA_FILES).join("、")}`);
+  console.log(`   OCR 转交：http://${OCR_HOST}:${OCR_PORT}/（独立服务 ocr_worker.js，需另行启动）`);
   console.log("   监控中：JSON 文件变化后自动重载入内存\n");
 });

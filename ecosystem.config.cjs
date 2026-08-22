@@ -11,13 +11,26 @@ module.exports = {
       time: true, // 日志带时间戳
       env: {
         HOST: "127.0.0.1", // 只监听本机：公网流量统一走 nginx 反代，不暴露 3000 端口
-        // OCR 依赖 python3 + rapidocr_onnxruntime。Ubuntu 24.04 全局 pip 受限，推荐项目内虚拟环境：
-        //   cd /var/www/mxd-helper && python3 -m venv .venv && .venv/bin/pip install rapidocr_onnxruntime
-        // server.js 会自动优先使用 .venv（无需配置这里）；特殊场景可手动指定，如 "PYTHON": "/usr/bin/python3"
-        // PYTHON: "python3",
+        // OCR 已拆分到 mxd-ocr（ocr_worker.js）：本进程只转交任务，
+        // server.js 的 OCR_PORT 与 mxd-ocr 的 PORT 默认一致（3002），不同时再单独配置
       },
       max_memory_restart: "200M", // 内存 JSON 数据源 + gzip 缓存，异常涨内存时兜底重启
       // 常驻 HTTP 服务，pm2 默认自动拉起；JSON 变化由 server.js 内部 watchFile 轮询重载
+    },
+    {
+      name: "mxd-ocr",
+      script: "ocr_worker.js",
+      cwd: __dirname,
+      time: true, // 日志带时间戳
+      env: {
+        HOST: "127.0.0.1", // 只服务同机 server.js，不对外；PORT 默认 3002（与 server.js 的 OCR_PORT 一致）
+        // OCR 依赖 python3 + rapidocr_onnxruntime。Ubuntu 24.04 全局 pip 受限，推荐项目内虚拟环境：
+        //   cd /var/www/mxd-helper && python3 -m venv .venv && .venv/bin/pip install rapidocr_onnxruntime
+        // 会自动优先使用 .venv（无需配置这里）；特殊场景可手动指定，如 "PYTHON": "/usr/bin/python3"
+        // PYTHON: "python3",
+      },
+      max_memory_restart: "200M", // 排队图片缓冲在 OCR 进程内（上限 20 张 ×10MB），异常涨内存时兜底重启
+      // OCR 按队列串行识别（同一时间只处理一张图），页面后端不再被识别拖慢
     },
     {
       name: "waigua-info",

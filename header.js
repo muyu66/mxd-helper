@@ -1,4 +1,4 @@
-// header.js — 四个工具页共享的顶栏（冒险岛怀旧服工具箱）
+// header.js — 五个工具页共享的顶栏（冒险岛怀旧服工具箱）
 //
 // 以 <script src="header.js"> 方式注入：浏览器在 file:// 下禁用 fetch，
 // 脚本引用则不受限，双击打开页面也能生效。改这一处，所有页面同步更新。
@@ -43,6 +43,7 @@
     '<a class="mh-btn' + active("waigua.html") + '" href="waigua.html">举报分析</a>' +
     '<a class="mh-btn' + active("account.html") + '" href="account.html">卖号分析</a>' +
     '<a class="mh-btn' + active("shenmi.html") + '" href="shenmi.html">神秘商人</a>' +
+    '<a class="mh-btn' + active("999.html") + '" href="999.html">999计时</a>' +
     "</nav>" +
     "</div>" +
     "</div>",

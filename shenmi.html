@@ -81,30 +81,93 @@
         margin: 0 0 18px;
       }
 
+      /* ---------- 顶部更新通知条 ---------- */
+      .notice {
+        background: var(--accent-weak);
+        border-bottom: 1px solid var(--border);
+        font-size: 13px;
+      }
+      .notice-inner {
+        max-width: 900px;
+        margin: 0 auto;
+        padding: 8px 16px;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+      .notice-tag {
+        flex-shrink: 0;
+        padding: 2px 8px;
+        border-radius: 999px;
+        background: var(--accent);
+        color: #fff;
+        font-size: 11px;
+        font-weight: 700;
+      }
+      .notice-text {
+        flex: 1;
+        color: var(--text-2);
+        line-height: 1.5;
+      }
+      .notice-close {
+        flex-shrink: 0;
+        border: none;
+        background: none;
+        color: var(--muted);
+        font-size: 14px;
+        line-height: 1;
+        padding: 4px;
+        cursor: pointer;
+      }
+      .notice-close:hover {
+        color: var(--text-2);
+      }
+
       /* ---------- 顶部广告语 ---------- */
       .slogan {
         text-align: center;
-        margin: 6px 0 18px;
+        margin: 6px 0 20px;
       }
       .slogan-main {
-        font-size: 21px;
+        font-size: 24px;
         font-weight: 800;
-        letter-spacing: 1px;
+        letter-spacing: 3px;
         background: linear-gradient(90deg, #2a78d6, #1baf7a);
         -webkit-background-clip: text;
         background-clip: text;
         color: transparent;
+        margin-bottom: 12px;
       }
-      .slogan-tag {
-        display: inline-block;
-        margin-top: 8px;
-        padding: 3px 14px;
-        border-radius: 14px;
-        font-size: 13px;
-        font-weight: 700;
-        color: var(--accent);
-        background: var(--accent-weak);
+      .slogan-badges {
+        display: flex;
+        justify-content: center;
+        flex-wrap: wrap;
+        gap: 10px;
+      }
+      .s-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        padding: 5px 14px 5px 5px;
+        border-radius: 999px;
+        background: var(--surface);
         border: 1px solid var(--border);
+        box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+        font-size: 13px;
+        line-height: 1;
+      }
+      .s-label {
+        padding: 7px 11px;
+        border-radius: 999px;
+        font-size: 11.5px;
+        font-weight: 700;
+        letter-spacing: 1px;
+        color: #fff;
+        background: linear-gradient(135deg, #2a78d6, #1baf7a);
+      }
+      .s-val {
+        font-weight: 700;
+        color: var(--text);
       }
 
       /* ---------- 上传卡片 ---------- */
@@ -157,9 +220,9 @@
         background: #fff;
       }
       .dz-example-tip {
-        font-size: 12px;
-        color: var(--muted);
-        margin-top: 6px;
+        font-size: 15px;
+        color: var(--text-2);
+        margin-top: 8px;
       }
       .dz-preview {
         margin-top: 12px;
@@ -301,10 +364,32 @@
   <body>
     <script src="header.js"></script>
 
+    <!-- 顶部更新通知条：关闭后记住，不再重复弹出（改内容时换 NOTICE_KEY 版本号可再次展示） -->
+    <div class="notice" id="notice">
+      <div class="notice-inner">
+        <span class="notice-tag">更新</span>
+        <span class="notice-text"
+          >架构优化，稳定性提升 ｜ 支持截图粘贴</span
+        >
+        <button class="notice-close" id="noticeClose" aria-label="关闭">✕</button>
+      </div>
+    </div>
+
     <main class="wrap">
       <div class="slogan">
-        <div class="slogan-main">玩家丨小猪猪丨倾力打造</div>
-        家族&nbsp;<span class="slogan-tag">梦回岛屿</span>
+        <div class="slogan-main">猪猪倾力打造</div>
+        <div class="slogan-badges">
+          <div class="s-badge">
+            <span class="s-label">玩家ID</span
+            ><span class="s-val">丨小猪猪丨</span>
+          </div>
+          <div class="s-badge">
+            <span class="s-label">服务器</span><span class="s-val">漂漂猪</span>
+          </div>
+          <div class="s-badge">
+            <span class="s-label">家族</span><span class="s-val">梦回岛屿</span>
+          </div>
+        </div>
       </div>
 
       <div class="card">
@@ -317,6 +402,7 @@
         <div class="dropzone" id="dropzone">
           <span class="dz-icon">🖼️</span>
           <div>点击选择或拖入图片</div>
+          <div class="dz-hint">也可以直接 Ctrl+V 粘贴截图</div>
           <input type="file" id="fileInput" accept="image/*" hidden />
         </div>
         <div class="dz-preview" id="dzPreview" hidden></div>
@@ -353,6 +439,23 @@
         var gridEl = $("grid");
         var emptyEl = $("empty");
 
+        /* ---------- 顶部更新通知条：可关闭，关闭后不再弹出 ---------- */
+        var NOTICE_KEY = "mxd-shenmi-notice-v1"; // 改了通知内容就换个版本号，老用户重新看到
+        var noticeEl = $("notice");
+        try {
+          if (localStorage.getItem(NOTICE_KEY)) noticeEl.hidden = true;
+        } catch (e) {
+          /* 存储不可用时每次都展示 */
+        }
+        $("noticeClose").addEventListener("click", function () {
+          noticeEl.hidden = true;
+          try {
+            localStorage.setItem(NOTICE_KEY, "1");
+          } catch (e) {
+            /* 忽略 */
+          }
+        });
+
         // file:// 双击打开时走绝对地址（server.js 默认端口 3001）；http 访问时走相对地址
         var API_BASE =
           location.protocol === "file:" ? "http://localhost:3001" : "";
@@ -360,6 +463,7 @@
         var busy = false; // 处理中拒绝重复上传
         var runId = 0; // 每次识别自增，旧任务的异步回调不再更新界面
         var emptyHtml = ""; // 初始空状态文案（复用）
+        var OCR_WAIT_MS = 120 * 1000; // 排队+识别最长等待时间，超过提示稍后再试
 
         /* ---------- 噪声过滤 / 名称提取 ---------- */
         // 商店促销类噪声词：装备名一般不含这些词，命中即丢弃
@@ -509,36 +613,61 @@
           dzPreview.innerHTML = '<img alt="截图预览" />';
           dzPreview.querySelector("img").src = URL.createObjectURL(file);
 
-          var poll = null; // 排队状态轮询句柄（finally 统一清理）
+          var poll = null; // 结果轮询句柄（finally 统一清理）
           try {
-            statusEl.textContent = "正在分析…";
-            // OCR 同一时间只服务一个请求：轮询队列状态，有人在前时提示排队人数
-            poll = setInterval(function () {
-              fetch(API_BASE + "/api/ocr/queue")
-                .then(function (r) {
-                  return r.json();
-                })
-                .then(function (q) {
-                  if (run.id !== runId || !q.ok) return;
-                  statusEl.textContent =
-                    q.waiting > 0
-                      ? "当前正有 " + q.waiting + " 人排队中…"
-                      : "正在分析…";
-                })
-                .catch(function () {
-                  /* 轮询失败忽略，不打扰主流程 */
-                });
-            }, 800);
+            statusEl.textContent = "正在上传图片…";
+            // OCR 由独立服务排队逐个识别：先上传拿任务号（立即返回，后端不被拖住），
+            // 再轮询任务结果，期间按任务状态提示排队人数
             var res = await fetch(API_BASE + "/api/ocr", {
               method: "POST",
               body: file,
             });
             var j = await res.json();
             if (!res.ok || !j.ok)
-              throw new Error(j.error || "OCR 失败（HTTP " + res.status + "）");
+              throw new Error(j.error || "上传失败（HTTP " + res.status + "）");
+            if (run.id !== runId) return;
+
+            // 轮询任务结果：queued 排队中 / running 识别中 / done 完成 / error 失败
+            var items = null;
+            var deadline = Date.now() + OCR_WAIT_MS;
+            while (true) {
+              var pj = null;
+              try {
+                var pr = await fetch(
+                  API_BASE + "/api/ocr/result?id=" + encodeURIComponent(j.id),
+                );
+                pj = await pr.json();
+              } catch (err2) {
+                /* 轮询网络抖动：忽略本轮，下一轮继续 */
+              }
+              if (run.id !== runId) return;
+              if (pj) {
+                if (!pr.ok || !pj.ok)
+                  throw new Error(
+                    pj.error || "查询结果失败（HTTP " + pr.status + "）",
+                  );
+                if (pj.status === "done") {
+                  items = pj.items;
+                  break;
+                }
+                if (pj.status === "error")
+                  throw new Error(pj.error || "识别失败");
+                statusEl.textContent =
+                  pj.status === "running"
+                    ? "正在分析…"
+                    : pj.waiting > 0
+                      ? "当前正有 " + pj.waiting + " 人排队中…"
+                      : "排队中…";
+              }
+              if (Date.now() > deadline)
+                throw new Error("排队时间过长，请稍后再试");
+              await new Promise(function (r2) {
+                poll = setTimeout(r2, 800);
+              });
+            }
             if (run.id !== runId) return;
             var names = extractNames(
-              j.items
+              items
                 .map(function (it) {
                   return it.text;
                 })
@@ -568,11 +697,11 @@
             showError(
               "处理失败：" +
                 err.message +
-                "（如提示网络错误，请确认已启动后端：node server.js，然后通过 http://localhost:3001/shenmi.html 访问）",
+                "（请通过页面底部进入直播间，让主播来修BUG）",
             );
             progressEl.hidden = true;
           } finally {
-            if (poll) clearInterval(poll); // 任何路径都停掉排队轮询
+            if (poll) clearTimeout(poll); // 任何路径都停掉结果轮询
             busy = false;
             dropzone.classList.remove("busy");
           }
@@ -604,6 +733,22 @@
         });
         dropzone.addEventListener("drop", function (e) {
           processFile(e.dataTransfer.files[0]);
+        });
+
+        /* ---------- 剪贴板粘贴：页面任意位置 Ctrl+V 即处理剪贴板里的截图 ---------- */
+        document.addEventListener("paste", function (e) {
+          if (e.target && /^(INPUT|TEXTAREA)$/.test(e.target.tagName)) return; // 输入框内粘贴不拦截
+          var items = (e.clipboardData && e.clipboardData.items) || [];
+          for (var i = 0; i < items.length; i++) {
+            if (items[i].type.indexOf("image/") === 0) {
+              var file = items[i].getAsFile();
+              if (file) {
+                e.preventDefault();
+                processFile(file);
+              }
+              return;
+            }
+          }
         });
       })();
     </script>

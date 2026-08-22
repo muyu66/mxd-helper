@@ -10,12 +10,13 @@
     ".mh-footer{text-align:center;padding:26px 12px 44px;font-size:12.5px;line-height:1.8;color:#898781;" +
     "font-family:system-ui,-apple-system,'Segoe UI',sans-serif;}" +
     ".mh-footer a{color:inherit;text-decoration:underline;}" +
-    "@media (prefers-color-scheme:dark){.mh-footer{color:#898781;}}" +
+    ".mh-footer .mh-live{font-weight:700;color:#000;}" +
+    "@media (prefers-color-scheme:dark){.mh-footer{color:#898781;}.mh-footer .mh-live{color:#f5f4f0;}}" +
     "</style>" +
     '<div class="mh-footer">' +
     "Made by zhuzhu ❤️ 数据来源于网络搜集<br />" +
     "皖ICP备2025106435号-1<br />" +
-    '<a href="https://live.bilibili.com/1978986435" target="_blank" rel="noreferrer">B站直播间</a>' +
+    '<a class="mh-live" href="https://live.bilibili.com/1978986435" target="_blank" rel="noreferrer">B站直播间</a>' +
     "</div>",
   );
 })();

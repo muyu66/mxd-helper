@@ -1,4 +1,4 @@
-# ocr_service.py — OCR 识别常驻服务（server.js 的 POST /api/ocr 内部调用，不单独运行）
+# ocr_service.py — OCR 识别常驻服务（ocr_worker.js 内部调用，不单独运行）
 #
 # 常驻进程设计（适配 2核2G 小服务器）：模型只加载一次，进程长期存活，
 # 避免每次识别都新起 python 进程 + 重复加载 onnxruntime（单次峰值约 600MB，
@@ -8,7 +8,7 @@
 #   请求：4 字节小端长度 + 图片二进制
 #   响应：4 字节小端长度 + JSON（ensure_ascii，Windows GBK 控制台也不乱码）
 #   出错不退出进程，以 {"ok": false, "error": ...} 返回；
-#   stdin 关闭（server.js 退出）时进程自行结束。
+#   stdin 关闭（ocr_worker.js 退出）时进程自行结束。
 #
 # 依赖安装（项目内虚拟环境，Ubuntu 24.04 全局 pip 受限）：
 #   python3 -m venv .venv && .venv/bin/pip install rapidocr_onnxruntime
@@ -16,8 +16,9 @@
 import json
 import struct
 import sys
+import time
 
-MAX_IMAGE = 20 * 1024 * 1024  # 与 server.js 的 OCR_LIMIT 对应，防御异常长度
+MAX_IMAGE = 20 * 1024 * 1024  # 与 ocr_worker.js 的 OCR_LIMIT 对应，防御异常长度
 
 
 def write(out, obj):
@@ -51,6 +52,7 @@ def main():
         if len(data) < n:
             break
         try:
+            t0 = time.time()
             result, _ = ocr(data)
             items = []
             for box, text, score in result or []:
@@ -64,8 +66,11 @@ def main():
                 )
             # 同行（y 相差 20px 内）按 x 排序，行间按 y 排序，保持阅读顺序
             items.sort(key=lambda it: (it["y"] // 20 * 20, it["x"]))
+            # 调试日志走 stderr（stdout 是二进制协议），由 ocr_worker.js 转发
+            print(f"[py] 识别完成：{n} bytes，{len(items)} 个词条，耗时 {round((time.time() - t0) * 1000)}ms", file=sys.stderr)
             write(out, {"ok": True, "items": items})
         except Exception as e:  # noqa: BLE001 —— 单次失败不影响后续识别
+            print(f"[py] 识别异常：{e}", file=sys.stderr)
             write(out, {"ok": False, "error": str(e)})
 
 
