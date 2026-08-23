@@ -13,7 +13,7 @@ module.exports = {
         HOST: "127.0.0.1", // 只监听本机：公网流量统一走 nginx 反代，不暴露 3000 端口
         // OCR 已拆分到 mxd-ocr（ocr_worker.js）：本进程只转交任务，
         // server.js 的 OCR_PORT 与 mxd-ocr 的 PORT 默认一致（3002），不同时再单独配置
-        SHENMI_CODE: "zhuzhu", // shenmi.html 暗号（页面解锁 + /api/ocr*、/api/price 校验），改这里后 pm2 restart mxd-server
+        SHENMI_CODE: "xiaozhu", // shenmi.html 暗号（页面解锁 + /api/ocr*、/api/price 校验），改这里后 pm2 restart mxd-server
       },
       max_memory_restart: "200M", // 内存 JSON 数据源 + gzip 缓存，异常涨内存时兜底重启
       // 常驻 HTTP 服务，pm2 默认自动拉起；JSON 变化由 server.js 内部 watchFile 轮询重载

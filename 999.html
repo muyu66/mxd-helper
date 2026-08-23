@@ -9,7 +9,7 @@
     />
     <meta http-equiv="Pragma" content="no-cache" />
     <meta http-equiv="Expires" content="0" />
-    <title>999计时 - 冒险岛怀旧服工具箱</title>
+    <title>计时提醒 - 冒险岛怀旧服工具箱</title>
     <style>
       /* ---------- 亮/暗色变量（与 shenmi.html 同一套色值，配 header.js 顶栏） ---------- */
       :root {
@@ -74,7 +74,7 @@
         display: none !important;
       }
       .wrap {
-        max-width: 480px;
+        max-width: 720px; /* 与 header.js 顶栏同宽，容纳两个并排卡片 */
         margin: 0 auto;
         padding: 26px 16px 8px;
       }
@@ -90,6 +90,29 @@
         border-radius: 16px;
         padding: 18px;
         text-align: center;
+      }
+      /* 多个工具卡片左右并排，窄屏（手机）自动改回上下堆叠 */
+      .cards-row {
+        display: flex;
+        gap: 16px;
+      }
+      .cards-row .card {
+        flex: 1;
+        min-width: 0;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+      }
+      @media (max-width: 560px) {
+        .cards-row {
+          flex-direction: column;
+        }
+      }
+      /* 页面含多个工具卡片时的小标题 */
+      .card-title {
+        font-size: 16px;
+        font-weight: 700;
+        margin: 0 0 14px;
       }
       .pic-wrap {
         margin-bottom: 18px;
@@ -180,6 +203,154 @@
         transform: scale(0.95);
       }
 
+      /* ---------- 神秘商人刷新 ---------- */
+      .merchant-status {
+        margin-top: 10px;
+        font-size: 12px;
+        color: var(--muted);
+      }
+      .sm-btns {
+        display: flex;
+        gap: 10px;
+        margin-top: 18px;
+      }
+      .sm-btns button {
+        flex: 1;
+        padding: 11px 0;
+        border-radius: 999px;
+        font-size: 14px;
+        font-weight: 700;
+        cursor: pointer;
+        border: 1px solid var(--border);
+        background: var(--page);
+        color: var(--text-2);
+        user-select: none;
+        touch-action: manipulation;
+        transition:
+          transform 0.08s ease,
+          filter 0.12s ease;
+      }
+      .sm-btns button.primary {
+        border: none;
+        color: #fff;
+        background: linear-gradient(90deg, #2a78d6, #1baf7a);
+      }
+      .sm-btns button:hover {
+        filter: brightness(1.08);
+      }
+      .sm-btns button:active {
+        transform: scale(0.95);
+      }
+      /* 时/分/秒三个数字输入框（隐藏原生上下箭头） */
+      .sm-inputs {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 6px;
+      }
+      .sm-inputs input {
+        width: 56px;
+        padding: 8px 4px;
+        font-size: 20px;
+        text-align: center;
+        color: var(--text);
+        background: var(--page);
+        border: 1px solid var(--border);
+        border-radius: 10px;
+        appearance: textfield;
+        -moz-appearance: textfield;
+      }
+      .sm-inputs input::-webkit-outer-spin-button,
+      .sm-inputs input::-webkit-inner-spin-button {
+        -webkit-appearance: none;
+        margin: 0;
+      }
+      .sm-colon {
+        font-size: 20px;
+        font-weight: 700;
+        color: var(--muted);
+      }
+      /* 弹窗里的游戏截图示例 */
+      .sm-example {
+        display: block;
+        width: 260px;
+        max-width: 100%;
+        margin: 10px auto 0;
+        border: 1px solid var(--border);
+        border-radius: 10px;
+      }
+
+      /* ---------- 浏览器通知开关（每个功能独立控制系统弹窗通知） ---------- */
+      .notify-toggle {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+        margin-top: 14px;
+        font-size: 12.5px;
+        color: var(--text-2);
+        user-select: none;
+      }
+      .switch {
+        position: relative;
+        flex: none;
+        width: 36px;
+        height: 20px;
+        padding: 0;
+        border: none;
+        border-radius: 999px;
+        background: var(--border);
+        cursor: pointer;
+        transition: background-color 0.15s ease;
+      }
+      .switch::after {
+        content: "";
+        position: absolute;
+        top: 2px;
+        left: 2px;
+        width: 16px;
+        height: 16px;
+        border-radius: 50%;
+        background: #fff;
+        transition: transform 0.15s ease;
+      }
+      .switch.on {
+        background: var(--ok);
+      }
+      .switch.on::after {
+        transform: translateX(16px);
+      }
+
+      /* ---------- 页内提醒条（必现，点「知道了」关闭） ---------- */
+      .toast {
+        position: fixed;
+        top: 12px;
+        left: 50%;
+        transform: translateX(-50%);
+        z-index: 99;
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        max-width: 90vw;
+        padding: 12px 16px;
+        background: var(--surface);
+        color: var(--text);
+        border: 1px solid var(--accent);
+        border-radius: 12px;
+        box-shadow: 0 8px 30px rgba(0, 0, 0, 0.25);
+        font-size: 14px;
+      }
+      .toast button {
+        flex: none;
+        padding: 6px 14px;
+        border: none;
+        border-radius: 999px;
+        color: #fff;
+        background: linear-gradient(90deg, #2a78d6, #1baf7a);
+        font-weight: 700;
+        cursor: pointer;
+      }
+
       /* ---------- 打卡弹窗 ---------- */
       .modal-mask {
         position: fixed;
@@ -248,26 +419,54 @@
     <script src="header.js"></script>
 
     <main class="wrap">
-      <h1>999计时</h1>
-      <div class="card">
-        <div class="pic-wrap">
-          <img
-            id="pic"
-            src="dbsource/mobsource/Mob._Canvas.3230100.img.stand.0.png"
-            alt="999"
-          />
-          <div class="pic-fallback" id="picFallback" hidden>999</div>
+      <div class="cards-row">
+        <div class="card">
+          <h2 class="card-title">999 打卡</h2>
+          <div class="pic-wrap">
+            <img
+              id="pic"
+              src="dbsource/mobsource/Mob._Canvas.3230100.img.stand.0.png"
+              alt="999"
+            />
+            <div class="pic-fallback" id="picFallback" hidden>999</div>
+          </div>
+          <div class="time-wrap">
+            <span class="time-text" id="timeText">加载中…</span>
+            <span class="time-hint">24小时</span>
+          </div>
+          <div>
+            <span class="status-badge" id="statusBadge">…</span>
+          </div>
+          <div class="notify-toggle">
+            <span>浏览器通知</span>
+            <button class="switch" id="notify999Btn" role="switch" aria-checked="true"></button>
+          </div>
+          <button class="btn-999" id="btn999">打卡</button>
         </div>
-        <div class="time-wrap">
-          <span class="time-text" id="timeText">加载中…</span>
-          <span class="time-hint">24小时</span>
+
+        <!-- 神秘商人刷新：基于系统时间（绝对时间戳）倒计时，关浏览器也继续走 -->
+        <div class="card">
+          <h2 class="card-title">神秘商人刷新</h2>
+          <span class="time-text" id="smTime">--:--:--</span>
+          <div class="merchant-status" id="smStatus">
+            未设置时间，点「设置时间」开始倒计时
+          </div>
+          <div class="notify-toggle">
+            <span>浏览器通知</span>
+            <button class="switch" id="notifySmBtn" role="switch" aria-checked="true"></button>
+          </div>
+          <div class="sm-btns">
+            <button class="primary" id="smSetBtn">设置时间</button>
+          </div>
         </div>
-        <div>
-          <span class="status-badge" id="statusBadge">…</span>
-        </div>
-        <button class="btn-999" id="btn999">打卡</button>
       </div>
     </main>
+
+    <!-- 页内提醒条：系统通知不可用时的兜底 -->
+    <div class="toast" id="toast" hidden>
+      <span id="toastText"></span>
+      <button id="toastOkBtn">知道了</button>
+    </div>
 
     <!-- 打卡弹窗：时分输入框，默认当前时分 -->
     <div class="modal-mask" id="modal" hidden>
@@ -278,6 +477,38 @@
         <div class="modal-btns">
           <button id="cancelBtn">取消</button>
           <button class="ok" id="okBtn">确定</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- 神秘商人倒计时弹窗：时/分/秒输入，默认当前剩余时间 -->
+    <div class="modal-mask" id="smModal" hidden>
+      <div class="modal">
+        <div class="modal-title">神秘商人倒计时</div>
+        <div class="sm-inputs">
+          <input id="smH" type="number" min="0" max="6" placeholder="00" />
+          <span class="sm-colon">:</span>
+          <input id="smM" type="number" min="0" max="59" placeholder="00" />
+          <span class="sm-colon">:</span>
+          <input id="smS" type="number" min="0" max="59" placeholder="00" />
+        </div>
+        <div class="modal-hint">在游戏中找到相应位置的时间填入</div>
+        <!-- 示例图：游戏内剩余刷新时间的位置，点击可看大图 -->
+        <a
+          href="example1.png"
+          target="_blank"
+          rel="noreferrer"
+          title="点击查看大图"
+        >
+          <img
+            class="sm-example"
+            src="example1.png"
+            alt="示例：游戏内剩余刷新时间"
+          />
+        </a>
+        <div class="modal-btns">
+          <button id="smCancelBtn">取消</button>
+          <button class="ok" id="smOkBtn">确定</button>
         </div>
       </div>
     </div>
@@ -307,7 +538,11 @@
         function todayStr() {
           var d = new Date();
           return (
-            d.getFullYear() + "-" + pad(d.getMonth() + 1) + "-" + pad(d.getDate())
+            d.getFullYear() +
+            "-" +
+            pad(d.getMonth() + 1) +
+            "-" +
+            pad(d.getDate())
           );
         }
         // 解析 "YYYY-MM-DD HH:MM" → Date（非法返回 null）
@@ -351,7 +586,8 @@
             return;
           }
           var diff = dayDiff(rec);
-          var dayWord = diff === 0 ? "今日" : diff === 1 ? "昨日" : diff + "天前";
+          var dayWord =
+            diff === 0 ? "今日" : diff === 1 ? "昨日" : diff + "天前";
           // 24 小时制显示（如「昨日 16:40」），右下角灰色「24小时」提醒用户
           timeText.textContent =
             dayWord + " " + pad(rec.getHours()) + ":" + pad(rec.getMinutes());
@@ -392,8 +628,298 @@
         });
 
         render();
-        // 页面挂着跨天时（第二天再回来看），每 30 秒刷新文案与状态
-        setInterval(render, 30 * 1000);
+        // 页面挂着跨天时（第二天再回来看），每 30 秒刷新文案与状态，并检查 999 提醒
+        setInterval(function () {
+          render();
+          check999Reminder();
+        }, 30 * 1000);
+
+        /* ---------- 神秘商人刷新：绝对时间戳倒计时 ---------- */
+        var SM_KEY = "mxd999-shenmi"; // localStorage 键：到期时间戳（毫秒）
+        var SM_CYCLE = 6 * 60 * 60 * 1000; // 倒计时到 0 后重置为 06:00:00
+
+        var smTime = $("smTime");
+        var smStatus = $("smStatus");
+        var smModal = $("smModal");
+        var smH = $("smH");
+        var smM = $("smM");
+        var smS = $("smS");
+        var smNote = ""; // 状态栏临时提示（如「已重置」）
+        var smNoteUntil = 0;
+
+        function readDeadline() {
+          try {
+            var n = +localStorage.getItem(SM_KEY);
+            return n > 0 ? n : null;
+          } catch (e) {
+            return null;
+          }
+        }
+        function writeDeadline(ts) {
+          try {
+            localStorage.setItem(SM_KEY, String(ts));
+          } catch (e) {
+            /* 隐私模式等存储不可用时静默降级 */
+          }
+        }
+        function showSmNote(text, ms) {
+          smNote = text;
+          smNoteUntil = Date.now() + (ms || 5000);
+        }
+
+        function renderSm() {
+          var deadline = readDeadline();
+          if (!deadline) {
+            smTime.textContent = "--:--:--";
+            smStatus.textContent = "未设置时间，点「设置时间」开始倒计时";
+            return;
+          }
+          // 倒计时到 0：自动重置为 06:00:00 继续走。
+          // 用 while 补齐关浏览器期间漏掉的 6 小时周期，重开页面时
+          // 剩余时间仍与游戏里的真实刷新周期一致（基于系统时间）。
+          if (deadline <= Date.now()) {
+            while (deadline <= Date.now()) deadline += SM_CYCLE;
+            writeDeadline(deadline);
+            showSmNote("已自动刷新，重新开始 06:00:00", 8000);
+            // 倒计时结束（含关浏览器期间漏掉的周期）→ 提醒一次
+            notify("神秘商人刷新提醒", "神秘商人已自动刷新！", "mxd-shenmi");
+          }
+          var total = Math.max(0, Math.ceil((deadline - Date.now()) / 1000));
+          smTime.textContent =
+            pad(Math.floor(total / 3600)) +
+            ":" +
+            pad(Math.floor((total % 3600) / 60)) +
+            ":" +
+            pad(total % 60);
+          smStatus.textContent =
+            Date.now() < smNoteUntil ? smNote : "距神秘商人自动刷新";
+        }
+
+        function openSmModal() {
+          var total = SM_CYCLE / 1000; // 未设置时默认预填 06:00:00
+          var d = readDeadline();
+          if (d) total = Math.max(0, Math.round((d - Date.now()) / 1000));
+          smH.value = Math.min(6, Math.floor(total / 3600));
+          smM.value = Math.floor((total % 3600) / 60);
+          smS.value = total % 60;
+          smModal.hidden = false;
+          smH.focus();
+          smH.select();
+        }
+        function closeSmModal() {
+          smModal.hidden = true;
+        }
+        function confirmSmModal() {
+          var h = Math.min(6, Math.max(0, parseInt(smH.value, 10) || 0));
+          var m = Math.min(59, Math.max(0, parseInt(smM.value, 10) || 0));
+          var s = Math.min(59, Math.max(0, parseInt(smS.value, 10) || 0));
+          writeDeadline(Date.now() + (h * 3600 + m * 60 + s) * 1000);
+          closeSmModal();
+          renderSm();
+        }
+
+        $("smSetBtn").addEventListener("click", openSmModal);
+        $("smCancelBtn").addEventListener("click", closeSmModal);
+        $("smOkBtn").addEventListener("click", confirmSmModal);
+        // 点遮罩关闭
+        smModal.addEventListener("click", function (e) {
+          if (e.target === smModal) closeSmModal();
+        });
+        // 三个输入框：聚焦全选；回车确定、Esc 取消
+        [smH, smM, smS].forEach(function (el) {
+          el.addEventListener("focus", function () {
+            this.select();
+          });
+          el.addEventListener("keydown", function (e) {
+            if (e.key === "Enter") confirmSmModal();
+            if (e.key === "Escape") closeSmModal();
+          });
+        });
+
+        /* ---------- 提醒：页内提醒条必现（点「知道了」关闭）+ 系统通知与提示音按可用性追加 ---------- */
+        var N999_KEY = "mxd999-notified"; // localStorage 键：{ rec, bucket } 最近一次提醒的打卡记录与 24 小时档位
+
+        var toast = $("toast");
+        var toastText = $("toastText");
+        var toastAck = null;
+        var audioCtx = null;
+
+        function askNotifyPerm() {
+          if (
+            typeof Notification !== "undefined" &&
+            Notification.permission === "default"
+          ) {
+            try {
+              Notification.requestPermission();
+            } catch (e) {
+              /* 不支持时静默降级：提醒条兜底 */
+            }
+          }
+        }
+        function unlockAudio() {
+          if (!audioCtx) {
+            try {
+              var AC = window.AudioContext || window.webkitAudioContext;
+              if (AC) audioCtx = new AC();
+            } catch (e) {
+              audioCtx = null;
+            }
+          }
+          if (audioCtx && audioCtx.state === "suspended") {
+            audioCtx.resume().catch(function () {});
+          }
+        }
+        // 首次点击页面（用户手势）时：请求系统通知权限 + 解锁提示音。
+        // 不在页面加载时请求：Chrome 等浏览器对无手势调用会静默拒绝，
+        // 权限被锁死「已阻止」后反而永远发不出系统通知
+        document.addEventListener(
+          "click",
+          function () {
+            askNotifyPerm();
+            unlockAudio();
+          },
+          { once: true },
+        );
+
+        // 提醒 = 页内提醒条（必现，点「知道了」才消失）＋系统通知/提示音（可用则追加）；
+        // 系统通知是否发送由各功能的「浏览器通知」开关决定
+        function notify(title, body, tag) {
+          showToast(title + "：" + body);
+          if (
+            readNotifyOn(tag) &&
+            typeof Notification !== "undefined" &&
+            Notification.permission === "granted"
+          ) {
+            try {
+              new Notification(title, { body: body, tag: tag });
+            } catch (e) {
+              /* 系统通知失败也无妨：提醒条已显示 */
+            }
+          }
+          playBeep();
+        }
+        function showToast(text, onAck) {
+          toastText.textContent = text;
+          toast.hidden = false;
+          toastAck = onAck || null;
+        }
+        function hideToast() {
+          toast.hidden = true;
+          toastAck = null;
+        }
+        // 三声短促提示音：打游戏时页面在后台、系统横幅还可能被 Windows
+        // 专注助手拦截，声音仍能提醒到；音频未解锁（页面还没被点击过）时静默跳过
+        function playBeep() {
+          if (!audioCtx) return;
+          if (audioCtx.state === "suspended") {
+            audioCtx.resume().catch(function () {});
+          }
+          try {
+            var t0 = audioCtx.currentTime;
+            for (var i = 0; i < 3; i++) {
+              var osc = audioCtx.createOscillator();
+              var gain = audioCtx.createGain();
+              osc.type = "sine";
+              osc.frequency.value = 880;
+              var start = t0 + i * 0.35;
+              gain.gain.setValueAtTime(0.0001, start);
+              gain.gain.exponentialRampToValueAtTime(0.25, start + 0.02);
+              gain.gain.exponentialRampToValueAtTime(0.0001, start + 0.18);
+              osc.connect(gain);
+              gain.connect(audioCtx.destination);
+              osc.start(start);
+              osc.stop(start + 0.2);
+            }
+          } catch (e) {
+            /* 无声也不影响提醒条 */
+          }
+        }
+        $("toastOkBtn").addEventListener("click", function () {
+          var ack = toastAck;
+          hideToast();
+          if (ack) ack();
+        });
+
+        /* ---------- 浏览器通知开关：两个功能各自独立控制系统弹窗通知 ---------- */
+        var NOTIFY_KEYS = {
+          "mxd-999": "mxd999-notify", // 999 打卡的开关
+          "mxd-shenmi": "mxd999-shenmi-notify", // 神秘商人刷新的开关
+        };
+        function readNotifyOn(tag) {
+          try {
+            var v = localStorage.getItem(NOTIFY_KEYS[tag]);
+            return v === null ? true : v === "1"; // 未设置过默认开
+          } catch (e) {
+            return true;
+          }
+        }
+        function writeNotifyOn(tag, on) {
+          try {
+            localStorage.setItem(NOTIFY_KEYS[tag], on ? "1" : "0");
+          } catch (e) {
+            /* 存储不可用时仅本次会话生效 */
+          }
+        }
+        function bindNotifySwitch(btn, tag) {
+          var set = function (on) {
+            btn.classList.toggle("on", on);
+            btn.setAttribute("aria-checked", String(on));
+          };
+          set(readNotifyOn(tag));
+          btn.addEventListener("click", function () {
+            var on = !readNotifyOn(tag);
+            writeNotifyOn(tag, on);
+            set(on);
+            if (on) askNotifyPerm(); // 打开开关正好是用户手势：顺便请求系统通知权限
+          });
+        }
+        bindNotifySwitch($("notify999Btn"), "mxd-999");
+        bindNotifySwitch($("notifySmBtn"), "mxd-shenmi");
+
+        function readNotified() {
+          try {
+            var j = JSON.parse(localStorage.getItem(N999_KEY) || "null");
+            return j &&
+              typeof j.rec === "string" &&
+              typeof j.bucket === "number"
+              ? j
+              : null;
+          } catch (e) {
+            return null;
+          }
+        }
+        function writeNotified(j) {
+          try {
+            localStorage.setItem(N999_KEY, JSON.stringify(j));
+          } catch (e) {
+            /* 存储不可用时静默降级 */
+          }
+        }
+        // 999 打卡：距上次打卡每超过一个 24 小时（24h/48h/72h…）各提醒一次；
+        // 同一档位内只提醒一次（刷新/重开页面不重复），跨档位则再次提醒，
+        // 重新打卡后按新记录从头计算
+        function check999Reminder() {
+          var raw = readRec();
+          var rec = parseRec(raw);
+          if (!rec) return;
+          var elapsed = Date.now() - rec.getTime();
+          if (elapsed <= 24 * 60 * 60 * 1000) return;
+          var bucket = Math.floor(elapsed / (24 * 60 * 60 * 1000)); // 1=超24h，2=超48h…
+          var n = readNotified();
+          if (n && n.rec === raw && n.bucket >= bucket) return; // 该档已提醒过，不重复
+          writeNotified({ rec: raw, bucket: bucket });
+          notify(
+            "999 打卡提醒",
+            "距上次打卡已超过 " + bucket * 24 + " 小时，记得打 999！",
+            "mxd-999",
+          );
+        }
+
+        // 初始渲染与定时器放在提醒部分之后：notify 依赖的 toast 元素已就绪
+        renderSm();
+        // 250ms 刷新一次保证秒数跳变准确；跨周期与关浏览器重开都由绝对时间戳兜底
+        setInterval(renderSm, 250);
+        check999Reminder();
       })();
     </script>
 

@@ -23,6 +23,10 @@
         --accent: #2a78d6;
         --accent-weak: rgba(42, 120, 214, 0.1);
         --danger: #c0392b;
+        --ok: #1baf7a;
+        --ok-weak: rgba(27, 175, 122, 0.12);
+        --warn: #9a6b00;
+        --warn-weak: rgba(154, 107, 0, 0.1);
       }
       @media (prefers-color-scheme: dark) {
         :root:where(:not([data-theme="light"])) {
@@ -36,6 +40,10 @@
           --accent: #3987e5;
           --accent-weak: rgba(57, 135, 229, 0.15);
           --danger: #e35d5d;
+          --ok: #3dbf94;
+          --ok-weak: rgba(61, 191, 148, 0.15);
+          --warn: #e0ae3c;
+          --warn-weak: rgba(224, 174, 60, 0.12);
         }
       }
       :root[data-theme="dark"] {
@@ -49,6 +57,10 @@
         --accent: #3987e5;
         --accent-weak: rgba(57, 135, 229, 0.15);
         --danger: #e35d5d;
+        --ok: #3dbf94;
+        --ok-weak: rgba(61, 191, 148, 0.15);
+        --warn: #e0ae3c;
+        --warn-weak: rgba(224, 174, 60, 0.12);
       }
 
       body {
@@ -219,6 +231,63 @@
       .s-val {
         font-weight: 700;
         color: var(--text);
+      }
+
+      /* ---------- 队列状态条（绿色空闲 / 橙色排队 / 灰色服务不可用） ---------- */
+      .queue-strip {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 10px;
+        margin: 0 0 16px;
+      }
+      .queue-banner {
+        flex: 1;
+        min-width: 200px;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding: 10px 14px;
+        border-radius: 12px;
+        border: 1px solid;
+        font-size: 13.5px;
+        font-weight: 700;
+      }
+      .queue-banner.idle {
+        color: var(--ok);
+        background: var(--ok-weak);
+        border-color: var(--ok);
+      }
+      .queue-banner.busy {
+        color: var(--warn);
+        background: var(--warn-weak);
+        border-color: var(--warn);
+      }
+      .queue-banner.down {
+        color: var(--muted);
+        background: var(--page);
+        border-color: var(--border);
+        font-weight: 400;
+      }
+      .queue-dot {
+        flex: none;
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+        background: currentColor;
+      }
+      .stats-chip {
+        flex: none;
+        padding: 10px 14px;
+        border-radius: 12px;
+        background: var(--surface);
+        border: 1px solid var(--border);
+        font-size: 13px;
+        color: var(--text-2);
+      }
+      .stats-chip b {
+        color: var(--accent);
+        font-size: 15px;
       }
 
       /* ---------- 上传卡片 ---------- */
@@ -443,6 +512,15 @@
         </div>
       </div>
 
+      <!-- 队列状态条：解锁后显示（绿色空闲 / 橙色排队 / 灰色服务不可用），右侧累计识别次数 -->
+      <div class="queue-strip" id="queueStrip" hidden>
+        <div class="queue-banner idle" id="queueBanner">
+          <span class="queue-dot"></span>
+          <span id="queueText">队列空闲中…</span>
+        </div>
+        <div class="stats-chip">累计识别 <b id="statTotal">-</b> 次</div>
+      </div>
+
       <!-- 暗号门：输入正确暗号（服务端校验）后才解锁上传与查询，接口请求也会带暗号头 -->
       <div class="card" id="gate">
         <div class="gate-title">🔐 暗号入口</div>
@@ -508,6 +586,10 @@
         var errorEl = $("error");
         var gridEl = $("grid");
         var emptyEl = $("empty");
+        var queueStrip = $("queueStrip");
+        var queueBanner = $("queueBanner");
+        var queueText = $("queueText");
+        var statTotal = $("statTotal");
 
         /* ---------- 顶部更新通知条：可关闭，关闭后不再弹出 ---------- */
         var NOTICE_KEY = "mxd-shenmi-notice-v1"; // 改了通知内容就换个版本号，老用户重新看到
@@ -562,10 +644,12 @@
           } catch (e) {
             /* 存储不可用时忽略 */
           }
-          // 上锁：暗号门换下上传卡片，查询结果一并隐藏
+          // 上锁：暗号门换下上传卡片，查询结果与队列状态条一并隐藏，轮询停止
           uploadCard.hidden = true;
           gridEl.hidden = true;
           emptyEl.hidden = true;
+          queueStrip.hidden = true;
+          stopQueuePolling();
           gateEl.hidden = false;
           gateInput.value = "";
           gateErr.hidden = true;
@@ -579,10 +663,71 @@
           } catch (e) {
             /* 存储不可用时忽略 */
           }
-          // 解锁：上传卡片与初始空状态换下暗号门（查询结果待上传后出现）
+          // 解锁：上传卡片与初始空状态换下暗号门（查询结果待上传后出现），队列状态条开始轮询
           gateEl.hidden = true;
           uploadCard.hidden = false;
           emptyEl.hidden = false;
+          queueStrip.hidden = false;
+          startQueuePolling();
+        }
+
+        /* ---------- 队列状态条：轮询 OCR 队列 + 累计识别次数 ---------- */
+        var queueTimer = null;
+        var statsTimer = null;
+
+        function updateQueue(j) {
+          var total = j.waiting + (j.active ? 1 : 0); // 正在识别算 1 人，其余是排队人数
+          if (total === 0) {
+            queueBanner.className = "queue-banner idle";
+            queueText.textContent = "队列空闲中…";
+          } else {
+            queueBanner.className = "queue-banner busy";
+            queueText.textContent = "当前排队数：" + total;
+          }
+        }
+
+        function pollQueue() {
+          apiFetch(API_BASE + "/api/ocr/queue")
+            .then(function (res) {
+              return res.json();
+            })
+            .then(function (j) {
+              if (!shenmiCode) return; // 已上锁：丢弃过期结果
+              if (j && j.ok) updateQueue(j);
+            })
+            .catch(function () {
+              if (!shenmiCode) return;
+              queueBanner.className = "queue-banner down";
+              queueText.textContent = "队列状态获取失败";
+            });
+        }
+
+        function pollStats() {
+          apiFetch(API_BASE + "/api/stats")
+            .then(function (res) {
+              return res.json();
+            })
+            .then(function (j) {
+              if (!shenmiCode) return;
+              if (j && j.ok) statTotal.textContent = j.totalRequests;
+            })
+            .catch(function () {
+              /* 获取失败：保持原值，下一轮再试 */
+            });
+        }
+
+        function startQueuePolling() {
+          stopQueuePolling(); // 防重复启动
+          pollQueue();
+          pollStats();
+          queueTimer = setInterval(pollQueue, 4000); // 队列 4 秒一刷
+          statsTimer = setInterval(pollStats, 60000); // 统计 1 分钟一刷
+        }
+        function stopQueuePolling() {
+          clearInterval(queueTimer);
+          clearInterval(statsTimer);
+          queueTimer = null;
+          statsTimer = null;
         }
 
         /** 用服务端确认暗号是否正确（/api/shenmi/verify 本身不校验暗号） */
@@ -812,6 +957,7 @@
             if (!res.ok || !j.ok)
               throw new Error(j.error || "上传失败（HTTP " + res.status + "）");
             if (run.id !== runId) return;
+            pollStats(); // 上传成功：累计识别次数 +1，立即刷新显示
 
             // 轮询任务结果：queued 排队中 / running 识别中 / done 完成 / error 失败
             var items = null;

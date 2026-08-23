@@ -20,6 +20,8 @@
  *   6. shenmi 专属接口（/api/ocr*、/api/price）统一要求暗号头 X-Shenmi-Code，
  *      防止绕过 shenmi.html 直接刷接口；暗号由环境变量 SHENMI_CODE 配置，
  *      默认 zhuzhu（页面解锁校验走 /api/shenmi/verify）。
+ *   7. 简单 JSON 数据库 stats.json：站点累计统计（当前为累计识别请求次数），
+ *      启动时读入内存，变更即原子落盘；GET /api/stats 读取（同样要求暗号头）。
  *
  * 用法：node server.js（PORT 环境变量可改端口，默认 3001）+ node ocr_worker.js（OCR 服务）
  */
@@ -139,11 +141,13 @@ const COMPRESSIBLE = new Set([
 
 /** 缓存策略：
  *  html 内联数据必须每次重验证（ETag 命中 → 304，开销极小）；
- *  图片基本不变缓存一天；css/js/json 可能被修改，缓存 5 分钟 */
+ *  图片基本不变缓存一天；css/js/json 改动频繁，no-cache 每次都重验证 */
 function cacheControlFor(ext) {
   if (ext === ".html") return "no-cache";
   if (ext === ".png" || ext === ".ico" || ext === ".svg") return "public, max-age=86400";
-  return "public, max-age=300";
+  // 静态代码文件改动频繁：no-cache 让浏览器每次都拿 ETag 重验证
+  //（未变则 304 不传内容，变了立刻生效），不会再出现「改了文件刷新还是旧的」
+  return "no-cache";
 }
 
 /** 页面 gzip 产物缓存（页面只有 3 个，按 ETag 复用压缩结果，避免每次请求重复压缩大 JSON） */
@@ -278,7 +282,11 @@ function handleOcr(req, res) {
   readBody(req, OCR_LIMIT)
     .then((buf) => {
       if (!buf.length) throw Object.assign(new Error("请求体为空"), { status: 400 });
-      return ocrServiceRequest("/task", { method: "POST", body: buf }).then((r) => relayOcr(req, res, r));
+      return ocrServiceRequest("/task", { method: "POST", body: buf }).then((r) => {
+        // OCR 服务入队成功（拿到任务号）才算一次识别请求
+        if (r.status === 200 && r.body && r.body.ok) bumpTotalRequests();
+        relayOcr(req, res, r);
+      });
     })
     .catch((err) => {
       if (err.status || err.message.includes("图片过大")) {
@@ -433,6 +441,46 @@ function handlePrice(req, res) {
     });
 }
 
+/* ---------------- 简单 JSON 数据库（stats.json） ----------------
+ * 站点累计统计：以后所有需要落盘的计数都往这个文件里放，当作轻量数据库使用。
+ * 启动时读入内存，变更即原子落盘（先写 .tmp 再 rename，防读到半截文件）。 */
+
+const STATS_FILE = path.join(ROOT, "stats.json");
+
+let stats = { totalRequests: 0 }; // 累计识别请求次数
+
+function loadStats() {
+  try {
+    const obj = JSON.parse(fs.readFileSync(STATS_FILE, "utf-8"));
+    if (obj && typeof obj.totalRequests === "number") stats = obj;
+    console.log(`[stats] 载入统计：累计识别请求 ${stats.totalRequests} 次`);
+  } catch {
+    // 首次运行或文件损坏：从 0 开始
+    console.log("[stats] stats.json 不存在或损坏，从 0 开始统计");
+  }
+}
+
+/** 识别请求 +1 并落盘 */
+function bumpTotalRequests() {
+  stats.totalRequests += 1;
+  try {
+    atomicWrite(STATS_FILE, JSON.stringify(stats, null, 2));
+  } catch (err) {
+    console.error(`[stats] 落盘失败：${err.message}`);
+  }
+}
+
+/** GET /api/stats：站点累计统计（当前含累计识别请求次数） */
+function handleStats(req, res) {
+  respond(req, res, {
+    type: "application/json; charset=utf-8",
+    headers: API_CORS,
+    body: Buffer.from(JSON.stringify({ ok: true, ...stats })),
+  });
+}
+
+loadStats(); // 启动即读入（模块加载顺序上位于各函数定义之后）
+
 function respond(req, res, { status = 200, type = "text/plain; charset=utf-8", cache = "no-cache", etag, headers = {}, body, compress = false }) {
   const h = { "Content-Type": type, "Cache-Control": cache, ...headers };
   if (etag) {
@@ -539,6 +587,7 @@ function handle(req, res) {
     if (pathname === "/api/ocr" && req.method === "POST") return handleOcr(req, res);
     if (pathname === "/api/ocr/result" && req.method === "GET") return handleOcrResult(req, res);
     if (pathname === "/api/ocr/queue" && req.method === "GET") return handleOcrQueue(req, res);
+    if (pathname === "/api/stats" && req.method === "GET") return handleStats(req, res);
     if (pathname === "/api/price" && req.method === "GET") return handlePrice(req, res);
   }
 

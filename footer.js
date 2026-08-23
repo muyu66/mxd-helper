@@ -14,7 +14,7 @@
     "@media (prefers-color-scheme:dark){.mh-footer{color:#898781;}.mh-footer .mh-live{color:#f5f4f0;}}" +
     "</style>" +
     '<div class="mh-footer">' +
-    "Made by zhuzhu ❤️ 数据来源于网络搜集<br />" +
+    "Made by 猪猪 ❤️ 数据来源于网络搜集<br />" +
     "皖ICP备2025106435号-1<br />" +
     '<a class="mh-live" href="https://live.bilibili.com/1978986435" target="_blank" rel="noreferrer">B站直播间</a>' +
     "</div>",
