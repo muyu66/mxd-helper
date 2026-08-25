@@ -54,20 +54,20 @@
     '<div class="mh-banner">' +
     '<div class="mh-banner-inner">' +
     '<span class="mh-new">NEW</span>' +
-    '<span class="mh-banner-text">猪猪冒险岛工具Bar v1.1 提供EXP效率计算、999打卡、商人刷新通知功能，体积更小只有3M。' +
+    '<span class="mh-banner-text">猪猪工具Bar v1.1 提供EXP效率计算、999打卡、商人刷新通知功能，体积更小只有3M。' +
     '<a class="mh-banner-link" href="mxd-bar.zip">立即下载</a></span>' +
     "</div>" +
     "</div>" +
     '<div class="mh-topbar">' +
     '<div class="mh-inner">' +
-    '<div class="mh-brand">🗡️ Tools</div>' +
+    '<div class="mh-brand">🗡️ 猪猪工具箱</div>' +
     '<nav class="mh-nav">' +
     '<a class="mh-btn' + active("rank.html") + '" href="rank.html">怪物排行</a>' +
     '<a class="mh-btn' + active("waigua.html") + '" href="waigua.html">举报分析</a>' +
     '<a class="mh-btn' + active("account.html") + '" href="account.html">卖号分析</a>' +
     '<a class="mh-btn' + active("shenmi.html") + '" href="shenmi.html">神秘商人</a>' +
     '<a class="mh-btn' + active("999.html") + '" href="999.html">计时提醒</a>' +
-    '<a class="mh-btn' + active("exp.html") + '" href="exp.html">挂机收益</a>' +
+    '<a class="mh-btn' + active("exp.html") + '" href="exp.html">打怪效率</a>' +
     "</nav>" +
     "</div>" +
     "</div>",

@@ -83,6 +83,30 @@
         margin: 0 0 14px;
       }
 
+      /* ---------- 下线通知条 ---------- */
+      .deprecated-notice {
+        display: flex;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 6px 8px;
+        margin-bottom: 16px;
+        padding: 10px 14px;
+        background: var(--danger-weak);
+        border: 1px solid var(--danger);
+        border-radius: 12px;
+        font-size: 13px;
+        color: var(--text-2);
+      }
+      .deprecated-notice a {
+        color: var(--accent);
+        font-weight: 700;
+        text-decoration: none;
+        white-space: nowrap;
+      }
+      .deprecated-notice a:hover {
+        text-decoration: underline;
+      }
+
       /* ---------- 大宫格卡片 ---------- */
       .card {
         background: var(--surface);
@@ -419,6 +443,13 @@
     <script src="header.js"></script>
 
     <main class="wrap">
+      <!-- 下线通知：本页功能即将由猪猪冒险岛工具Bar 替代 -->
+      <div class="deprecated-notice">
+        <span
+          >⚠️ 此功能即将下线，由猪猪冒险岛Bar 替代（包含 999
+          打卡、神秘商人刷新通知）</span
+        ><a href="mxd-bar.zip">立即下载</a>
+      </div>
       <div class="cards-row">
         <div class="card">
           <h2 class="card-title">999 打卡</h2>
@@ -439,7 +470,12 @@
           </div>
           <div class="notify-toggle">
             <span>浏览器通知</span>
-            <button class="switch" id="notify999Btn" role="switch" aria-checked="true"></button>
+            <button
+              class="switch"
+              id="notify999Btn"
+              role="switch"
+              aria-checked="true"
+            ></button>
           </div>
           <button class="btn-999" id="btn999">打卡</button>
         </div>
@@ -453,7 +489,12 @@
           </div>
           <div class="notify-toggle">
             <span>浏览器通知</span>
-            <button class="switch" id="notifySmBtn" role="switch" aria-checked="true"></button>
+            <button
+              class="switch"
+              id="notifySmBtn"
+              role="switch"
+              aria-checked="true"
+            ></button>
           </div>
           <div class="sm-btns">
             <button class="primary" id="smSetBtn">设置时间</button>

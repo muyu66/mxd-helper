@@ -1026,10 +1026,9 @@
             });
           } catch (err) {
             console.error("[shenmi] 处理出错：", err);
+            // 内部错误只进控制台，页面仅提示简单信息
             showError(
-              "处理失败：" +
-                err.message +
-                "（请通过页面底部进入直播间，让主播来修BUG）",
+              "处理失败，请稍后重试（请通过页面底部进入直播间，让主播来修BUG）",
             );
             progressEl.hidden = true;
           } finally {
