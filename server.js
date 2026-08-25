@@ -452,8 +452,8 @@ function handlePrice(req, res) {
  * 防刷两道闸：
  *   1. 同设备 / 同 IP 两次上报的最短间隔限频（EXP_MIN_INTERVAL_MS）；
  *   2. 服务端重算：不信任客户端算好的 expPerHour / goldPerHour，只取 delta
- *      原始差值按上报时长自己换算，并对时长、时间戳、每小时收益上限做
- *      边界校验，异常数据直接拒绝，伪造的每小时收益无从入库。 */
+ *      原始差值按上报的实际刷怪时长（暂停不计入）自己换算，并对时长、
+ *      时间戳、每小时收益上限做边界校验，异常数据直接拒绝。 */
 
 const EXP_FILE = path.join(ROOT, "exp-reports.json");
 const EXP_BODY_LIMIT = 64 * 1024; // 上报体上限 64KB（正常一帧约 1.5KB）
@@ -535,10 +535,10 @@ function buildExpRecord(body) {
 
   const duration = body.durationSeconds;
   if (!num(duration, 1) || duration > EXP_MAX_DURATION_S) return { ok: false, error: "durationSeconds 非法" };
-  const realSeconds = (end - start) / 1000; // 真实时长：按时间戳推导，入库与换算一律用它
-  if (realSeconds < 1 || Math.abs(duration - realSeconds) > Math.max(5, realSeconds * 0.3)) {
-    return { ok: false, error: "durationSeconds 与时间戳不符" };
-  }
+  // 暂停功能：客户端暂停时墙钟时间（时间戳差值）会大于实际刷怪时长，
+  // 二者不一致属正常，不再比对；只要求时间戳差值本身 ≥ 1 秒（防垃圾数据）
+  const realSeconds = (end - start) / 1000;
+  if (realSeconds < 1) return { ok: false, error: "时间戳间隔过短" };
 
   const d = body.delta || {};
   if (!num(d.gold, 0)) return { ok: false, error: "delta.gold 非法" };
@@ -555,8 +555,8 @@ function buildExpRecord(body) {
   const potionValue = num(p.potionValue, 0) ? p.potionValue : potionHpValue + potionMpValue;
 
   // 服务端重算每小时收益（不信任客户端算好的 expPerHour / goldPerHour）；
-  // 统一用时间戳推导的真实时长，客户端上报的 durationSeconds 只做一致性校验
-  const perHour = (v) => Math.round((v / realSeconds) * 3600);
+  // 统一用上报的实际刷怪时长（暂停不计入），墙钟时间不可靠
+  const perHour = (v) => Math.round((v / duration) * 3600);
   const expPerHour = perHour(d.expGained);
   const goldPerHour = perHour(d.gold);
   const potionHpPerHour = perHour(potionHpValue);
@@ -581,7 +581,7 @@ function buildExpRecord(body) {
       partyMode: body.partyMode,
       startTime: body.startTime,
       endTime: body.endTime,
-      durationSeconds: realSeconds, // 入库真实时长（时间戳差值），非客户端上报值
+      durationSeconds: duration, // 入库实际刷怪时长（客户端上报，暂停不计入）
       delta: {
         gold: d.gold,
         hpPotionUsed: d.hpPotionUsed,

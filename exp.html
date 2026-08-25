@@ -476,12 +476,7 @@
         function cellHtml(col, r) {
           var v = r[col.key];
           if (col.key === "serverTime") return fmtTime(v);
-          if (col.key === "durationSeconds") {
-            // 真实时长优先取时间戳差值（历史记录上报的时长可能不准），取不到再退回字段值
-            var a = new Date(r.startTime).getTime();
-            var b = new Date(r.endTime).getTime();
-            return fmtDuration(isNaN(a) || isNaN(b) ? v : (b - a) / 1000);
-          }
+          if (col.key === "durationSeconds") return fmtDuration(v);
           if (col.key === "partyMode") {
             return (
               '<span class="party-pill ' +

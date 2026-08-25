@@ -70,7 +70,7 @@ PC 端挂机程序每结束一段采集周期，向服务端 POST 一次收益�
 | `partyMode` ★ | string | 1~16 个**英文字母**（建议 `solo` / `party`） | 是否组队。服务端只存值不解释，但中文会被拒 |
 | `startTime` ★ | string | ISO 8601 时间（`new Date().toISOString()` 格式） | 本段采集开始时间 |
 | `endTime` ★ | string | ISO 8601；必须晚于 `startTime`；不得超前服务器时间 5 分钟 | 本段采集结束时间 |
-| `durationSeconds` ★ | number | 1 ~ 21600（6 小时）；与 `endTime-startTime` 的真实秒数误差 ≤ max(5 秒, 30%)，且真实时长 ≥ 1 秒 | 本段时长（秒）。**仅做一致性校验；入库和每小时换算一律采用时间戳推导的真实时长** |
+| `durationSeconds` ★ | number | 1 ~ 21600（6 小时） | 本段**实际刷怪时长**（秒，暂停时间不计入）。入库与每小时换算都用它；服务端不再与时间戳比对（有暂停功能时二者不一致是正常的），仅要求时间戳差值本身 ≥ 1 秒 |
 | `delta.gold` ★ | number | ≥ 0 | 本段获得金币（end 金币 - start 金币） |
 | `delta.hpPotionUsed` ★ | integer | 0 ~ 1000000 | 本段消耗血瓶数量 |
 | `delta.mpPotionUsed` ★ | integer | 0 ~ 1000000 | 本段消耗蓝瓶数量 |
@@ -93,7 +93,7 @@ PC 端挂机程序每结束一段采集周期，向服务端 POST 一次收益�
 1. 请求体不是合法 JSON → `请求体不是合法 JSON`
 2. 字段类型/范围不符 → 对应字段报错，如 `level 非法`、`deviceId 非法`
 3. 时间：格式非法 / `endTime` 不晚于 `startTime` / 超前服务器 5 分钟以上
-4. `durationSeconds` 与时间戳不符：`|durationSeconds - (endTime-startTime)/1000| > max(5, 真实秒数×30%)`，或时间戳推导的真实时长 < 1 秒
+4. 时间戳间隔 < 1 秒（`endTime-startTime` 本身要 ≥ 1 秒）；`durationSeconds` 与时间戳不一致**不会**被拒（暂停功能会导致不一致，属正常）
 5. 差值字段为负数（说明快照方向反了或数值异常）
 6. **每小时收益超上限**（防伪造兜底，按本段时长换算，正常挂机远达不到）：
    - 经验/h ≤ 1,000,000,000
@@ -103,8 +103,7 @@ PC 端挂机程序每结束一段采集周期，向服务端 POST 一次收益�
 服务端重算公式（客户端无需实现，仅供参考对齐口径）：
 
 ```
-每小时值 = round(本段差值 / 真实时长 × 3600)
-真实时长 = (endTime - startTime) / 1000   ← 入库与换算都用它，不是上报的 durationSeconds
+每小时值 = round(本段差值 / durationSeconds × 3600)   ← 实际刷怪时长（暂停不计入），由客户端上报
 ```
 
 ---
@@ -233,7 +232,7 @@ curl "https://你的域名/api/exp/reports?limit=50"
 curl "https://你的域名/api/exp/reports?limit=50&id=mj8v3x2a1b9c"
 ```
 
-**提交失败排查**：失败时响应是 `{"ok":false,"error":"<原因>"}`，服务端日志同时会打印 `[exp] 拒绝：<原因> | 请求体=…`（含截断的原始请求体）。客户端调试时务必把完整响应原样打印（状态码 + 响应体），常见失败原因：`429 上报过于频繁`（两次成功上报间隔 <5 秒）、`durationSeconds 与时间戳不符`、`结束时间在未来`（本机时钟超前服务器 5 分钟以上）、`partyMode 非法`（只能英文字母 `solo`/`party`，不能是中文「组队」）、连接被拒（服务端没启动或地址/端口不对）。
+**提交失败排查**：失败时响应是 `{"ok":false,"error":"<原因>"}`，服务端日志同时会打印 `[exp] 拒绝：<原因> | 请求体=…`（含截断的原始请求体）。客户端调试时务必把完整响应原样打印（状态码 + 响应体），常见失败原因：`429 上报过于频繁`（两次成功上报间隔 <5 秒）、`结束时间在未来`（本机时钟超前服务器 5 分钟以上）、`时间戳间隔过短`（`endTime-startTime` < 1 秒）、`partyMode 非法`（只能英文字母 `solo`/`party`，不能是中文「组队」）、连接被拒（服务端没启动或地址/端口不对）。
 
 **地图/职业均值**：`GET /api/exp/reports` 响应自带 `mapStats` 与 `jobStats` 字段——全量数据分别按地图、职业聚合的算术平均值（`group` / `count` / `avgExpPerHour` / `avgGoldPerHour` / `avgPotionHpPerHour` / `avgPotionMpPerHour`），按平均经验/h 降序；值为 0 的记录视为「未记录」，不计入该指标的平均，某指标全部缺失时该字段为 `null`（页面显示 -）；jobStats 按归一化后的职业名分组（枪骑士统一为枪战士）；exp.html 顶部的两个均值面板直接使用，客户端无需关心。
 
@@ -263,7 +262,7 @@ curl -X POST "https://你的域名/api/exp/report" \
 
 1. **429 上报过于频繁**：两段采集间隔 <5 秒时不要逐段发，聚合后再发。
 2. **`结束时间在未来`**：客户端时钟快于服务器 5 分钟以上，做系统时间同步。
-3. **`durationSeconds 与时间戳不符`**：时长别四舍五入太狠或随意填，按 `(endTime-startTime)/1000` 取真实值（允许 ±max(5s, 30%) 误差）。入库展示的时长是时间戳推导的真实时长，不是上报值。
+3. **暂停功能**：`durationSeconds` 填实际刷怪时长（暂停不计入），与时间戳墙钟不一致是正常的，服务端不校验二者一致性；每小时收益按 `durationSeconds` 换算。
 4. **`partyMode 非法`**：只能英文字母（`solo` / `party`），不要填中文「组队」。
 5. **`金币/h 超出上限`** 等：先核对 delta 差值方向（end - start），负值必拒；差值本身异常大时检查取数逻辑。
 6. **每小时值被服务端改写**：正常现象——服务端不信任客户端算的 `expPerHour`/`goldPerHour`，一律按 `delta` 与 `durationSeconds` 重算。
