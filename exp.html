@@ -1,0 +1,432 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta
+      http-equiv="Cache-Control"
+      content="no-cache, no-store, must-revalidate"
+    />
+    <meta http-equiv="Pragma" content="no-cache" />
+    <meta http-equiv="Expires" content="0" />
+    <title>冒险岛怀旧服 挂机收益</title>
+    <style>
+      /* ---------- 亮/暗色变量（与 shenmi.html 同一套色值，配 header.js 顶栏） ---------- */
+      :root {
+        color-scheme: light;
+        --page: #f9f9f7;
+        --surface: #fcfcfb;
+        --text: #0b0b0b;
+        --text-2: #52514e;
+        --muted: #898781;
+        --border: rgba(11, 11, 11, 0.1);
+        --accent: #2a78d6;
+        --accent-weak: rgba(42, 120, 214, 0.1);
+        --danger: #c0392b;
+        --ok: #1baf7a;
+        --ok-weak: rgba(27, 175, 122, 0.12);
+      }
+      @media (prefers-color-scheme: dark) {
+        :root:where(:not([data-theme="light"])) {
+          color-scheme: dark;
+          --page: #121211;
+          --surface: #1a1a19;
+          --text: #f5f4f0;
+          --text-2: #c3c2b7;
+          --muted: #898781;
+          --border: rgba(255, 255, 255, 0.1);
+          --accent: #3987e5;
+          --accent-weak: rgba(57, 135, 229, 0.15);
+          --danger: #e35d5d;
+          --ok: #3dbf94;
+          --ok-weak: rgba(61, 191, 148, 0.15);
+        }
+      }
+      :root[data-theme="dark"] {
+        color-scheme: dark;
+        --page: #121211;
+        --surface: #1a1a19;
+        --text: #f5f4f0;
+        --text-2: #c3c2b7;
+        --muted: #898781;
+        --border: rgba(255, 255, 255, 0.1);
+        --accent: #3987e5;
+        --accent-weak: rgba(57, 135, 229, 0.15);
+        --danger: #e35d5d;
+        --ok: #3dbf94;
+        --ok-weak: rgba(61, 191, 148, 0.15);
+      }
+
+      body {
+        margin: 0;
+        background: var(--page);
+        color: var(--text);
+        font-family:
+          system-ui,
+          -apple-system,
+          "Segoe UI",
+          sans-serif;
+      }
+      /* 兜底：display:flex/grid 等会覆盖 hidden 属性，统一强制隐藏 */
+      [hidden] {
+        display: none !important;
+      }
+
+      .container {
+        max-width: 1200px;
+        margin: 0 auto;
+        padding: 20px 14px 48px;
+      }
+
+      /* ---------- 页头：标题 + 实时状态 ---------- */
+      .page-head {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: baseline;
+        gap: 6px 14px;
+        margin-bottom: 14px;
+      }
+      .page-title {
+        margin: 0;
+        font-size: 20px;
+        font-weight: 800;
+        letter-spacing: 1px;
+      }
+      .page-sub {
+        font-size: 12.5px;
+        color: var(--muted);
+      }
+      .page-sub .dot {
+        display: inline-block;
+        width: 7px;
+        height: 7px;
+        border-radius: 50%;
+        background: var(--ok);
+        margin-right: 5px;
+        vertical-align: 1px;
+      }
+      .page-sub .dot.off {
+        background: var(--danger);
+      }
+      #filter code {
+        background: var(--accent-weak);
+        padding: 1px 7px;
+        border-radius: 6px;
+        color: var(--accent);
+        font-size: 12px;
+      }
+      #filter a {
+        color: var(--accent);
+        text-decoration: none;
+      }
+      #filter a:hover {
+        text-decoration: underline;
+      }
+
+      #error {
+        margin-bottom: 12px;
+        padding: 10px 14px;
+        border: 1px solid var(--danger);
+        border-radius: 10px;
+        background: rgba(192, 57, 43, 0.08);
+        color: var(--danger);
+        font-size: 13px;
+      }
+
+      /* ---------- 表格 ---------- */
+      .table-card {
+        background: var(--surface);
+        border: 1px solid var(--border);
+        border-radius: 14px;
+        overflow-x: auto;
+      }
+      table {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 13.5px;
+        white-space: nowrap;
+      }
+      thead th {
+        padding: 10px 12px;
+        text-align: left;
+        color: var(--text-2);
+        font-size: 12px;
+        font-weight: 600;
+        border-bottom: 1px solid var(--border);
+        cursor: pointer;
+        user-select: none;
+      }
+      thead th:hover {
+        color: var(--accent);
+      }
+      th .arrow {
+        color: var(--accent);
+        font-size: 10px;
+        margin-left: 3px;
+      }
+      tbody td {
+        padding: 9px 12px;
+        border-bottom: 1px solid var(--border);
+      }
+      tbody tr:last-child td {
+        border-bottom: none;
+      }
+      tbody tr:hover td {
+        background: var(--accent-weak);
+      }
+      .num {
+        text-align: right;
+        font-variant-numeric: tabular-nums;
+      }
+      .party-pill {
+        display: inline-block;
+        padding: 2px 9px;
+        border-radius: 10px;
+        font-size: 11.5px;
+      }
+      .party-pill.solo {
+        background: var(--accent-weak);
+        color: var(--accent);
+      }
+      .party-pill.party {
+        background: var(--ok-weak);
+        color: var(--ok);
+      }
+      .empty-state {
+        padding: 48px 16px;
+        text-align: center;
+        color: var(--muted);
+        font-size: 13.5px;
+      }
+
+      .page-foot {
+        margin-top: 12px;
+        font-size: 12px;
+        color: var(--muted);
+      }
+    </style>
+  </head>
+  <body>
+    <script src="header.js"></script>
+    <main class="container">
+      <header class="page-head">
+        <h1 class="page-title">挂机收益</h1>
+        <span class="page-sub" id="status"
+          ><span class="dot off"></span>等待数据…</span
+        >
+        <span class="page-sub" id="filter" hidden></span>
+      </header>
+      <div id="error" hidden></div>
+      <div class="table-card">
+        <table>
+          <thead id="thead"></thead>
+          <tbody id="tbody"></tbody>
+        </table>
+        <div id="empty" class="empty-state" hidden>
+          暂无上报数据。PC 端挂机程序运行后，每段采集结束会自动上报到这里。
+        </div>
+      </div>
+      <p class="page-foot">
+        数据由 PC 端挂机程序自动上报，页面每 15 秒刷新一次；每行 = 一段采集周期，「/h」均为按该段时长换算的每小时均值。
+      </p>
+    </main>
+    <script src="footer.js"></script>
+    <script>
+      (function () {
+        "use strict";
+        var API_BASE = location.protocol === "file:" ? "http://localhost:3001" : "";
+        var POLL_MS = 15000;
+
+        var COLS = [
+          { key: "serverTime", label: "上报时间" },
+          { key: "level", label: "等级", num: 1 },
+          { key: "job", label: "职业" },
+          { key: "mapName", label: "地图" },
+          { key: "partyMode", label: "组队" },
+          { key: "expPerHour", label: "经验/h", num: 1 },
+          { key: "goldPerHour", label: "金币收益/h", num: 1 },
+          { key: "potionHpPerHour", label: "血瓶钱/h", num: 1 },
+          { key: "potionMpPerHour", label: "蓝瓶钱/h", num: 1 },
+          { key: "durationSeconds", label: "时长", num: 1 },
+        ];
+
+        var rows = [];
+        var sortCol = null; // 排序列 key；null = 接口顺序（上报时间倒序）
+        var sortDir = 1; // 1 升序 / -1 降序
+        var runId = 0; // 丢弃过期轮询结果（与 shenmi.html 同款）
+        // 分享链接筛选：exp.html?id=<记录id> 时只展示这一条记录
+        var SHARE_ID = (new URLSearchParams(location.search).get("id") || "").trim();
+
+        var $thead = document.getElementById("thead");
+        var $tbody = document.getElementById("tbody");
+        var $empty = document.getElementById("empty");
+        var $error = document.getElementById("error");
+        var $status = document.getElementById("status");
+
+        function esc(s) {
+          var d = document.createElement("span");
+          d.textContent = String(s == null ? "" : s);
+          return d.innerHTML;
+        }
+        function fmtInt(n) {
+          return String(Math.round(n)).replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+        }
+        function pad2(n) {
+          return (n < 10 ? "0" : "") + n;
+        }
+        function fmtTime(iso) {
+          var d = new Date(iso);
+          if (isNaN(d.getTime())) return "-";
+          return (
+            pad2(d.getMonth() + 1) + "-" + pad2(d.getDate()) + " " +
+            pad2(d.getHours()) + ":" + pad2(d.getMinutes()) + ":" + pad2(d.getSeconds())
+          );
+        }
+        function fmtDuration(v) {
+          var s = Math.round(Number(v) * 10) / 10; // 保留一位小数
+          if (s < 60) return s + "秒";
+          var m = Math.floor(s / 60);
+          if (m < 60) return m + "分" + Math.round(s % 60) + "秒";
+          return Math.floor(m / 60) + "时" + Math.floor(m % 60) + "分";
+        }
+        function partyLabel(m) {
+          return m === "solo" ? "单人" : m === "party" ? "组队" : m;
+        }
+
+        function cellHtml(col, r) {
+          var v = r[col.key];
+          if (col.key === "serverTime") return fmtTime(v);
+          if (col.key === "durationSeconds") {
+            // 真实时长优先取时间戳差值（历史记录上报的时长可能不准），取不到再退回字段值
+            var a = new Date(r.startTime).getTime();
+            var b = new Date(r.endTime).getTime();
+            return fmtDuration(isNaN(a) || isNaN(b) ? v : (b - a) / 1000);
+          }
+          if (col.key === "partyMode") {
+            return (
+              '<span class="party-pill ' + esc(v) + '">' + esc(partyLabel(v)) + "</span>"
+            );
+          }
+          if (col.num) return fmtInt(v);
+          return esc(v);
+        }
+
+        function buildHead() {
+          $thead.innerHTML =
+            "<tr>" +
+            COLS.map(function (c) {
+              var arrow =
+                c.key === sortCol
+                  ? '<span class="arrow">' + (sortDir > 0 ? "▲" : "▼") + "</span>"
+                  : "";
+              return (
+                '<th class="' + (c.num ? "num" : "") + '" data-col="' + c.key + '">' +
+                esc(c.label) + arrow + "</th>"
+              );
+            }).join("") +
+            "</tr>";
+        }
+
+        function sortedRows() {
+          if (!sortCol) return rows;
+          var k = sortCol, dir = sortDir;
+          var col = COLS.filter(function (c) {
+            return c.key === k;
+          })[0];
+          return rows.slice().sort(function (a, b) {
+            var x = a[k], y = b[k];
+            if (col && col.num) {
+              x = Number(x) || 0;
+              y = Number(y) || 0;
+            } else {
+              x = String(x == null ? "" : x);
+              y = String(y == null ? "" : y);
+            }
+            if (x < y) return -dir;
+            if (x > y) return dir;
+            return 0;
+          });
+        }
+
+        function render() {
+          buildHead();
+          var list = sortedRows();
+          $tbody.innerHTML = list
+            .map(function (r) {
+              return (
+                "<tr>" +
+                COLS.map(function (c) {
+                  return '<td class="' + (c.num ? "num" : "") + '">' + cellHtml(c, r) + "</td>";
+                }).join("") +
+                "</tr>"
+              );
+            })
+            .join("");
+          $empty.textContent = SHARE_ID
+            ? "这条记录不存在。"
+            : "暂无上报数据。PC 端挂机程序运行后，每段采集结束会自动上报到这里。";
+          $empty.hidden = list.length > 0;
+          $status.innerHTML = list.length
+            ? '<span class="dot"></span>共 ' + list.length + " 条"
+            : '<span class="dot off"></span>等待数据…';
+        }
+
+        function showError(msg) {
+          $error.textContent = msg;
+          $error.hidden = false;
+        }
+        function hideError() {
+          $error.hidden = true;
+        }
+
+        function load() {
+          var id = ++runId;
+          var url = API_BASE + "/api/exp/reports?limit=200";
+          if (SHARE_ID) url += "&id=" + encodeURIComponent(SHARE_ID);
+          fetch(url)
+            .then(function (r) {
+              if (!r.ok) throw new Error("HTTP " + r.status);
+              return r.json();
+            })
+            .then(function (j) {
+              if (id !== runId || !j || !j.ok) return;
+              // profit 里的每小时值平铺到顶层，表格按列直接取值
+              rows = (j.reports || []).map(function (r) {
+                return Object.assign({}, r, r.profit || {});
+              });
+              render();
+              hideError();
+            })
+            .catch(function (err) {
+              if (id !== runId) return;
+              showError("加载失败：" + err.message + "（15 秒后自动重试）");
+            });
+        }
+
+        // 点击表头排序：点新列按升序，再点当前列翻转方向
+        $thead.addEventListener("click", function (e) {
+          var th = e.target.closest("th");
+          if (!th) return;
+          var key = th.getAttribute("data-col");
+          if (sortCol === key) sortDir = -sortDir;
+          else {
+            sortCol = key;
+            sortDir = 1;
+          }
+          render();
+        });
+
+        // 带 id 访问时在页头提示筛选状态，并提供「查看全部」出口
+        if (SHARE_ID) {
+          var $filter = document.getElementById("filter");
+          $filter.innerHTML =
+            '单条记录：<code>' + esc(SHARE_ID) + '</code> · <a href="exp.html">查看全部</a>';
+          $filter.hidden = false;
+        }
+
+        load();
+        setInterval(load, POLL_MS);
+      })();
+    </script>
+  </body>
+</html>

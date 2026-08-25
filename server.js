@@ -22,6 +22,10 @@
  *      默认 zhuzhu（页面解锁校验走 /api/shenmi/verify）。
  *   7. 简单 JSON 数据库 stats.json：站点累计统计（当前为累计识别请求次数），
  *      启动时读入内存，变更即原子落盘；GET /api/stats 读取（同样要求暗号头）。
+ *   8. 经验收益上报：PC 端挂机程序每段采集结束 POST /api/exp/report 一次，
+ *      存 exp-reports.json（轻量 JSON 数据库，全部保留不清理；量大卡顿再优化）；
+ *      exp.html 轮询 GET /api/exp/reports 展示。防刷靠按设备/IP 限频、
+ *      字段校验、服务端重算每小时收益（不信任客户端算好的 expPerHour 等）。
  *
  * 用法：node server.js（PORT 环境变量可改端口，默认 3001）+ node ocr_worker.js（OCR 服务）
  */
@@ -29,6 +33,7 @@ import http from "node:http";
 import fs from "node:fs";
 import path from "node:path";
 import zlib from "node:zlib";
+import crypto from "node:crypto";
 import { fileURLToPath } from "node:url";
 import { searchGoodsAll } from "./gmmsj.mjs";
 
@@ -441,6 +446,240 @@ function handlePrice(req, res) {
     });
 }
 
+/* ---------------- 经验收益上报（PC 端 → POST /api/exp/report） ----------------
+ * PC 端挂机程序（nodejs）每结束一段采集周期就 POST 一次收益快照，存进
+ * exp-reports.json 当轻量数据库；exp.html 轮询 GET /api/exp/reports 展示表格。
+ * 防刷两道闸：
+ *   1. 同设备 / 同 IP 两次上报的最短间隔限频（EXP_MIN_INTERVAL_MS）；
+ *   2. 服务端重算：不信任客户端算好的 expPerHour / goldPerHour，只取 delta
+ *      原始差值按上报时长自己换算，并对时长、时间戳、每小时收益上限做
+ *      边界校验，异常数据直接拒绝，伪造的每小时收益无从入库。 */
+
+const EXP_FILE = path.join(ROOT, "exp-reports.json");
+const EXP_BODY_LIMIT = 64 * 1024; // 上报体上限 64KB（正常一帧约 1.5KB）
+const EXP_MIN_INTERVAL_MS = 5000; // 同设备 / 同 IP 两次上报的最短间隔
+const EXP_MAX_DURATION_S = 6 * 3600; // 单段采集时长上限 6 小时
+const EXP_MAX_PER_HOUR = 1e9; // 每小时经验上限（伪造兜底，正常值远低于此）
+const GOLD_MAX_PER_HOUR = 1e10; // 每小时金币上限
+const POTION_MAX_PER_HOUR = 1e9; // 每小时药水钱上限
+
+let expReports = []; // 最新在数组尾；落盘文件形如 { reports: [...] }
+const expLastDevice = new Map(); // deviceId → 上次成功上报的时间戳
+const expLastIp = new Map(); // 来源 IP → 上次成功上报的时间戳
+
+/** 生成单条记录的唯一 id（分享链接用）：时间戳 36 进制 + 随机后缀，撞了重生成 */
+function newExpId() {
+  let id;
+  do {
+    id = Date.now().toString(36) + crypto.randomBytes(3).toString("hex");
+  } while (expReports.some((r) => r.id === id));
+  return id;
+}
+
+/** 启动时读回磁盘上的上报记录；旧记录没有 id 的补一个（分享链接需要） */
+function loadExpReports() {
+  try {
+    const obj = JSON.parse(fs.readFileSync(EXP_FILE, "utf-8"));
+    if (obj && Array.isArray(obj.reports)) {
+      expReports = obj.reports; // 全部保留，不设上限（量大卡顿再优化）
+      let migrated = false;
+      for (const r of expReports) {
+        if (!r.id) {
+          r.id = newExpId();
+          migrated = true;
+        }
+      }
+      if (migrated) saveExpReports();
+      console.log(`[exp] 载入历史上报 ${expReports.length} 条`);
+      return;
+    }
+  } catch {
+    // 首次运行或文件损坏：从空库开始
+  }
+  console.log("[exp] exp-reports.json 不存在或损坏，从空库开始");
+}
+
+/** 落盘（原子写：先写 .tmp 再 rename，防读到半截文件） */
+function saveExpReports() {
+  try {
+    atomicWrite(EXP_FILE, JSON.stringify({ reports: expReports }, null, 2));
+  } catch (err) {
+    console.error(`[exp] 上报落盘失败：${err.message}`);
+  }
+}
+
+/** 限频表简单上限：条目过多（大量伪造 deviceId）时整体清空，防内存膨胀 */
+function pruneRateMap(map) {
+  if (map.size > 5000) map.clear();
+}
+
+/** 字段校验 + 服务端重算每小时收益；返回 { ok, error?, report? } */
+function buildExpRecord(body) {
+  if (!body || typeof body !== "object") return { ok: false, error: "请求体不是对象" };
+  const str = (v, max) => typeof v === "string" && v.length > 0 && v.length <= max;
+  const int = (v, min, max) => Number.isInteger(v) && v >= min && v <= max;
+  const num = (v, min) => typeof v === "number" && Number.isFinite(v) && v >= min;
+
+  if (!str(body.deviceId, 64) || !/^[0-9a-zA-Z_-]+$/.test(body.deviceId)) return { ok: false, error: "deviceId 非法" };
+  if (!int(body.level, 1, 300)) return { ok: false, error: "level 非法" };
+  if (!str(body.job, 32)) return { ok: false, error: "job 非法" };
+  if (!int(body.mapId, 0, 1e9)) return { ok: false, error: "mapId 非法" };
+  if (!str(body.mapName, 64)) return { ok: false, error: "mapName 非法" };
+  if (!/^[a-z]{1,16}$/i.test(String(body.partyMode || ""))) return { ok: false, error: "partyMode 非法" };
+
+  const start = Date.parse(body.startTime);
+  const end = Date.parse(body.endTime);
+  if (!Number.isFinite(start) || !Number.isFinite(end)) return { ok: false, error: "时间格式非法" };
+  if (end <= start) return { ok: false, error: "endTime 必须晚于 startTime" };
+  if (end - Date.now() > 5 * 60 * 1000) return { ok: false, error: "结束时间在未来" };
+
+  const duration = body.durationSeconds;
+  if (!num(duration, 1) || duration > EXP_MAX_DURATION_S) return { ok: false, error: "durationSeconds 非法" };
+  const realSeconds = (end - start) / 1000; // 真实时长：按时间戳推导，入库与换算一律用它
+  if (realSeconds < 1 || Math.abs(duration - realSeconds) > Math.max(5, realSeconds * 0.3)) {
+    return { ok: false, error: "durationSeconds 与时间戳不符" };
+  }
+
+  const d = body.delta || {};
+  if (!num(d.gold, 0)) return { ok: false, error: "delta.gold 非法" };
+  if (!int(d.hpPotionUsed, 0, 1e6)) return { ok: false, error: "delta.hpPotionUsed 非法" };
+  if (!int(d.mpPotionUsed, 0, 1e6)) return { ok: false, error: "delta.mpPotionUsed 非法" };
+  if (!num(d.expGained, 0)) return { ok: false, error: "delta.expGained 非法" };
+  if (!int(d.levelsGained, 0, 100)) return { ok: false, error: "delta.levelsGained 非法" };
+
+  // 客户端新增字段：分瓶种药水花费；旧版客户端缺省按 0
+  const p = body.profit || {};
+  const potionHpValue = p.potionHpValue === undefined ? 0 : p.potionHpValue;
+  const potionMpValue = p.potionMpValue === undefined ? 0 : p.potionMpValue;
+  if (!num(potionHpValue, 0) || !num(potionMpValue, 0)) return { ok: false, error: "profit 药水金额非法" };
+  const potionValue = num(p.potionValue, 0) ? p.potionValue : potionHpValue + potionMpValue;
+
+  // 服务端重算每小时收益（不信任客户端算好的 expPerHour / goldPerHour）；
+  // 统一用时间戳推导的真实时长，客户端上报的 durationSeconds 只做一致性校验
+  const perHour = (v) => Math.round((v / realSeconds) * 3600);
+  const expPerHour = perHour(d.expGained);
+  const goldPerHour = perHour(d.gold);
+  const potionHpPerHour = perHour(potionHpValue);
+  const potionMpPerHour = perHour(potionMpValue);
+
+  // 伪造兜底：每小时收益超过物理上限的一律拒绝
+  if (expPerHour > EXP_MAX_PER_HOUR) return { ok: false, error: "经验/h 超出上限" };
+  if (goldPerHour > GOLD_MAX_PER_HOUR) return { ok: false, error: "金币/h 超出上限" };
+  if (potionHpPerHour > POTION_MAX_PER_HOUR || potionMpPerHour > POTION_MAX_PER_HOUR) {
+    return { ok: false, error: "药水钱/h 超出上限" };
+  }
+
+  return {
+    ok: true,
+    report: {
+      id: newExpId(), // 单条记录唯一 id：客户端分享 exp.html?id=xxx 只看这一条
+      deviceId: body.deviceId,
+      level: body.level,
+      job: body.job,
+      mapId: body.mapId,
+      mapName: body.mapName,
+      partyMode: body.partyMode,
+      startTime: body.startTime,
+      endTime: body.endTime,
+      durationSeconds: realSeconds, // 入库真实时长（时间戳差值），非客户端上报值
+      delta: {
+        gold: d.gold,
+        hpPotionUsed: d.hpPotionUsed,
+        mpPotionUsed: d.mpPotionUsed,
+        expGained: d.expGained,
+        levelsGained: d.levelsGained,
+      },
+      profit: {
+        expPerHour,
+        goldPerHour,
+        potionValue,
+        potionHpValue,
+        potionMpValue,
+        potionHpPerHour,
+        potionMpPerHour,
+      },
+      serverTime: new Date().toISOString(),
+    },
+  };
+}
+
+/** POST /api/exp/report：PC 端上报一段采集周期的收益（限频 + 校验重算） */
+function handleExpReport(req, res) {
+  const reply = (status, payload) =>
+    respond(req, res, {
+      status,
+      type: "application/json; charset=utf-8",
+      headers: API_CORS,
+      body: Buffer.from(JSON.stringify(payload)),
+    });
+
+  // IP 限频放在读体之前：同 IP 高频请求连体都不读，直接拒
+  const ip = req.socket.remoteAddress || "";
+  const now = Date.now();
+  if (now - (expLastIp.get(ip) || 0) < EXP_MIN_INTERVAL_MS) return reply(429, { ok: false, error: "上报过于频繁" });
+
+  readBody(req, EXP_BODY_LIMIT)
+    .then((buf) => {
+      let body;
+      try {
+        body = JSON.parse(buf.toString("utf-8"));
+      } catch {
+        return reply(400, { ok: false, error: "请求体不是合法 JSON" });
+      }
+      const r = buildExpRecord(body);
+      if (!r.ok) return reply(400, { ok: false, error: r.error });
+
+      // 设备限频放在校验通过后：伪造 deviceId 过不了校验，连不上限频记录
+      const lastDevice = expLastDevice.get(r.report.deviceId) || 0;
+      if (now - lastDevice < EXP_MIN_INTERVAL_MS) return reply(429, { ok: false, error: "上报过于频繁" });
+
+      expReports.push(r.report);
+      expLastDevice.set(r.report.deviceId, now);
+      expLastIp.set(ip, now);
+      pruneRateMap(expLastDevice);
+      pruneRateMap(expLastIp);
+      saveExpReports();
+      console.log(
+        `[exp] 入库：${r.report.id} ${r.report.deviceId} Lv${r.report.level} ${r.report.mapName} ` +
+        `+${r.report.delta.expGained}经验 +${r.report.delta.gold}金币（${r.report.durationSeconds}s）`,
+      );
+      // id 是本条记录的唯一 id：客户端拼分享链接 exp.html?id=xxx，只看这一条
+      reply(200, { ok: true, id: r.report.id, report: r.report });
+    })
+    .catch((err) => {
+      console.error(`[exp] 上报处理失败：${err.message}`);
+      if (!res.headersSent) reply(413, { ok: false, error: "请求体过大或连接中断" });
+    });
+}
+
+/** GET /api/exp/reports?limit=&id=：表格页读取（公开只读无需密钥；最新在前）
+ *  id 可选：传记录 id 则只返回那一条（客户端分享 exp.html?id=xxx 链接用） */
+function handleExpReports(req, res) {
+  const q = new URL(req.url, "http://localhost").searchParams;
+  const recordId = (q.get("id") || "").trim();
+  const list = recordId ? expReports.filter((r) => r.id === recordId) : expReports;
+  let limit = Number(q.get("limit")) || 200;
+  limit = Math.max(1, Math.min(500, Math.floor(limit)));
+  const reports = list.slice(-limit).reverse();
+  respond(req, res, {
+    type: "application/json; charset=utf-8",
+    headers: API_CORS,
+    compress: true,
+    body: Buffer.from(
+      JSON.stringify({
+        ok: true,
+        id: recordId || null,
+        count: reports.length,
+        total: list.length,
+        serverTime: new Date().toISOString(),
+        reports,
+      }),
+    ),
+  });
+}
+
+loadExpReports(); // 启动即读回（模块加载顺序上位于各函数定义之后）
+
 /* ---------------- 简单 JSON 数据库（stats.json） ----------------
  * 站点累计统计：以后所有需要落盘的计数都往这个文件里放，当作轻量数据库使用。
  * 启动时读入内存，变更即原子落盘（先写 .tmp 再 rename，防读到半截文件）。 */
@@ -582,6 +821,9 @@ function handle(req, res) {
       return respond(req, res, { status: 204, headers: API_CORS, body: Buffer.alloc(0) });
     }
     if (pathname === "/api/shenmi/verify" && req.method === "GET") return handleShenmiVerify(req, res);
+    // 经验收益上报：PC 端专用接口，免密钥，不经过 shenmi 暗号
+    if (pathname === "/api/exp/report" && req.method === "POST") return handleExpReport(req, res);
+    if (pathname === "/api/exp/reports" && req.method === "GET") return handleExpReports(req, res);
     // 其余 shenmi 专属接口统一过暗号：防止绕过页面直接刷接口
     if (!checkShenmiCode(req)) return rejectShenmiCode(req, res);
     if (pathname === "/api/ocr" && req.method === "POST") return handleOcr(req, res);
@@ -630,5 +872,6 @@ server.listen(PORT, HOST, () => {
   console.log(`   内存数据源：${Object.keys(DATA_FILES).join("、")}`);
   console.log(`   OCR 转交：http://${OCR_HOST}:${OCR_PORT}/（独立服务 ocr_worker.js，需另行启动）`);
   console.log("   shenmi 暗号：已启用（环境变量 SHENMI_CODE 可修改，默认 zhuzhu）");
+  console.log("   经验上报：POST /api/exp/report（免密钥，防刷靠限频+校验重算）");
   console.log("   监控中：JSON 文件变化后自动重载入内存\n");
 });
