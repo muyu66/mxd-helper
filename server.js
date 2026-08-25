@@ -652,16 +652,18 @@ function handleExpReport(req, res) {
     });
 }
 
-/** 全量数据按地图聚合的平均值（exp.html 的地图均值面板用；简单算术平均）
+/** 全量数据按维度聚合的平均值（exp.html 的地图/职业均值面板用；简单算术平均）
  *  值为 0 视为未记录：该指标不进平均（分母单独计数），全部缺失则该指标为 null（页面显示 -） */
-function buildMapStats(list) {
-  const byMap = new Map();
+function buildGroupStats(list, keyOf) {
+  const byGroup = new Map();
   for (const r of list) {
     if (!r.profit) continue;
-    let m = byMap.get(r.mapName);
+    const key = keyOf(r);
+    if (!key) continue;
+    let m = byGroup.get(key);
     if (!m) {
-      m = { mapName: r.mapName, count: 0, exp: 0, expN: 0, gold: 0, goldN: 0, hp: 0, hpN: 0, mp: 0, mpN: 0 };
-      byMap.set(r.mapName, m);
+      m = { key, count: 0, exp: 0, expN: 0, gold: 0, goldN: 0, hp: 0, hpN: 0, mp: 0, mpN: 0 };
+      byGroup.set(key, m);
     }
     m.count += 1;
     if (r.profit.expPerHour > 0) {
@@ -681,9 +683,9 @@ function buildMapStats(list) {
       m.mpN += 1;
     }
   }
-  return [...byMap.values()]
+  return [...byGroup.values()]
     .map((m) => ({
-      mapName: m.mapName,
+      group: m.key,
       count: m.count,
       avgExpPerHour: m.expN ? Math.round(m.exp / m.expN) : null,
       avgGoldPerHour: m.goldN ? Math.round(m.gold / m.goldN) : null,
@@ -715,7 +717,8 @@ function handleExpReports(req, res) {
         total: list.length,
         serverTime: new Date().toISOString(),
         reports,
-        mapStats: buildMapStats(list),
+        mapStats: buildGroupStats(list, (r) => r.mapName),
+        jobStats: buildGroupStats(list, (r) => r.job),
       }),
     ),
   });

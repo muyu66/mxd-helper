@@ -192,10 +192,10 @@
       .stats-card:not(.expanded) .empty-state {
         display: none;
       }
-      #stats-card thead th {
+      .stats-card thead th {
         cursor: default;
       }
-      #stats-card thead th:hover {
+      .stats-card thead th:hover {
         color: var(--text-2);
       }
 
@@ -351,6 +351,28 @@
         </table>
         <div id="stats-empty" class="empty-state" hidden>暂无数据。</div>
       </div>
+      <div class="table-card stats-card" id="job-stats-card">
+        <div class="card-title stats-toggle" id="job-stats-toggle">
+          <span
+            >职业均值 · 全量数据 <span class="stats-arrow">▸</span></span
+          >
+          <span class="stats-hint" id="job-stats-hint">点击展开</span>
+        </div>
+        <table>
+          <thead>
+            <tr>
+              <th>职业</th>
+              <th class="num">样本</th>
+              <th class="num">平均经验/h</th>
+              <th class="num">平均金币收益/h</th>
+              <th class="num">平均血瓶钱/h</th>
+              <th class="num">平均蓝瓶钱/h</th>
+            </tr>
+          </thead>
+          <tbody id="job-stats-body"></tbody>
+        </table>
+        <div id="job-stats-empty" class="empty-state" hidden>暂无数据。</div>
+      </div>
       <div class="table-card">
         <table>
           <thead id="thead"></thead>
@@ -390,6 +412,7 @@
         var fJob = ""; // 职业筛选（"" = 全部）
         var fLevel = ""; // 等级段筛选（"" = 全部）
         var mapStats = []; // 全量数据按地图聚合的平均值（接口返回）
+        var jobStats = []; // 全量数据按职业聚合的平均值（接口返回）
         var filterSignature = ""; // 筛选选项集合签名：变了才重建下拉框
         var sortCol = null; // 排序列 key；null = 接口顺序（上报时间倒序）
         var sortDir = 1; // 1 升序 / -1 降序
@@ -563,16 +586,16 @@
           fJob = $job.value;
         }
 
-        // 地图均值面板：全量数据按地图聚合（服务端算好，页面只渲染）
-        function renderStats() {
-          var $body = document.getElementById("stats-body");
-          var $statsEmpty = document.getElementById("stats-empty");
-          $body.innerHTML = mapStats
+        // 均值面板渲染（地图 / 职业共用一套逻辑，服务端算好，页面只渲染）
+        function renderStatsTable(bodyId, emptyId, stats) {
+          var $body = document.getElementById(bodyId);
+          document.getElementById(emptyId).hidden = stats.length > 0;
+          $body.innerHTML = stats
             .map(function (m) {
               return (
                 "<tr>" +
                 "<td>" +
-                esc(m.mapName) +
+                esc(m.group) +
                 "</td>" +
                 '<td class="num">' +
                 fmtInt(m.count) +
@@ -593,7 +616,10 @@
               );
             })
             .join("");
-          $statsEmpty.hidden = mapStats.length > 0;
+        }
+        function renderStats() {
+          renderStatsTable("stats-body", "stats-empty", mapStats);
+          renderStatsTable("job-stats-body", "job-stats-empty", jobStats);
         }
 
         function render() {
@@ -655,6 +681,7 @@
                 return Object.assign({}, r, r.profit || {});
               });
               mapStats = j.mapStats || [];
+              jobStats = j.jobStats || [];
               refreshFilterOptions();
               render();
               hideError();
@@ -770,14 +797,19 @@
           });
         });
 
-        // 地图均值面板：默认收缩，点击标题展开/收起（提示文案随状态切换）
-        document.getElementById("stats-toggle").addEventListener("click", function () {
-          var expanded = document
-            .getElementById("stats-card")
-            .classList.toggle("expanded");
-          document.getElementById("stats-hint").textContent = expanded
-            ? "点击收起"
-            : "点击展开";
+        // 地图/职业均值面板：默认收缩，点击标题展开/收起（提示文案随状态切换）
+        [
+          ["stats-toggle", "stats-card", "stats-hint"],
+          ["job-stats-toggle", "job-stats-card", "job-stats-hint"],
+        ].forEach(function (t) {
+          document.getElementById(t[0]).addEventListener("click", function () {
+            var expanded = document
+              .getElementById(t[1])
+              .classList.toggle("expanded");
+            document.getElementById(t[2]).textContent = expanded
+              ? "点击收起"
+              : "点击展开";
+          });
         });
 
         // 职业 / 等级段筛选：改下拉框立即重渲染表格
@@ -801,6 +833,7 @@
           $filter.hidden = false;
           document.getElementById("filter-bar").hidden = true;
           document.getElementById("stats-card").hidden = true;
+          document.getElementById("job-stats-card").hidden = true;
         }
 
         load();
