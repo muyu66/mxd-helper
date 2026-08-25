@@ -652,8 +652,34 @@ function handleExpReport(req, res) {
     });
 }
 
+/** 全量数据按地图聚合的平均值（exp.html 的地图均值面板用；简单算术平均） */
+function buildMapStats(list) {
+  const byMap = new Map();
+  for (const r of list) {
+    if (!r.profit) continue;
+    const m = byMap.get(r.mapName) || { mapName: r.mapName, count: 0, exp: 0, gold: 0, hp: 0, mp: 0 };
+    m.count += 1;
+    m.exp += r.profit.expPerHour || 0;
+    m.gold += r.profit.goldPerHour || 0;
+    m.hp += r.profit.potionHpPerHour || 0;
+    m.mp += r.profit.potionMpPerHour || 0;
+    byMap.set(r.mapName, m);
+  }
+  return [...byMap.values()]
+    .map((m) => ({
+      mapName: m.mapName,
+      count: m.count,
+      avgExpPerHour: Math.round(m.exp / m.count),
+      avgGoldPerHour: Math.round(m.gold / m.count),
+      avgPotionHpPerHour: Math.round(m.hp / m.count),
+      avgPotionMpPerHour: Math.round(m.mp / m.count),
+    }))
+    .sort((a, b) => b.avgExpPerHour - a.avgExpPerHour); // 平均经验/h 高的在前
+}
+
 /** GET /api/exp/reports?limit=&id=：表格页读取（公开只读无需密钥；最新在前）
- *  id 可选：传记录 id 则只返回那一条（客户端分享 exp.html?id=xxx 链接用） */
+ *  id 可选：传记录 id 则只返回那一条（客户端分享 exp.html?id=xxx 链接用）
+ *  响应带 mapStats：全量数据按地图聚合的平均值（地图均值面板用） */
 function handleExpReports(req, res) {
   const q = new URL(req.url, "http://localhost").searchParams;
   const recordId = (q.get("id") || "").trim();
@@ -673,6 +699,7 @@ function handleExpReports(req, res) {
         total: list.length,
         serverTime: new Date().toISOString(),
         reports,
+        mapStats: buildMapStats(list),
       }),
     ),
   });

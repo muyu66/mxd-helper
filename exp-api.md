@@ -233,6 +233,8 @@ curl "https://你的域名/api/exp/reports?limit=50"
 curl "https://你的域名/api/exp/reports?limit=50&id=mj8v3x2a1b9c"
 ```
 
+**地图均值**：`GET /api/exp/reports` 响应自带 `mapStats` 字段——全量数据按地图聚合的算术平均值（`mapName` / `count` / `avgExpPerHour` / `avgGoldPerHour` / `avgPotionHpPerHour` / `avgPotionMpPerHour`），按平均经验/h 降序；exp.html 顶部的地图均值面板直接使用它，客户端无需关心。
+
 **curl 模拟一次上报**：
 
 ```bash

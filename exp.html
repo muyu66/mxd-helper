@@ -9,7 +9,7 @@
     />
     <meta http-equiv="Pragma" content="no-cache" />
     <meta http-equiv="Expires" content="0" />
-    <title>冒险岛怀旧服 挂机收益</title>
+    <title>冒险岛怀旧服 打怪效率</title>
     <style>
       /* ---------- 亮/暗色变量（与 shenmi.html 同一套色值，配 header.js 顶栏） ---------- */
       :root {
@@ -123,6 +123,82 @@
         text-decoration: underline;
       }
 
+      /* ---------- 筛选条 + 地图均值面板 ---------- */
+      .filter-bar {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 8px 16px;
+        margin-bottom: 12px;
+      }
+      .filter-bar label {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        font-size: 13px;
+        color: var(--text-2);
+      }
+      .filter-bar select {
+        padding: 7px 10px;
+        border: 1px solid var(--border);
+        border-radius: 10px;
+        background: var(--page);
+        color: var(--text);
+        font-size: 13px;
+        outline: none;
+        cursor: pointer;
+      }
+      .filter-bar select:focus {
+        border-color: var(--accent);
+      }
+      .stats-card {
+        margin-bottom: 14px;
+      }
+      .card-title {
+        padding: 11px 14px;
+        font-size: 13px;
+        font-weight: 700;
+      }
+      .stats-toggle {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 8px;
+        cursor: pointer;
+        user-select: none;
+      }
+      .stats-toggle:hover {
+        color: var(--accent);
+      }
+      .stats-hint {
+        font-size: 12px;
+        font-weight: 400;
+        color: var(--muted);
+      }
+      .stats-toggle:hover .stats-hint {
+        color: var(--accent);
+      }
+      .stats-arrow {
+        display: inline-block;
+        font-size: 11px;
+        margin-left: 2px;
+        transition: transform 0.15s ease;
+      }
+      .stats-card.expanded .stats-arrow {
+        transform: rotate(90deg);
+      }
+      /* 默认收缩：只留标题条，展开才显示表格 */
+      .stats-card:not(.expanded) table,
+      .stats-card:not(.expanded) .empty-state {
+        display: none;
+      }
+      #stats-card thead th {
+        cursor: default;
+      }
+      #stats-card thead th:hover {
+        color: var(--text-2);
+      }
+
       #error {
         margin-bottom: 12px;
         padding: 10px 14px;
@@ -210,13 +286,49 @@
     <script src="header.js"></script>
     <main class="container">
       <header class="page-head">
-        <h1 class="page-title">挂机收益</h1>
+        <h1 class="page-title">打怪效率</h1>
         <span class="page-sub" id="status"
           ><span class="dot off"></span>等待数据…</span
         >
         <span class="page-sub" id="filter" hidden></span>
       </header>
       <div id="error" hidden></div>
+      <div class="filter-bar" id="filter-bar">
+        <label
+          >职业
+          <select id="f-job">
+            <option value="">全部职业</option>
+          </select>
+        </label>
+        <label
+          >等级段
+          <select id="f-level">
+            <option value="">全部等级段</option>
+          </select>
+        </label>
+      </div>
+      <div class="table-card stats-card" id="stats-card">
+        <div class="card-title stats-toggle" id="stats-toggle">
+          <span
+            >地图均值 · 全量数据 <span class="stats-arrow">▸</span></span
+          >
+          <span class="stats-hint" id="stats-hint">点击展开</span>
+        </div>
+        <table>
+          <thead>
+            <tr>
+              <th>地图</th>
+              <th class="num">样本</th>
+              <th class="num">平均经验/h</th>
+              <th class="num">平均金币收益/h</th>
+              <th class="num">平均血瓶钱/h</th>
+              <th class="num">平均蓝瓶钱/h</th>
+            </tr>
+          </thead>
+          <tbody id="stats-body"></tbody>
+        </table>
+        <div id="stats-empty" class="empty-state" hidden>暂无数据。</div>
+      </div>
       <div class="table-card">
         <table>
           <thead id="thead"></thead>
@@ -251,7 +363,11 @@
           { key: "durationSeconds", label: "测试时长", num: 1 },
         ];
 
-        var rows = [];
+        var allRows = []; // 接口原始记录（profit 已平铺到顶层）
+        var fJob = ""; // 职业筛选（"" = 全部）
+        var fLevel = ""; // 等级段筛选（"" = 全部）
+        var mapStats = []; // 全量数据按地图聚合的平均值（接口返回）
+        var filterSignature = ""; // 筛选选项集合签名：变了才重建下拉框
         var sortCol = null; // 排序列 key；null = 接口顺序（上报时间倒序）
         var sortDir = 1; // 1 升序 / -1 降序
         var runId = 0; // 丢弃过期轮询结果（与 shenmi.html 同款）
@@ -349,14 +465,34 @@
             "</tr>";
         }
 
+        // 等级段：1-9、10-19 … 90-99，100 以上归「100+」
+        function levelBucket(lv) {
+          lv = Number(lv);
+          if (!(lv >= 1)) return "";
+          if (lv >= 100) return "100+";
+          if (lv < 10) return "1-9";
+          var lo = Math.floor(lv / 10) * 10;
+          return lo + "-" + (lo + 9);
+        }
+
+        // 先按职业/等级段筛选，再应用表头排序
+        function filteredRows() {
+          return allRows.filter(function (r) {
+            if (fJob && String(r.job) !== fJob) return false;
+            if (fLevel && levelBucket(r.level) !== fLevel) return false;
+            return true;
+          });
+        }
+
         function sortedRows() {
-          if (!sortCol) return rows;
+          var list = filteredRows();
+          if (!sortCol) return list;
           var k = sortCol,
             dir = sortDir;
           var col = COLS.filter(function (c) {
             return c.key === k;
           })[0];
-          return rows.slice().sort(function (a, b) {
+          return list.slice().sort(function (a, b) {
             var x = a[k],
               y = b[k];
             if (col && col.num) {
@@ -370,6 +506,62 @@
             if (x > y) return dir;
             return 0;
           });
+        }
+
+        // 下拉框选项跟随数据重建（集合没变就不动，避免打断正在操作的下拉框）
+        function refreshFilterOptions() {
+          var jobs = [];
+          allRows.forEach(function (r) {
+            if (r.job && jobs.indexOf(r.job) === -1) jobs.push(r.job);
+          });
+          jobs.sort();
+          var sig = jobs.join("|");
+          if (sig === filterSignature) return;
+          filterSignature = sig;
+          var $job = document.getElementById("f-job");
+          $job.innerHTML =
+            '<option value="">全部职业</option>' +
+            jobs
+              .map(function (j) {
+                return '<option value="' + esc(j) + '">' + esc(j) + "</option>";
+              })
+              .join("");
+          // 重建后恢复当前选中项（选项已消失则回到「全部」）
+          $job.value = jobs.indexOf(fJob) !== -1 ? fJob : "";
+          fJob = $job.value;
+        }
+
+        // 地图均值面板：全量数据按地图聚合（服务端算好，页面只渲染）
+        function renderStats() {
+          var $body = document.getElementById("stats-body");
+          var $statsEmpty = document.getElementById("stats-empty");
+          $body.innerHTML = mapStats
+            .map(function (m) {
+              return (
+                "<tr>" +
+                "<td>" +
+                esc(m.mapName) +
+                "</td>" +
+                '<td class="num">' +
+                fmtInt(m.count) +
+                "</td>" +
+                '<td class="num">' +
+                fmtInt(m.avgExpPerHour) +
+                "</td>" +
+                '<td class="num">' +
+                fmtInt(m.avgGoldPerHour) +
+                "</td>" +
+                '<td class="num">' +
+                fmtInt(m.avgPotionHpPerHour) +
+                "</td>" +
+                '<td class="num">' +
+                fmtInt(m.avgPotionMpPerHour) +
+                "</td>" +
+                "</tr>"
+              );
+            })
+            .join("");
+          $statsEmpty.hidden = mapStats.length > 0;
         }
 
         function render() {
@@ -397,8 +589,14 @@
             : "暂无上报数据。工具Bar运行后，每段采集结束会自动上报到这里。";
           $empty.hidden = list.length > 0;
           $status.innerHTML = list.length
-            ? '<span class="dot"></span>共 ' + list.length + " 条"
+            ? '<span class="dot"></span>共 ' +
+              list.length +
+              " 条" +
+              (list.length !== allRows.length
+                ? "（筛选自 " + allRows.length + " 条）"
+                : "")
             : '<span class="dot off"></span>等待数据…';
+          renderStats();
         }
 
         function showError(msg) {
@@ -421,9 +619,11 @@
             .then(function (j) {
               if (id !== runId || !j || !j.ok) return;
               // profit 里的每小时值平铺到顶层，表格按列直接取值
-              rows = (j.reports || []).map(function (r) {
+              allRows = (j.reports || []).map(function (r) {
                 return Object.assign({}, r, r.profit || {});
               });
+              mapStats = j.mapStats || [];
+              refreshFilterOptions();
               render();
               hideError();
             })
@@ -446,7 +646,52 @@
           render();
         });
 
-        // 带 id 访问时在页头提示筛选状态，并提供「查看全部」出口
+        // 等级段下拉框选项固定（1-9 … 90-99，100 以上归 100+），启动时建一次
+        (function buildLevelOptions() {
+          var ranges = [
+            "1-9",
+            "10-19",
+            "20-29",
+            "30-39",
+            "40-49",
+            "50-59",
+            "60-69",
+            "70-79",
+            "80-89",
+            "90-99",
+            "100+",
+          ];
+          document.getElementById("f-level").innerHTML =
+            '<option value="">全部等级段</option>' +
+            ranges
+              .map(function (l) {
+                return '<option value="' + l + '">' + l + "</option>";
+              })
+              .join("");
+        })();
+
+        // 地图均值面板：默认收缩，点击标题展开/收起（提示文案随状态切换）
+        document.getElementById("stats-toggle").addEventListener("click", function () {
+          var expanded = document
+            .getElementById("stats-card")
+            .classList.toggle("expanded");
+          document.getElementById("stats-hint").textContent = expanded
+            ? "点击收起"
+            : "点击展开";
+        });
+
+        // 职业 / 等级段筛选：改下拉框立即重渲染表格
+        document.getElementById("f-job").addEventListener("change", function () {
+          fJob = this.value;
+          render();
+        });
+        document.getElementById("f-level").addEventListener("change", function () {
+          fLevel = this.value;
+          render();
+        });
+
+        // 带 id 访问时在页头提示筛选状态，并提供「查看全部」出口；
+        // 单条视图下筛选条和地图均值面板都收起
         if (SHARE_ID) {
           var $filter = document.getElementById("filter");
           $filter.innerHTML =
@@ -454,6 +699,8 @@
             esc(SHARE_ID) +
             '</code> · <a href="exp.html">查看全部</a>';
           $filter.hidden = false;
+          document.getElementById("filter-bar").hidden = true;
+          document.getElementById("stats-card").hidden = true;
         }
 
         load();
