@@ -616,7 +616,10 @@ function handleExpReport(req, res) {
   // IP 限频放在读体之前：同 IP 高频请求连体都不读，直接拒
   const ip = req.socket.remoteAddress || "";
   const now = Date.now();
-  if (now - (expLastIp.get(ip) || 0) < EXP_MIN_INTERVAL_MS) return reply(429, { ok: false, error: "上报过于频繁" });
+  if (now - (expLastIp.get(ip) || 0) < EXP_MIN_INTERVAL_MS) {
+    console.log(`[exp] 拒绝：IP 限频 ip=${ip}（距上次成功上报 ${now - expLastIp.get(ip)}ms，最小间隔 ${EXP_MIN_INTERVAL_MS}ms）`);
+    return reply(429, { ok: false, error: "上报过于频繁" });
+  }
 
   readBody(req, EXP_BODY_LIMIT)
     .then((buf) => {
@@ -624,14 +627,22 @@ function handleExpReport(req, res) {
       try {
         body = JSON.parse(buf.toString("utf-8"));
       } catch {
+        console.log(`[exp] 拒绝：请求体不是合法 JSON ip=${ip} | 前 120 字符=${JSON.stringify(buf.toString("utf-8").slice(0, 120))}`);
         return reply(400, { ok: false, error: "请求体不是合法 JSON" });
       }
       const r = buildExpRecord(body);
-      if (!r.ok) return reply(400, { ok: false, error: r.error });
+      if (!r.ok) {
+        // 调试日志：失败原因 + 原始请求体（截断 400 字符），方便排查客户端问题
+        console.log(`[exp] 拒绝：${r.error} ip=${ip} | 请求体=${JSON.stringify(body).slice(0, 400)}`);
+        return reply(400, { ok: false, error: r.error });
+      }
 
       // 设备限频放在校验通过后：伪造 deviceId 过不了校验，连不上限频记录
       const lastDevice = expLastDevice.get(r.report.deviceId) || 0;
-      if (now - lastDevice < EXP_MIN_INTERVAL_MS) return reply(429, { ok: false, error: "上报过于频繁" });
+      if (now - lastDevice < EXP_MIN_INTERVAL_MS) {
+        console.log(`[exp] 拒绝：设备限频 deviceId=${r.report.deviceId}（距上次成功上报 ${now - lastDevice}ms，最小间隔 ${EXP_MIN_INTERVAL_MS}ms）`);
+        return reply(429, { ok: false, error: "上报过于频繁" });
+      }
 
       expReports.push(r.report);
       expLastDevice.set(r.report.deviceId, now);
@@ -647,7 +658,7 @@ function handleExpReport(req, res) {
       reply(200, { ok: true, id: r.report.id, report: r.report });
     })
     .catch((err) => {
-      console.error(`[exp] 上报处理失败：${err.message}`);
+      console.error(`[exp] 上报处理失败：${err.message} ip=${ip}`);
       if (!res.headersSent) reply(413, { ok: false, error: "请求体过大或连接中断" });
     });
 }
@@ -904,9 +915,13 @@ function handle(req, res) {
 }
 
 const server = http.createServer((req, res) => {
+  // 响应完成后再打日志：异步接口（ocr/exp 等）处理完成前 statusCode 还是默认值，
+  // 提前打印会把 400/429 误报成 200，误导排查
+  res.on("finish", () => {
+    console.log(`[http] ${req.method} ${req.url} → ${res.statusCode}`);
+  });
   try {
     handle(req, res);
-    console.log(`[http] ${req.method} ${req.url} → ${res.statusCode}`);
   } catch (err) {
     console.error(`[http] ${req.method} ${req.url} 出错：`, err.message);
     if (!res.headersSent) {

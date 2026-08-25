@@ -233,6 +233,8 @@ curl "https://你的域名/api/exp/reports?limit=50"
 curl "https://你的域名/api/exp/reports?limit=50&id=mj8v3x2a1b9c"
 ```
 
+**提交失败排查**：失败时响应是 `{"ok":false,"error":"<原因>"}`，服务端日志同时会打印 `[exp] 拒绝：<原因> | 请求体=…`（含截断的原始请求体）。客户端调试时务必把完整响应原样打印（状态码 + 响应体），常见失败原因：`429 上报过于频繁`（两次成功上报间隔 <5 秒）、`durationSeconds 与时间戳不符`、`结束时间在未来`（本机时钟超前服务器 5 分钟以上）、`partyMode 非法`（只能英文字母 `solo`/`party`，不能是中文「组队」）、连接被拒（服务端没启动或地址/端口不对）。
+
 **地图/职业均值**：`GET /api/exp/reports` 响应自带 `mapStats` 与 `jobStats` 字段——全量数据分别按地图、职业聚合的算术平均值（`group` / `count` / `avgExpPerHour` / `avgGoldPerHour` / `avgPotionHpPerHour` / `avgPotionMpPerHour`），按平均经验/h 降序；值为 0 的记录视为「未记录」，不计入该指标的平均，某指标全部缺失时该字段为 `null`（页面显示 -）；jobStats 按归一化后的职业名分组（枪骑士统一为枪战士）；exp.html 顶部的两个均值面板直接使用，客户端无需关心。
 
 **curl 模拟一次上报**：
