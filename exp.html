@@ -272,7 +272,7 @@
       }
       .copy-btn {
         padding: 3px 10px;
-        width: 60px; /* 固定宽度：复制→已复制 文案变化不撑开表格 */
+        width: 60px; /* 固定宽度：分享→已分享 文案变化不撑开表格 */
         box-sizing: border-box;
         text-align: center;
         border: 1px solid var(--border);
@@ -331,9 +331,7 @@
       </div>
       <div class="table-card stats-card" id="stats-card">
         <div class="card-title stats-toggle" id="stats-toggle">
-          <span
-            >地图均值 · 全量数据 <span class="stats-arrow">▸</span></span
-          >
+          <span>地图均值 · 全量数据 <span class="stats-arrow">▸</span></span>
           <span class="stats-hint" id="stats-hint">点击展开</span>
         </div>
         <table>
@@ -353,9 +351,7 @@
       </div>
       <div class="table-card stats-card" id="job-stats-card">
         <div class="card-title stats-toggle" id="job-stats-toggle">
-          <span
-            >职业均值 · 全量数据 <span class="stats-arrow">▸</span></span
-          >
+          <span>职业均值 · 全量数据 <span class="stats-arrow">▸</span></span>
           <span class="stats-hint" id="job-stats-hint">点击展开</span>
         </div>
         <table>
@@ -468,7 +464,7 @@
           return m === "solo" ? "单人" : m === "party" ? "组队" : m;
         }
         // 职业别名归一：枪骑士与枪战士同义，统一显示为枪战士（数据不改，只影响展示与筛选）
-        var JOB_ALIASES = { "枪骑士": "枪战士" };
+        var JOB_ALIASES = { 枪骑士: "枪战士" };
         function jobLabel(j) {
           return JOB_ALIASES[j] || j;
         }
@@ -489,7 +485,9 @@
           if (col.key === "job") return esc(jobLabel(v));
           if (col.key === "_copy") {
             return (
-              '<button class="copy-btn" data-id="' + esc(r.id) + '">复制</button>'
+              '<button class="copy-btn" data-id="' +
+              esc(r.id) +
+              '">分享</button>'
             );
           }
           // 金额类指标为 0 视为未记录，显示 -
@@ -731,7 +729,7 @@
               .join("");
         })();
 
-        // 每行「复制」：把记录整理成文本写入剪贴板
+        // 每行「分享」：把记录整理成文本写入剪贴板
         // 格式：每小时 44级 枪战士   森林迷宫III   单人    15.3w exp    血耗13.1w    蓝耗10.3w
         function fmtW(v) {
           var w = Math.round(v / 1000) / 10; // 转万，保留一位小数
@@ -770,12 +768,9 @@
             done(ok);
           };
           if (navigator.clipboard && navigator.clipboard.writeText) {
-            navigator.clipboard.writeText(text).then(
-              function () {
-                done(true);
-              },
-              legacy
-            );
+            navigator.clipboard.writeText(text).then(function () {
+              done(true);
+            }, legacy);
           } else {
             legacy();
           }
@@ -815,14 +810,18 @@
         });
 
         // 职业 / 等级段筛选：改下拉框立即重渲染表格
-        document.getElementById("f-job").addEventListener("change", function () {
-          fJob = this.value;
-          render();
-        });
-        document.getElementById("f-level").addEventListener("change", function () {
-          fLevel = this.value;
-          render();
-        });
+        document
+          .getElementById("f-job")
+          .addEventListener("change", function () {
+            fJob = this.value;
+            render();
+          });
+        document
+          .getElementById("f-level")
+          .addEventListener("change", function () {
+            fLevel = this.value;
+            render();
+          });
 
         // 带 id 访问时在页头提示筛选状态，并提供「查看全部」出口；
         // 单条视图下筛选条和地图均值面板都收起
