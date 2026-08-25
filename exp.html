@@ -108,18 +108,21 @@
       .page-sub .dot.off {
         background: var(--danger);
       }
-      #filter code {
+      #filter code,
+      #src-filter code {
         background: var(--accent-weak);
         padding: 1px 7px;
         border-radius: 6px;
         color: var(--accent);
         font-size: 12px;
       }
-      #filter a {
+      #filter a,
+      #src-filter a {
         color: var(--accent);
         text-decoration: none;
       }
-      #filter a:hover {
+      #filter a:hover,
+      #src-filter a:hover {
         text-decoration: underline;
       }
 
@@ -270,6 +273,21 @@
         background: var(--ok-weak);
         color: var(--ok);
       }
+      .src {
+        color: var(--muted);
+        font-size: 12px;
+        cursor: pointer;
+      }
+      .src:hover {
+        color: var(--accent);
+      }
+      .map-link {
+        color: var(--accent);
+        cursor: pointer;
+      }
+      .map-link:hover {
+        text-decoration: underline;
+      }
       .copy-btn {
         padding: 3px 10px;
         width: 60px; /* 固定宽度：分享→已分享 文案变化不撑开表格 */
@@ -313,6 +331,7 @@
           ><span class="dot off"></span>等待数据…</span
         >
         <span class="page-sub" id="filter" hidden></span>
+        <span class="page-sub" id="src-filter" hidden></span>
       </header>
       <div id="error" hidden></div>
       <div class="filter-bar" id="filter-bar">
@@ -392,6 +411,7 @@
 
         var COLS = [
           { key: "serverTime", label: "上报时间" },
+          { key: "deviceId", label: "数据来源" },
           { key: "level", label: "等级", num: 1 },
           { key: "job", label: "职业" },
           { key: "mapName", label: "地图" },
@@ -407,6 +427,7 @@
         var allRows = []; // 接口原始记录（profit 已平铺到顶层）
         var fJob = ""; // 职业筛选（"" = 全部）
         var fLevel = ""; // 等级段筛选（"" = 全部）
+        var fDevice = ""; // 数据来源筛选（"" = 全部）
         var mapStats = []; // 全量数据按地图聚合的平均值（接口返回）
         var jobStats = []; // 全量数据按职业聚合的平均值（接口返回）
         var filterSignature = ""; // 筛选选项集合签名：变了才重建下拉框
@@ -464,7 +485,7 @@
           return m === "solo" ? "单人" : m === "party" ? "组队" : m;
         }
         // 职业别名归一：枪骑士与枪战士同义，统一显示为枪战士（数据不改，只影响展示与筛选）
-        var JOB_ALIASES = { 枪骑士: "枪战士" };
+        var JOB_ALIASES = { 枪骑士: "枪战士", 冰雷: "冰雷法师" };
         function jobLabel(j) {
           return JOB_ALIASES[j] || j;
         }
@@ -472,6 +493,20 @@
         function cellHtml(col, r) {
           var v = r[col.key];
           if (col.key === "serverTime") return fmtTime(v);
+          if (col.key === "deviceId") {
+            // 缩略显示设备号，完整值放 title 悬停可见；点击按该来源筛选
+            var s = String(v || "-");
+            var short = s.length > 15 ? s.slice(0, 15) + "…" : s;
+            return (
+              '<span class="src" data-device="' +
+              esc(s) +
+              '" title="' +
+              esc(s) +
+              '">' +
+              esc(short) +
+              "</span>"
+            );
+          }
           if (col.key === "durationSeconds") return fmtDuration(v);
           if (col.key === "partyMode") {
             return (
@@ -479,6 +514,16 @@
               esc(v) +
               '">' +
               esc(partyLabel(v)) +
+              "</span>"
+            );
+          }
+          if (col.key === "mapName") {
+            // 点击弹出确认框，前往第三方站点查询地图
+            return (
+              '<span class="map-link" data-map="' +
+              esc(v) +
+              '">' +
+              esc(v) +
               "</span>"
             );
           }
@@ -534,6 +579,7 @@
           return allRows.filter(function (r) {
             if (fJob && jobLabel(String(r.job)) !== fJob) return false;
             if (fLevel && levelBucket(r.level) !== fLevel) return false;
+            if (fDevice && String(r.deviceId) !== fDevice) return false;
             return true;
           });
         }
@@ -584,6 +630,19 @@
           // 重建后恢复当前选中项（选项已消失则回到「全部」）
           $job.value = jobs.indexOf(fJob) !== -1 ? fJob : "";
           fJob = $job.value;
+        }
+
+        // 数据来源筛选提示：页头小字 + 清除入口
+        function updateSrcFilter() {
+          var $srcFilter = document.getElementById("src-filter");
+          if (fDevice) {
+            $srcFilter.innerHTML =
+              '数据来源：<code>' + esc(fDevice) + '</code> · <a href="#">清除</a>';
+            $srcFilter.hidden = false;
+          } else {
+            $srcFilter.hidden = true;
+            $srcFilter.innerHTML = "";
+          }
         }
 
         // 均值面板渲染（地图 / 职业共用一套逻辑，服务端算好，页面只渲染）
@@ -776,6 +835,30 @@
           }
         }
         $tbody.addEventListener("click", function (e) {
+          var srcEl = e.target.closest(".src");
+          if (srcEl) {
+            var dev = srcEl.getAttribute("data-device");
+            if (dev) {
+              fDevice = fDevice === dev ? "" : dev; // 再点同一个来源 = 取消筛选
+              updateSrcFilter();
+              render();
+            }
+            return;
+          }
+          var mapEl = e.target.closest(".map-link");
+          if (mapEl) {
+            var mapName = mapEl.getAttribute("data-map");
+            if (mapName && confirm("前往第三方网站查询地图「" + mapName + "」，是否前往？")) {
+              window.open(
+                "https://mxdc.dvg.cn/map_list.php?q=" +
+                  encodeURIComponent(mapName) +
+                  "&page=1&pageSize=40&sortKey=mapid&sortDir=asc&lng=zh-CN",
+                "_blank",
+                "noopener"
+              );
+            }
+            return;
+          }
           var btn = e.target.closest(".copy-btn");
           if (!btn) return;
           var rec = allRows.filter(function (x) {
@@ -820,6 +903,17 @@
           .getElementById("f-level")
           .addEventListener("change", function () {
             fLevel = this.value;
+            render();
+          });
+
+        // 数据来源筛选提示里的「清除」入口
+        document
+          .getElementById("src-filter")
+          .addEventListener("click", function (e) {
+            if (!e.target.closest("a")) return;
+            e.preventDefault();
+            fDevice = "";
+            updateSrcFilter();
             render();
           });
 

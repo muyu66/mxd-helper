@@ -54,7 +54,7 @@
     '<div class="mh-banner">' +
     '<div class="mh-banner-inner">' +
     '<span class="mh-new">NEW</span>' +
-    '<span class="mh-banner-text">猪猪冒险岛工具Bar v1.0 提供效率计算、999打卡和商人刷新通知功能。' +
+    '<span class="mh-banner-text">猪猪冒险岛工具Bar v1.1 提供EXP效率计算、999打卡、商人刷新通知功能，体积更小只有3M。' +
     '<a class="mh-banner-link" href="mxd-bar.zip">立即下载</a></span>' +
     "</div>" +
     "</div>" +
