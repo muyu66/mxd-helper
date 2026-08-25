@@ -227,14 +227,15 @@
         </div>
       </div>
       <p class="page-foot">
-        数据由 PC 端挂机程序自动上报，页面每 15 秒刷新一次；每行 = 一段采集周期，「/h」均为按该段时长换算的每小时均值。
+        数据由工具Bar自动上报，页面每15秒刷新一次；「/h」均为按该段时长换算的每小时均值。
       </p>
     </main>
     <script src="footer.js"></script>
     <script>
       (function () {
         "use strict";
-        var API_BASE = location.protocol === "file:" ? "http://localhost:3001" : "";
+        var API_BASE =
+          location.protocol === "file:" ? "http://localhost:3001" : "";
         var POLL_MS = 15000;
 
         var COLS = [
@@ -247,7 +248,7 @@
           { key: "goldPerHour", label: "金币收益/h", num: 1 },
           { key: "potionHpPerHour", label: "血瓶钱/h", num: 1 },
           { key: "potionMpPerHour", label: "蓝瓶钱/h", num: 1 },
-          { key: "durationSeconds", label: "时长", num: 1 },
+          { key: "durationSeconds", label: "测试时长", num: 1 },
         ];
 
         var rows = [];
@@ -255,7 +256,9 @@
         var sortDir = 1; // 1 升序 / -1 降序
         var runId = 0; // 丢弃过期轮询结果（与 shenmi.html 同款）
         // 分享链接筛选：exp.html?id=<记录id> 时只展示这一条记录
-        var SHARE_ID = (new URLSearchParams(location.search).get("id") || "").trim();
+        var SHARE_ID = (
+          new URLSearchParams(location.search).get("id") || ""
+        ).trim();
 
         var $thead = document.getElementById("thead");
         var $tbody = document.getElementById("tbody");
@@ -278,8 +281,15 @@
           var d = new Date(iso);
           if (isNaN(d.getTime())) return "-";
           return (
-            pad2(d.getMonth() + 1) + "-" + pad2(d.getDate()) + " " +
-            pad2(d.getHours()) + ":" + pad2(d.getMinutes()) + ":" + pad2(d.getSeconds())
+            pad2(d.getMonth() + 1) +
+            "-" +
+            pad2(d.getDate()) +
+            " " +
+            pad2(d.getHours()) +
+            ":" +
+            pad2(d.getMinutes()) +
+            ":" +
+            pad2(d.getSeconds())
           );
         }
         function fmtDuration(v) {
@@ -304,7 +314,11 @@
           }
           if (col.key === "partyMode") {
             return (
-              '<span class="party-pill ' + esc(v) + '">' + esc(partyLabel(v)) + "</span>"
+              '<span class="party-pill ' +
+              esc(v) +
+              '">' +
+              esc(partyLabel(v)) +
+              "</span>"
             );
           }
           if (col.num) return fmtInt(v);
@@ -317,11 +331,19 @@
             COLS.map(function (c) {
               var arrow =
                 c.key === sortCol
-                  ? '<span class="arrow">' + (sortDir > 0 ? "▲" : "▼") + "</span>"
+                  ? '<span class="arrow">' +
+                    (sortDir > 0 ? "▲" : "▼") +
+                    "</span>"
                   : "";
               return (
-                '<th class="' + (c.num ? "num" : "") + '" data-col="' + c.key + '">' +
-                esc(c.label) + arrow + "</th>"
+                '<th class="' +
+                (c.num ? "num" : "") +
+                '" data-col="' +
+                c.key +
+                '">' +
+                esc(c.label) +
+                arrow +
+                "</th>"
               );
             }).join("") +
             "</tr>";
@@ -329,12 +351,14 @@
 
         function sortedRows() {
           if (!sortCol) return rows;
-          var k = sortCol, dir = sortDir;
+          var k = sortCol,
+            dir = sortDir;
           var col = COLS.filter(function (c) {
             return c.key === k;
           })[0];
           return rows.slice().sort(function (a, b) {
-            var x = a[k], y = b[k];
+            var x = a[k],
+              y = b[k];
             if (col && col.num) {
               x = Number(x) || 0;
               y = Number(y) || 0;
@@ -356,7 +380,13 @@
               return (
                 "<tr>" +
                 COLS.map(function (c) {
-                  return '<td class="' + (c.num ? "num" : "") + '">' + cellHtml(c, r) + "</td>";
+                  return (
+                    '<td class="' +
+                    (c.num ? "num" : "") +
+                    '">' +
+                    cellHtml(c, r) +
+                    "</td>"
+                  );
                 }).join("") +
                 "</tr>"
               );
@@ -364,7 +394,7 @@
             .join("");
           $empty.textContent = SHARE_ID
             ? "这条记录不存在。"
-            : "暂无上报数据。PC 端挂机程序运行后，每段采集结束会自动上报到这里。";
+            : "暂无上报数据。工具Bar运行后，每段采集结束会自动上报到这里。";
           $empty.hidden = list.length > 0;
           $status.innerHTML = list.length
             ? '<span class="dot"></span>共 ' + list.length + " 条"
@@ -420,7 +450,9 @@
         if (SHARE_ID) {
           var $filter = document.getElementById("filter");
           $filter.innerHTML =
-            '单条记录：<code>' + esc(SHARE_ID) + '</code> · <a href="exp.html">查看全部</a>';
+            "单条记录：<code>" +
+            esc(SHARE_ID) +
+            '</code> · <a href="exp.html">查看全部</a>';
           $filter.hidden = false;
         }
 
