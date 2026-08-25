@@ -229,8 +229,10 @@
         font-size: 12px;
         font-weight: 600;
         border-bottom: 1px solid var(--border);
-        cursor: pointer;
         user-select: none;
+      }
+      thead th[data-col] {
+        cursor: pointer;
       }
       thead th:hover {
         color: var(--accent);
@@ -266,6 +268,26 @@
       }
       .party-pill.party {
         background: var(--ok-weak);
+        color: var(--ok);
+      }
+      .copy-btn {
+        padding: 3px 10px;
+        width: 60px; /* 固定宽度：复制→已复制 文案变化不撑开表格 */
+        box-sizing: border-box;
+        text-align: center;
+        border: 1px solid var(--border);
+        border-radius: 8px;
+        background: var(--page);
+        color: var(--text-2);
+        font-size: 12px;
+        cursor: pointer;
+      }
+      .copy-btn:hover {
+        border-color: var(--accent);
+        color: var(--accent);
+      }
+      .copy-btn.copied {
+        border-color: var(--ok);
         color: var(--ok);
       }
       .empty-state {
@@ -361,6 +383,7 @@
           { key: "potionHpPerHour", label: "血瓶钱/h", num: 1, zeroDash: 1 },
           { key: "potionMpPerHour", label: "蓝瓶钱/h", num: 1, zeroDash: 1 },
           { key: "durationSeconds", label: "测试时长", num: 1 },
+          { key: "_copy", label: "操作", noSort: 1 },
         ];
 
         var allRows = []; // 接口原始记录（profit 已平铺到顶层）
@@ -440,6 +463,11 @@
               "</span>"
             );
           }
+          if (col.key === "_copy") {
+            return (
+              '<button class="copy-btn" data-id="' + esc(r.id) + '">复制</button>'
+            );
+          }
           // 金额类指标为 0 视为未记录，显示 -
           if (col.num) return col.zeroDash && !v ? "-" : fmtInt(v);
           return esc(v);
@@ -458,9 +486,9 @@
               return (
                 '<th class="' +
                 (c.num ? "num" : "") +
-                '" data-col="' +
-                c.key +
-                '">' +
+                '"' +
+                (c.noSort ? "" : ' data-col="' + c.key + '"') +
+                ">" +
                 esc(c.label) +
                 arrow +
                 "</th>"
@@ -640,7 +668,7 @@
         // 点击表头排序：点新列按升序，再点当前列翻转方向
         $thead.addEventListener("click", function (e) {
           var th = e.target.closest("th");
-          if (!th) return;
+          if (!th || !th.hasAttribute("data-col")) return;
           var key = th.getAttribute("data-col");
           if (sortCol === key) sortDir = -sortDir;
           else {
@@ -673,6 +701,74 @@
               })
               .join("");
         })();
+
+        // 每行「复制」：把记录整理成文本写入剪贴板
+        // 格式：每小时 44级 枪战士   森林迷宫III   单人    15.3w exp    血耗13.1w    蓝耗10.3w
+        function fmtW(v) {
+          var w = Math.round(v / 1000) / 10; // 转万，保留一位小数
+          return (w % 1 ? w : Math.round(w)) + "w";
+        }
+        function copyRow(r) {
+          return [
+            "每小时 " +
+              r.level +
+              "级 " +
+              r.job +
+              "   " +
+              r.mapName +
+              "   " +
+              partyLabel(r.partyMode),
+            fmtW(r.expPerHour) + " exp",
+            r.potionHpPerHour > 0 ? "血耗" + fmtW(r.potionHpPerHour) : "血耗-",
+            r.potionMpPerHour > 0 ? "蓝耗" + fmtW(r.potionMpPerHour) : "蓝耗-",
+          ].join("    ");
+        }
+        function copyToClipboard(text, done) {
+          var legacy = function () {
+            var ta = document.createElement("textarea");
+            ta.value = text;
+            ta.style.position = "fixed";
+            ta.style.opacity = "0";
+            document.body.appendChild(ta);
+            ta.select();
+            var ok = false;
+            try {
+              ok = document.execCommand("copy");
+            } catch (e) {
+              ok = false;
+            }
+            document.body.removeChild(ta);
+            done(ok);
+          };
+          if (navigator.clipboard && navigator.clipboard.writeText) {
+            navigator.clipboard.writeText(text).then(
+              function () {
+                done(true);
+              },
+              legacy
+            );
+          } else {
+            legacy();
+          }
+        }
+        $tbody.addEventListener("click", function (e) {
+          var btn = e.target.closest(".copy-btn");
+          if (!btn) return;
+          var rec = allRows.filter(function (x) {
+            return String(x.id) === btn.getAttribute("data-id");
+          })[0];
+          if (!rec) return;
+          copyToClipboard(copyRow(rec), function (ok) {
+            if (!ok) return;
+            var old = btn.textContent;
+            btn.textContent = "已复制";
+            btn.classList.add("copied");
+            setTimeout(function () {
+              btn.textContent = old;
+              btn.classList.remove("copied");
+            }, 1200);
+          });
+        });
 
         // 地图均值面板：默认收缩，点击标题展开/收起（提示文案随状态切换）
         document.getElementById("stats-toggle").addEventListener("click", function () {
