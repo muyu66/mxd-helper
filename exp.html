@@ -467,6 +467,11 @@
         function partyLabel(m) {
           return m === "solo" ? "单人" : m === "party" ? "组队" : m;
         }
+        // 职业别名归一：枪骑士与枪战士同义，统一显示为枪战士（数据不改，只影响展示与筛选）
+        var JOB_ALIASES = { "枪骑士": "枪战士" };
+        function jobLabel(j) {
+          return JOB_ALIASES[j] || j;
+        }
 
         function cellHtml(col, r) {
           var v = r[col.key];
@@ -486,6 +491,7 @@
               "</span>"
             );
           }
+          if (col.key === "job") return esc(jobLabel(v));
           if (col.key === "_copy") {
             return (
               '<button class="copy-btn" data-id="' + esc(r.id) + '">复制</button>'
@@ -533,7 +539,7 @@
         // 先按职业/等级段筛选，再应用表头排序
         function filteredRows() {
           return allRows.filter(function (r) {
-            if (fJob && String(r.job) !== fJob) return false;
+            if (fJob && jobLabel(String(r.job)) !== fJob) return false;
             if (fLevel && levelBucket(r.level) !== fLevel) return false;
             return true;
           });
@@ -567,7 +573,8 @@
         function refreshFilterOptions() {
           var jobs = [];
           allRows.forEach(function (r) {
-            if (r.job && jobs.indexOf(r.job) === -1) jobs.push(r.job);
+            var j = jobLabel(r.job);
+            if (j && jobs.indexOf(j) === -1) jobs.push(j);
           });
           jobs.sort();
           var sig = jobs.join("|");

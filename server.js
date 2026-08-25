@@ -652,6 +652,10 @@ function handleExpReport(req, res) {
     });
 }
 
+/** 职业别名归一：枪骑士与枪战士同义，统一显示为枪战士
+ *  （数据原样保留，只影响职业统计的分组与前端展示） */
+const JOB_ALIASES = { 枪骑士: "枪战士" };
+
 /** 全量数据按维度聚合的平均值（exp.html 的地图/职业均值面板用；简单算术平均）
  *  值为 0 视为未记录：该指标不进平均（分母单独计数），全部缺失则该指标为 null（页面显示 -） */
 function buildGroupStats(list, keyOf) {
@@ -718,7 +722,7 @@ function handleExpReports(req, res) {
         serverTime: new Date().toISOString(),
         reports,
         mapStats: buildGroupStats(list, (r) => r.mapName),
-        jobStats: buildGroupStats(list, (r) => r.job),
+        jobStats: buildGroupStats(list, (r) => JOB_ALIASES[r.job] || r.job),
       }),
     ),
   });
