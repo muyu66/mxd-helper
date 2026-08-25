@@ -652,29 +652,45 @@ function handleExpReport(req, res) {
     });
 }
 
-/** 全量数据按地图聚合的平均值（exp.html 的地图均值面板用；简单算术平均） */
+/** 全量数据按地图聚合的平均值（exp.html 的地图均值面板用；简单算术平均）
+ *  值为 0 视为未记录：该指标不进平均（分母单独计数），全部缺失则该指标为 null（页面显示 -） */
 function buildMapStats(list) {
   const byMap = new Map();
   for (const r of list) {
     if (!r.profit) continue;
-    const m = byMap.get(r.mapName) || { mapName: r.mapName, count: 0, exp: 0, gold: 0, hp: 0, mp: 0 };
+    let m = byMap.get(r.mapName);
+    if (!m) {
+      m = { mapName: r.mapName, count: 0, exp: 0, expN: 0, gold: 0, goldN: 0, hp: 0, hpN: 0, mp: 0, mpN: 0 };
+      byMap.set(r.mapName, m);
+    }
     m.count += 1;
-    m.exp += r.profit.expPerHour || 0;
-    m.gold += r.profit.goldPerHour || 0;
-    m.hp += r.profit.potionHpPerHour || 0;
-    m.mp += r.profit.potionMpPerHour || 0;
-    byMap.set(r.mapName, m);
+    if (r.profit.expPerHour > 0) {
+      m.exp += r.profit.expPerHour;
+      m.expN += 1;
+    }
+    if (r.profit.goldPerHour > 0) {
+      m.gold += r.profit.goldPerHour;
+      m.goldN += 1;
+    }
+    if (r.profit.potionHpPerHour > 0) {
+      m.hp += r.profit.potionHpPerHour;
+      m.hpN += 1;
+    }
+    if (r.profit.potionMpPerHour > 0) {
+      m.mp += r.profit.potionMpPerHour;
+      m.mpN += 1;
+    }
   }
   return [...byMap.values()]
     .map((m) => ({
       mapName: m.mapName,
       count: m.count,
-      avgExpPerHour: Math.round(m.exp / m.count),
-      avgGoldPerHour: Math.round(m.gold / m.count),
-      avgPotionHpPerHour: Math.round(m.hp / m.count),
-      avgPotionMpPerHour: Math.round(m.mp / m.count),
+      avgExpPerHour: m.expN ? Math.round(m.exp / m.expN) : null,
+      avgGoldPerHour: m.goldN ? Math.round(m.gold / m.goldN) : null,
+      avgPotionHpPerHour: m.hpN ? Math.round(m.hp / m.hpN) : null,
+      avgPotionMpPerHour: m.mpN ? Math.round(m.mp / m.mpN) : null,
     }))
-    .sort((a, b) => b.avgExpPerHour - a.avgExpPerHour); // 平均经验/h 高的在前
+    .sort((a, b) => (b.avgExpPerHour || 0) - (a.avgExpPerHour || 0)); // 平均经验/h 高的在前
 }
 
 /** GET /api/exp/reports?limit=&id=：表格页读取（公开只读无需密钥；最新在前）

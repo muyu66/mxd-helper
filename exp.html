@@ -357,9 +357,9 @@
           { key: "mapName", label: "地图" },
           { key: "partyMode", label: "组队" },
           { key: "expPerHour", label: "经验/h", num: 1 },
-          { key: "goldPerHour", label: "金币收益/h", num: 1 },
-          { key: "potionHpPerHour", label: "血瓶钱/h", num: 1 },
-          { key: "potionMpPerHour", label: "蓝瓶钱/h", num: 1 },
+          { key: "goldPerHour", label: "金币收益/h", num: 1, zeroDash: 1 },
+          { key: "potionHpPerHour", label: "血瓶钱/h", num: 1, zeroDash: 1 },
+          { key: "potionMpPerHour", label: "蓝瓶钱/h", num: 1, zeroDash: 1 },
           { key: "durationSeconds", label: "测试时长", num: 1 },
         ];
 
@@ -389,6 +389,9 @@
         }
         function fmtInt(n) {
           return String(Math.round(n)).replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+        }
+        function fmtNum(v) {
+          return v == null ? "-" : fmtInt(v);
         }
         function pad2(n) {
           return (n < 10 ? "0" : "") + n;
@@ -437,7 +440,8 @@
               "</span>"
             );
           }
-          if (col.num) return fmtInt(v);
+          // 金额类指标为 0 视为未记录，显示 -
+          if (col.num) return col.zeroDash && !v ? "-" : fmtInt(v);
           return esc(v);
         }
 
@@ -546,16 +550,16 @@
                 fmtInt(m.count) +
                 "</td>" +
                 '<td class="num">' +
-                fmtInt(m.avgExpPerHour) +
+                fmtNum(m.avgExpPerHour) +
                 "</td>" +
                 '<td class="num">' +
-                fmtInt(m.avgGoldPerHour) +
+                fmtNum(m.avgGoldPerHour) +
                 "</td>" +
                 '<td class="num">' +
-                fmtInt(m.avgPotionHpPerHour) +
+                fmtNum(m.avgPotionHpPerHour) +
                 "</td>" +
                 '<td class="num">' +
-                fmtInt(m.avgPotionMpPerHour) +
+                fmtNum(m.avgPotionMpPerHour) +
                 "</td>" +
                 "</tr>"
               );
