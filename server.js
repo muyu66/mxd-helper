@@ -852,10 +852,13 @@ function serveStatic(req, res, filePath) {
   }
   const ext = path.extname(filePath).toLowerCase();
   const etag = `W/"${stat.mtimeMs.toString(16)}-${stat.size.toString(16)}"`;
+  // data/ 下的 JSON（jobs/maps 等）加 CORS 头：file:// 打开页面时手动录入表单跨域读取选项用
+  const cors = filePath.startsWith(path.join(ROOT, "data") + path.sep);
   respond(req, res, {
     type: TYPES[ext] || "application/octet-stream",
     cache: cacheControlFor(ext),
     etag,
+    headers: cors ? API_CORS : {},
     body: fs.readFileSync(filePath),
     compress: COMPRESSIBLE.has(ext),
   });
