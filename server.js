@@ -28,7 +28,7 @@
  *   9. 经验上报 v2（/api/v2/exp/*）：新版工具协议，体精简为经验/h+地图等，
  *      新增备注/攻击力，不再上报金币/药水；JWT 鉴权（HS256，sub=设备ID，2h），
  *      服务端签发（EXP_JWT_SECRET 验签 + EXP_DEVICE_SECRET 换 token）。
- *      exp.html 带 ?token= 打开可编辑「本设备」上报的记录（PATCH /api/v2/exp/report）。
+ *      exp.html 带 ?token= 打开可编辑/删除「本设备」上报的记录（PATCH/DELETE /api/v2/exp/report）。
  *
  * 用法：node server.js（PORT 环境变量可改端口，默认 3001）+ node ocr_worker.js（OCR 服务）
  * 连接：MYSQL_HOST/PORT/USER/PASSWORD/DATABASE 环境变量（服务器在 pm2 env 配置），
@@ -166,7 +166,7 @@ const OCR_LIMIT = 10 * 1024 * 1024; // 图片上限 10MB（上传到本进程时
 /** /api/* 接口的 CORS 头：file:// 双击打开页面时也能跨域调用本地服务 */
 const API_CORS = {
   "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Methods": "GET, POST, PATCH, OPTIONS", // PATCH 供 exp v2 编辑上报用
+  "Access-Control-Allow-Methods": "GET, POST, PATCH, DELETE, OPTIONS", // PATCH/DELETE 供 exp v2 编辑/删除上报用
   // Authorization 参与预检：exp v2 的 JWT 鉴权（file:// 跨域需要）
   "Access-Control-Allow-Headers": "Content-Type, X-Shenmi-Code, Authorization, X-Exp-Device-Secret",
 };
@@ -1046,6 +1046,46 @@ function handleExpV2ReportUpdate(req, res) {
     });
 }
 
+/** DELETE /api/v2/exp/report：删除「本设备」上报的记录（DB 先行，成功才移出内存权威数组）
+ *  鉴权/归属规则与 PATCH 编辑一致：Bearer token 的 sub=设备ID，只能删本设备行 */
+function handleExpV2ReportDelete(req, res) {
+  const payload = authExpBearer(req);
+  if (!payload) return v2Reply(req, res, 401, { ok: false, error: "token 无效或已过期" });
+  const sub = payload.sub;
+  readBody(req, EXP_V2_BODY_LIMIT)
+    .then(async (buf) => {
+      let body;
+      try {
+        body = JSON.parse(buf.toString("utf-8"));
+      } catch {
+        return v2Reply(req, res, 400, { ok: false, error: "请求体不是合法 JSON" });
+      }
+      const id = typeof body.id === "string" ? body.id.trim() : "";
+      if (!id) return v2Reply(req, res, 400, { ok: false, error: "id 缺失" });
+      const rec = expReports.find((x) => x.id === id);
+      if (!rec) return v2Reply(req, res, 404, { ok: false, error: "记录不存在" });
+      if (rec.deviceId !== sub) return v2Reply(req, res, 403, { ok: false, error: "无权删除该记录" });
+      try {
+        const r = await q(`DELETE FROM exp_reports WHERE id = ? AND device_id = ?`, [id, sub]);
+        // 内存里有但库里没有：重启窗口内被别处清库等，按不存在处理
+        if (!r || r.affectedRows !== 1) {
+          return v2Reply(req, res, 404, { ok: false, error: "记录不存在" });
+        }
+      } catch (err) {
+        console.error(`[exp] v2 删除落库失败：${err.message} id=${id} sub=${sub}`);
+        return v2Reply(req, res, 500, { ok: false, error: "删除存储失败" });
+      }
+      const idx = expReports.indexOf(rec);
+      if (idx >= 0) expReports.splice(idx, 1); // 移出内存权威数组，GET/统计下次即更新
+      console.log(`[exp] v2 删除：${id} ${sub} Lv${rec.level} ${rec.mapName} +${rec.profit ? rec.profit.expPerHour : 0}/h`);
+      v2Reply(req, res, 200, { ok: true, id });
+    })
+    .catch((err) => {
+      console.error(`[exp] v2 删除处理失败：${err.message}`);
+      if (!res.headersSent) v2Reply(req, res, 413, { ok: false, error: "请求体过大或连接中断" });
+    });
+}
+
 /** 职业别名归一：枪骑士与枪战士同义，统一显示为枪战士
  *  （数据原样保留，只影响职业统计的分组与前端展示） */
 const JOB_ALIASES = { 枪骑士: "枪战士", 冰雷: "冰雷法师" };
@@ -1276,6 +1316,7 @@ function handle(req, res) {
     if (pathname === "/api/v2/exp/session" && req.method === "GET") return handleExpV2Session(req, res);
     if (pathname === "/api/v2/exp/report" && req.method === "POST") return handleExpV2Report(req, res);
     if (pathname === "/api/v2/exp/report" && req.method === "PATCH") return handleExpV2ReportUpdate(req, res);
+    if (pathname === "/api/v2/exp/report" && req.method === "DELETE") return handleExpV2ReportDelete(req, res);
     // 其余 shenmi 专属接口统一过暗号：防止绕过页面直接刷接口
     if (!checkShenmiCode(req)) return rejectShenmiCode(req, res);
     if (pathname === "/api/ocr" && req.method === "POST") return handleOcr(req, res);
@@ -1331,5 +1372,5 @@ server.listen(PORT, HOST, () => {
   console.log(`   OCR 转交：http://${OCR_HOST}:${OCR_PORT}/（独立服务 ocr_worker.js，需另行启动）`);
   console.log("   shenmi 暗号：已启用（环境变量 SHENMI_CODE 可修改，默认 zhuzhu）");
   console.log("   经验上报：POST /api/exp/report（免密钥，防刷靠限频+校验重算）");
-  console.log("   经验上报 v2：/api/v2/exp/token|session|report（JWT 鉴权，sub=设备ID；PATCH 供 exp.html 编辑）\n");
+  console.log("   经验上报 v2：/api/v2/exp/token|session|report（JWT 鉴权，sub=设备ID；PATCH/DELETE 供 exp.html 编辑/删除）\n");
 });

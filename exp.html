@@ -457,50 +457,81 @@
       .map-link:hover {
         text-decoration: underline;
       }
-      .copy-btn {
-        padding: 3px 10px;
-        width: 64px; /* 固定宽度：分享→已复制 文案变化不撑开表格 */
+      /* 操作栏：编辑 / 分享 / 删除 三个图标按钮（svg 只读 currentColor，禁用态整体置灰） */
+      .act-cell {
+        display: inline-flex;
+        align-items: center;
+        gap: 2px;
+        white-space: nowrap;
+      }
+      .act-btn {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 26px;
+        height: 26px;
+        padding: 0;
         box-sizing: border-box;
-        text-align: center;
-        border: 1px solid #d9d9d9;
+        border: none;
         border-radius: 6px;
-        background: var(--bg-white);
+        background: transparent;
         color: var(--text-secondary);
-        font-size: 0.8rem;
         cursor: pointer;
-        transition: all 0.2s;
+        transition: background 0.2s, color 0.2s;
       }
-      .copy-btn:hover {
-        border-color: var(--primary);
+      .act-btn svg {
+        width: 15px;
+        height: 15px;
+      }
+      .act-btn.act-edit {
         color: var(--primary);
       }
-      .copy-btn.copied {
-        border-color: var(--success);
+      .act-btn.act-del {
+        color: var(--error);
+      }
+      .act-btn:hover:not(:disabled) {
+        background: var(--primary-bg);
+      }
+      .act-btn.act-share:hover:not(:disabled) {
+        color: var(--primary);
+      }
+      .act-btn.act-del:hover:not(:disabled) {
+        background: #fff1f0;
+      }
+      /* 复制成功的对勾态：短暂变绿提示，再还原 */
+      .act-btn.act-share.copied {
         color: var(--green);
+        background: transparent;
       }
-      /* 编辑按钮：默认置灰，仅当该行 deviceId 与本页授权设备一致时点亮 */
-      .edit-btn {
-        margin-right: 6px;
-        padding: 3px 0;
-        width: 56px;
-        box-sizing: border-box;
-        text-align: center;
-        border: 1px solid #d9d9d9;
-        border-radius: 6px;
-        background: var(--bg-white);
-        color: var(--primary);
-        font-size: 0.8rem;
-        cursor: pointer;
-        transition: all 0.2s;
-      }
-      .edit-btn:hover:not(:disabled) {
-        border-color: var(--primary);
-        background: #e6f4ff;
-      }
-      .edit-btn:disabled {
-        color: #bfbfbf;
-        border-color: #e5e5e5;
+      .act-btn:disabled {
+        color: #bfbfbf !important;
+        background: transparent;
         cursor: not-allowed;
+      }
+      /* 轻提示（删除等操作的即时反馈）：黑色药丸，出错变红 */
+      .toast-msg {
+        position: fixed;
+        left: 50%;
+        bottom: 48px;
+        transform: translateX(-50%);
+        max-width: 88vw;
+        padding: 9px 16px;
+        border-radius: 8px;
+        background: rgba(0, 0, 0, 0.78);
+        color: #fff;
+        font-size: 0.85rem;
+        line-height: 1.4;
+        z-index: 1200;
+        pointer-events: none;
+        opacity: 0;
+        transition: opacity 0.25s;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.18);
+      }
+      .toast-msg.show {
+        opacity: 1;
+      }
+      .toast-msg.err {
+        background: var(--error);
       }
       /* 备注单元格：超长省略号，悬停 title 看全文 */
       .note-cell {
@@ -1154,6 +1185,22 @@
           return "0";
         }
 
+        // 操作栏图标（feather 风格线性图标，color 跟随 currentColor；stroke 同款三件套）
+        var SVG_ATTR =
+          ' viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"';
+        var ICON_EDIT =
+          '<svg' + SVG_ATTR + "><path d='M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z'/></svg>";
+        var ICON_SHARE =
+          '<svg' +
+          SVG_ATTR +
+          "><circle cx='18' cy='5' r='3'/><circle cx='6' cy='12' r='3'/><circle cx='18' cy='19' r='3'/><line x1='8.59' y1='13.51' x2='15.42' y2='17.49'/><line x1='15.41' y1='6.51' x2='8.59' y2='10.49'/></svg>";
+        var ICON_DEL =
+          '<svg' +
+          SVG_ATTR +
+          "><polyline points='3 6 5 6 21 6'/><path d='M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2'/><line x1='10' y1='11' x2='10' y2='17'/><line x1='14' y1='11' x2='14' y2='17'/></svg>";
+        var ICON_CHECK =
+          '<svg' + SVG_ATTR + "><polyline points='20 6 9 17 4 12'/></svg>";
+
         function cellHtml(col, r) {
           var v = r[col.key];
           if (col.key === "serverTime") return fmtTime(v);
@@ -1205,18 +1252,36 @@
             );
           }
           if (col.key === "_copy") {
-            // 编辑仅对本页授权设备（editSub）的行点亮，其余置灰
-            var editBtn =
-              '<button class="edit-btn" data-id="' +
-              esc(r.id) +
-              '" data-act="edit"' +
-              (canEditRow(r) ? "" : ' disabled title="需打开带本设备 token 的链接才可编辑"') +
-              ">编辑</button>";
+            // 编辑/删除仅对本页授权设备（editSub）的行点亮，其余置灰；分享人人可用
+            var own = canEditRow(r);
+            var lockTip = "需打开带本设备 token 的链接才可操作";
             return (
-              editBtn +
-              '<button class="copy-btn" data-id="' +
+              '<span class="act-cell">' +
+              // 删除 → 编辑 → 分享（删除/编辑需授权，分享人人可用）
+              '<button class="act-btn act-del" data-id="' +
               esc(r.id) +
-              '">分享</button>'
+              '" data-act="del" title="' +
+              (own ? "删除" : lockTip) +
+              '"' +
+              (own ? "" : " disabled") +
+              ">" +
+              ICON_DEL +
+              "</button>" +
+              '<button class="act-btn act-edit" data-id="' +
+              esc(r.id) +
+              '" data-act="edit" title="' +
+              (own ? "编辑" : lockTip) +
+              '"' +
+              (own ? "" : " disabled") +
+              ">" +
+              ICON_EDIT +
+              "</button>" +
+              '<button class="act-btn act-share" data-id="' +
+              esc(r.id) +
+              '" data-act="share" title="分享">' +
+              ICON_SHARE +
+              "</button>" +
+              "</span>"
             );
           }
           // 金额类指标为 0 视为未记录，显示 -
@@ -1595,30 +1660,36 @@
             }
             return;
           }
-          var editBtn = e.target.closest(".edit-btn");
-          if (editBtn) {
-            var editRec = allRows.filter(function (x) {
-              return String(x.id) === editBtn.getAttribute("data-id");
+          var actBtn = e.target.closest(".act-btn");
+          if (actBtn) {
+            var actRec = allRows.filter(function (x) {
+              return String(x.id) === actBtn.getAttribute("data-id");
             })[0];
-            if (editRec && canEditRow(editRec)) openEditModal(editRec);
-            return;
+            if (!actRec) return;
+            var act = actBtn.getAttribute("data-act");
+            if (act === "edit") {
+              if (canEditRow(actRec)) openEditModal(actRec);
+              return;
+            }
+            if (act === "del") {
+              if (canEditRow(actRec)) deleteRow(actRec);
+              return;
+            }
+            if (act === "share") {
+              copyToClipboard(copyRow(actRec), function (ok) {
+                if (!ok) return;
+                actBtn.innerHTML = ICON_CHECK;
+                actBtn.classList.add("copied");
+                actBtn.title = "已复制";
+                setTimeout(function () {
+                  actBtn.innerHTML = ICON_SHARE;
+                  actBtn.classList.remove("copied");
+                  actBtn.title = "分享";
+                }, 1200);
+              });
+              return;
+            }
           }
-          var btn = e.target.closest(".copy-btn");
-          if (!btn) return;
-          var rec = allRows.filter(function (x) {
-            return String(x.id) === btn.getAttribute("data-id");
-          })[0];
-          if (!rec) return;
-          copyToClipboard(copyRow(rec), function (ok) {
-            if (!ok) return;
-            var old = btn.textContent;
-            btn.textContent = "已复制";
-            btn.classList.add("copied");
-            setTimeout(function () {
-              btn.textContent = old;
-              btn.classList.remove("copied");
-            }, 1200);
-          });
         });
 
         // 地图/职业均值面板：默认收缩，点击标题展开/收起（提示文案随状态切换）
@@ -2118,6 +2189,79 @@
             });
         }
 
+        /* ---- 轻提示：单例浮层，重复调用自动刷新计时（删除等操作的即时反馈） ---- */
+        var toastTimer = null;
+        function toast(msg, isErr) {
+          var $t = document.getElementById("toast-msg");
+          if (!$t) {
+            $t = document.createElement("div");
+            $t.id = "toast-msg";
+            $t.className = "toast-msg";
+            document.body.appendChild($t);
+          }
+          $t.textContent = msg;
+          $t.className = "toast-msg show" + (isErr ? " err" : "");
+          clearTimeout(toastTimer);
+          toastTimer = setTimeout(function () {
+            $t.className = "toast-msg";
+          }, 2600);
+        }
+
+        /* ---- 删除：DELETE /api/v2/exp/report（带 Bearer token），只能删本设备行 ---- */
+        function deleteRow(rec) {
+          if (!canEditRow(rec)) return;
+          var preview =
+            (rec.level != null ? "Lv" + rec.level + " " : "") +
+            (rec.mapName ? rec.mapName : "记录 " + rec.id);
+          if (
+            !confirm(
+              "确定删除这条记录？\n\n" +
+                preview +
+                "（经验/h " +
+                fmtNum(rec.expPerHour) +
+                "）\n\n删除后不可恢复，地图/职业平均值会同步更新。",
+            )
+          ) {
+            return;
+          }
+          fetch(API_BASE + "/api/v2/exp/report", {
+            method: "DELETE",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: "Bearer " + EDIT_TOKEN,
+            },
+            body: JSON.stringify({ id: rec.id }),
+          })
+            .then(function (r) {
+              return r.json().then(function (j) {
+                return { status: r.status, j: j };
+              });
+            })
+            .then(function (res) {
+              if (!res.j || !res.j.ok) {
+                console.error("删除被拒绝：", res.status, res.j);
+                if (res.status === 401 || res.status === 403) clearEditAuth();
+                if (res.status === 404) {
+                  toast("该记录已不存在，已刷新列表");
+                  load();
+                } else if (res.status === 401) {
+                  toast("删除授权已过期或无效，请重新打开授权链接", true);
+                } else if (res.status === 403) {
+                  toast("只能删除本设备上报的记录", true);
+                } else {
+                  toast("删除失败，请稍后重试", true);
+                }
+                return;
+              }
+              toast("已删除该记录");
+              load(); // 删除即刷新：记录消失，均值面板同步更新
+            })
+            .catch(function (err) {
+              console.error("删除失败：", err);
+              toast("网络异常，删除失败，请稍后重试", true);
+            });
+        }
+
         /* ---- 编辑授权（exp.html?token= 会话） ---- */
         function editBanner(msg, warn) {
           var $b = document.getElementById("edit-banner");
@@ -2159,7 +2303,7 @@
                 editBanner(
                   "🔑 已获得 <b>" +
                     esc(editSub) +
-                    "</b> 的编辑权限，可修改该设备上报的记录（" +
+                    "</b> 的编辑/删除权限，可修改或删除该设备上报的记录（" +
                     fmtTime(res.j.exp * 1000) +
                     " 过期）",
                   false,
@@ -2167,7 +2311,7 @@
                 render();
               } else {
                 console.warn("编辑 token 无效或已过期：", res.status, res.j);
-                editBanner("编辑授权已过期或无效，仅打开对应 token 链接才能编辑", true);
+                editBanner("编辑授权已过期或无效，仅打开对应 token 链接才能编辑/删除", true);
                 EDIT_TOKEN = ""; // 置空，避免编辑请求携带注定失败的 token
               }
             })
