@@ -8,11 +8,16 @@
     "data": "node data.js",
     "rank": "node rank.js",
     "count": "node count.js",
+    "equipment": "node equipment.mjs",
+    "equipment-money": "node equipment-money.mjs",
     "waigua": "node waigua-info.js",
     "waigua:watch": "node waigua-info.js --watch",
-    "account": "node account-info.js"
+    "account": "node account-info.js",
+    "migrate": "node migrate-to-mysql.mjs",
+    "verify:shape": "node verify-shape.mjs"
   },
   "dependencies": {
-    "console-table-printer": "^2.16.1"
+    "console-table-printer": "^2.16.1",
+    "mysql2": "^3.24.3"
   }
 }

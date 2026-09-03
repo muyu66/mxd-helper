@@ -1,15 +1,12 @@
-// account-info.js — 抓取「冒险岛怀旧服-交易账号」列表并落盘 JSON
+// account-info.js — 抓取「冒险岛怀旧服-交易账号」列表并写入 MySQL accounts 表
 //
 // 用法:
-//   node account-info.js            单次抓取（供 Windows 计划任务定时调用）
+//   node account-info.js            单次抓取（服务器由 pm2 cron 每小时拉起）
 //
 // 数据源: gmmsj 商品搜索分页接口 searchgoodslistV2（每页 limit=15）
-// 输出: account-info.json — 记录数组，每条结构为
+// 输出: accounts 表，每条结构为
 //   { book_id, goods_list_sub_title, goods_list_title, update_time, price,
 //     server, job, level }
-//       account-info.json.js — 上者的脚本包装（window.ACCOUNT_DATA），供
-//       account.html 以 <script src> 加载：浏览器在 file:// 下禁用 fetch，
-//       脚本引用则不受限，双击打开页面也能读到数据
 //   后 3 个字段为每次抓取后从标题派生的细节数据：
 //   server: goods_list_sub_title 最后一段（如 "冒险岛怀旧服-蘑菇仔-蘑菇仔" → "蘑菇仔"）
 //   job:    goods_list_title 第一个 [..] 内职业名（如 "[冰雷法师 51级]" → "冰雷法师"）
@@ -21,21 +18,16 @@
 //   cookie 通过先访问列表页、再探测两个站点接口的方式在本地构建，全程无需浏览器。
 //
 // 更新语义:
-//   每次执行先拉取全部分页，再以 book_id 作为区别项与本地已有数据合并：
-//   同 book_id 用本次数据覆盖，本地已有而本次未出现的记录保留，
-//   新出现的 book_id 追加。因此文件只增不减，可当作累积快照使用。
+//   每次执行先拉取全部分页，再以 book_id 为主键 upsert：同 book_id 用本次数据
+//   覆盖，库中已有而本次未出现的记录保留（无 DELETE），新 book_id 追加。
+//   因此表只增不减，可当作累积快照使用。
 //
 // 失败策略:
-//   任何一页在重试后仍失败，则本次不写入（保留上一份好数据），退出码 1，
+//   任何一页在重试后仍失败，则本次不写库（保留上一份好数据），退出码 1，
 //   便于计划任务判断本次是否抓取成功。
 
-import fs from "fs";
-import path from "path";
-import { fileURLToPath } from "url";
-
-const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const DATA_FILE = path.join(__dirname, "account-info.json");
-const DATA_JS_FILE = path.join(__dirname, "account-info.json.js"); // account.html 的脚本版数据源
+import { tx, bulkUpsert, bumpDatasetMeta, q } from "./db.js";
+import { ACC_COLS, ACC_UPD, toAccountRow } from "./db-rows.js";
 
 const BASE_URL = "https://www.gmmsj.com/api/consigntradeapi/goods/searchgoodslistV2";
 const SITE_VERSION = "1.0.0.269439"; // 站点前端版本（签名模块与其配套）
@@ -328,42 +320,7 @@ async function crawlAll() {
 }
 
 // ============================================================
-// 落盘
-// ============================================================
-
-function loadExisting() {
-  try {
-    const data = JSON.parse(fs.readFileSync(DATA_FILE, "utf8"));
-    return Array.isArray(data.records) ? data.records : [];
-  } catch {
-    return []; // 首次运行或文件损坏时从空开始
-  }
-}
-
-// 以 book_id 为区别项合并：本次数据覆盖同 key 的旧记录，旧记录保留；
-// 合并后对所有记录统一重算 server/job/level，让旧数据也补齐新字段
-function merge(existing, fresh) {
-  const byId = new Map(existing.map((r) => [String(r.book_id), r]));
-  for (const r of fresh) byId.set(String(r.book_id), r);
-  return [...byId.values()].map(deriveRecord).sort(
-    (a, b) =>
-      String(b.update_time).localeCompare(String(a.update_time)) ||
-      String(a.book_id).localeCompare(String(b.book_id)),
-  );
-}
-
-function atomicWrite(file, content) {
-  fs.writeFileSync(file + ".tmp", content);
-  fs.renameSync(file + ".tmp", file);
-}
-
-// 序列化为可内嵌 <script> 的安全 JSON：防止内容里的 </script 提前闭合
-function safeJson(obj) {
-  return JSON.stringify(obj).replace(/<\//g, "<\\/");
-}
-
-// ============================================================
-// 单次运行
+// 写入 MySQL
 // ============================================================
 
 async function main() {
@@ -373,40 +330,31 @@ async function main() {
   console.log("构建会话 cookie ...");
   await buildSession();
 
-  const { records, totalPage } = await crawlAll(); // 失败会抛异常，不写入本地文件
+  const { records, totalPage } = await crawlAll(); // 失败会抛异常，不写库
 
-  const existing = loadExisting();
-  const merged = merge(existing, records);
+  // 以 book_id 为主键 upsert（旧合并语义：同 key 覆盖、旧记录保留、新 key 追加）。
+  // seq 供重建排序兜底：已存在的沿用首次导入序，新 book_id 从 MAX(seq)+1 递补。
+  await tx(async (conn) => {
+    const [rows] = await conn.execute(`SELECT book_id, seq FROM accounts`);
+    const seqMap = new Map(rows.map((r) => [String(r.book_id), r.seq]));
+    let nextSeq = rows.reduce((m, r) => Math.max(m, r.seq), 0);
+    const toRows = records.map((r) => {
+      let seq = seqMap.get(String(r.book_id));
+      if (seq === undefined) seq = ++nextSeq;
+      return toAccountRow(r, seq);
+    });
+    await bulkUpsert(conn, "accounts", ACC_COLS, toRows, ACC_UPD);
+    await bumpDatasetMeta(conn, "accounts", {
+      source: BASE_URL,
+      extraJson: { updatedAt: new Date().toISOString(), totalPages: totalPage },
+    });
+  });
 
-  const data = {
-    updatedAt: new Date().toISOString(),
-    source: BASE_URL,
-    totalPages: totalPage,
-    count: merged.length,
-    records: merged,
-  };
-  atomicWrite(DATA_FILE, JSON.stringify(data, null, 2));
-
-  // 页面版数据：只保留 account.html 用到的字段（标题两个长字段不展示，
-  // 剔除后体积约省 40%），网页加载更快
-  const pageRecords = merged.map((r) => ({
-    book_id: r.book_id,
-    server: r.server,
-    job: r.job,
-    level: r.level,
-    price: r.price,
-    update_time: r.update_time,
-  }));
-  atomicWrite(
-    DATA_JS_FILE,
-    `window.ACCOUNT_DATA = ${safeJson({ ...data, records: pageRecords })};`,
-  );
-
-  const added = merged.length - existing.length;
+  const [cnt] = await q(`SELECT COUNT(*) AS n FROM accounts`);
+  const total = cnt.n;
   console.log(
-    `✓ 抓取完成: ${totalPage} 页共 ${records.length} 条，合并后共 ${merged.length} 条` +
-      (added > 0 ? `（新增 ${added} 条）` : "") +
-      `，耗时 ${((Date.now() - started) / 1000).toFixed(1)}s → ${DATA_FILE}`,
+    `✓ 抓取完成: ${totalPage} 页共 ${records.length} 条，库中累计 ${total} 条` +
+      `，耗时 ${((Date.now() - started) / 1000).toFixed(1)}s → accounts 表`,
   );
 }
 

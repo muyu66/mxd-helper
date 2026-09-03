@@ -1,12 +1,14 @@
 /**
  * MXD 怪物数据分页爬虫
- * 从 mxdc.dvg.cn 爬取冒險島怪物数据，支持分页，保存为本地 data.json
+ * 从 mxdc.dvg.cn 爬取冒險島怪物数据，支持分页，整包覆盖写入 MySQL mobs 表
+ * （旧「整文件重写 data.json」语义不变：DELETE 全表 + 全量 INSERT）。
  */
+import { tx, bulkInsert, bumpDatasetMeta } from "./db.js";
+import { MOB_COLS, toMobRow } from "./db-rows.js";
 
 const BASE_URL = "https://mxdc.dvg.cn/api/mob-list.php";
 const WORLD = "victoria";
 const PAGE_SIZE = 100;
-const OUTPUT_FILE = "data.json";
 
 // 请求间隔（毫秒），避免请求过快
 const DELAY_MS = 300;
@@ -80,22 +82,19 @@ async function crawl() {
     }
   }
 
-  // 第三步：保存到本地
-  const output = {
-    crawledAt: new Date().toISOString(),
-    source: BASE_URL,
-    world: WORLD,
-    total: allItems.length,
-    items: allItems,
-  };
+  // 第三步：整包写入 MySQL（事务内 DELETE + 全量 INSERT + bump meta，
+  // server.js 轮询 dataset_meta 感知变化后自动重建注入数据）
+  await tx(async (conn) => {
+    await conn.execute(`DELETE FROM mobs`);
+    await bulkInsert(conn, "mobs", MOB_COLS, allItems.map(toMobRow));
+    await bumpDatasetMeta(conn, "mobs", {
+      source: BASE_URL,
+      extraJson: { crawledAt: new Date().toISOString(), world: WORLD },
+      recordCount: allItems.length,
+    });
+  });
 
-  const fs = await import("fs");
-  fs.writeFileSync(OUTPUT_FILE, JSON.stringify(output, null, 2), "utf-8");
-  // 同步生成 rank.html 的脚本版数据（file:// 双击可用）
-  const safeJson = JSON.stringify(output).replace(/<\//g, "<\\/");
-  fs.writeFileSync(OUTPUT_FILE + ".js", `window.RANK_DATA = ${safeJson};`, "utf-8");
-
-  console.log(`\n✅ 完成！共 ${allItems.length} 条数据，已保存至 ${OUTPUT_FILE}`);
+  console.log(`\n✅ 完成！共 ${allItems.length} 条数据，已写入 mobs 表`);
 }
 
 crawl().catch((err) => {

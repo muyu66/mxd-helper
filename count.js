@@ -1,11 +1,11 @@
 /**
  * 怪物地图最大刷新数量采集
- * 根据 data.json 中的 mobid，抓取每个怪物的详情页，解析最大怪物数量
+ * 根据 mobs 表中的 mobid，抓取每个怪物的详情页，解析最大怪物数量并回填
+ * max_monster_count 字段（全部抓完后事务内逐条 UPDATE + touch meta）。
  */
 
-import { readFileSync, writeFileSync } from "fs";
+import { q, tx, touchDatasetMeta } from "./db.js";
 
-const DATA_FILE = "data.json";
 const BASE_URL = "https://mxdc.dvg.cn/mob_info.php";
 const DELAY_MS = 500; // 请求间隔
 const MAX_RETRIES = 3;
@@ -44,9 +44,8 @@ function parseMaxSpawn(html) {
 }
 
 async function main() {
-  console.log("📂 读取 data.json ...");
-  const data = JSON.parse(readFileSync(DATA_FILE, "utf-8"));
-  const items = data.items;
+  console.log("📂 读取怪物列表（MySQL mobs 表）...");
+  const items = await q(`SELECT mobid, mobname FROM mobs ORDER BY seq`);
   let total = items.length;
 
   console.log(`🔍 共 ${total} 个怪物，开始逐个查询刷怪数量...\n`);
@@ -76,10 +75,17 @@ async function main() {
     if (i < total - 1) await sleep(DELAY_MS);
   }
 
-  // 写入
-  writeFileSync(DATA_FILE, JSON.stringify(data, null, 2), "utf-8");
+  // 全部抓完后事务内写回（touch 只改 updated_at，不覆盖 source/crawledAt 等元信息）
+  await tx(async (conn) => {
+    for (const m of items) {
+      await conn.execute(`UPDATE mobs SET max_monster_count = ? WHERE mobid = ?`, [
+        m.maxMonsterCount, m.mobid,
+      ]);
+    }
+    await touchDatasetMeta(conn, "mobs");
+  });
 
-  console.log(`\n✅ 完成！成功: ${updated}, 失败: ${failed}, 已保存至 ${DATA_FILE}`);
+  console.log(`\n✅ 完成！成功: ${updated}, 失败: ${failed}, 已回填 mobs.max_monster_count`);
 }
 
 main().catch((err) => {

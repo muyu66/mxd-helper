@@ -1,20 +1,15 @@
-// waigua-info.js — 每小时抓取「冒险岛怀旧服-视频举报」列表并落盘 JSON
+// waigua-info.js — 每小时抓取「冒险岛怀旧服-视频举报」列表并写入 MySQL
 //
 // 用法:
 //   node waigua-info.js            单次抓取（供 Windows 计划任务每小时调用）
 //   node waigua-info.js --watch    常驻模式，每 60 分钟自动执行一次
 //
-// 输出（均在 waigua-info/ 目录，waigua.html 直接读取）:
-//   waigua-data.json   最新全量记录（按记录 id 去重），waigua.html 的数据源
-//   today.json         当日（北京时间）概况：总数 + 按 服务器×处理结果 聚合，
-//                      页面默认视图优先读它，无需加载体积不断增长的全量文件
-//   history.json       每小时一次的聚合快照（按 日期×服务器×处理结果 计数），
-//                      保留最近 90 天，用于追溯历史变化
-//   today.json.js / history.json.js
-//                      上述两个 JSON 的脚本包装（window.WAIGUA_TODAY / WAIGUA_HISTORY），
-//                      供 waigua.html 以 <script src> 加载：浏览器在 file:// 下禁用
-//                      fetch，脚本引用则不受限，双击打开页面也能读到数据
-//   run.log            运行日志（最近若干次运行摘要）
+// 输出（全部入 MySQL，waigua.html 经 server.js 注入消费）:
+//   waigua_reports     最新全量记录（按记录 id upsert，官方处理结果可能变 → 覆盖）
+//   waigua_snapshots   kind='today' 当日（北京时间）概况：总数 + 按 服务器×处理结果
+//                      聚合（每轮重算替换）；kind='history' 每小时一条聚合快照
+//                      （按 日期×服务器×处理结果 计数），保留最近 90 天
+//   run.log            运行日志（最近若干次运行摘要，仍在 waigua-info/ 目录）
 //
 // 目标页为分页 HTML: index.asp?page=N&serch=true&myjb=0
 // 每页 10 条，末页页码从第 1 页解析得到；任何一页抓取失败则本次运行放弃写入
@@ -23,14 +18,11 @@
 import fs from "fs";
 import path from "path";
 import { fileURLToPath } from "url";
+import { tx, bulkUpsert, bumpDatasetMeta } from "./db.js";
+import { WAIGUA_COLS, WAIGUA_UPD, toWaiguaRow, SNAP_COLS, toSnapshotRow } from "./db-rows.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const OUT_DIR = path.join(__dirname, "waigua-info");
-const DATA_FILE = path.join(OUT_DIR, "waigua-data.json");
-const TODAY_FILE = path.join(OUT_DIR, "today.json");
-const TODAY_JS_FILE = path.join(OUT_DIR, "today.json.js");
-const HISTORY_FILE = path.join(OUT_DIR, "history.json");
-const HISTORY_JS_FILE = path.join(OUT_DIR, "history.json.js");
 const LOG_FILE = path.join(OUT_DIR, "run.log");
 
 const BASE = "https://mxdcact.web.sdo.com/project/mxdts";
@@ -194,39 +186,8 @@ function aggregate(records) {
   return byDate;
 }
 
-function loadHistory() {
-  try {
-    return JSON.parse(fs.readFileSync(HISTORY_FILE, "utf8"));
-  } catch {
-    return { entries: [] };
-  }
-}
-
-function appendHistory(records, nowIso) {
-  const history = loadHistory();
-  const cutoff = Date.now() - HISTORY_KEEP_DAYS * 24 * HOUR_MS;
-  history.entries = history.entries.filter((e) => Date.parse(e.at) >= cutoff);
-  history.entries.push({
-    at: nowIso,
-    recordCount: records.length,
-    byDate: aggregate(records),
-  });
-  atomicWrite(HISTORY_FILE, JSON.stringify(history));
-  atomicWrite(HISTORY_JS_FILE, `window.WAIGUA_HISTORY = ${safeJson(history)};`);
-}
-
 // 当前北京时间日期 "YYYY-MM-DD"（UTC+8，与记录 date 字段口径一致）
 const beijingDate = (ms) => new Date(ms + 8 * HOUR_MS).toISOString().slice(0, 10);
-
-function atomicWrite(file, content) {
-  fs.writeFileSync(file + ".tmp", content);
-  fs.renameSync(file + ".tmp", file);
-}
-
-// 序列化为可内嵌 <script> 的安全 JSON：防止内容里的 </script 提前闭合
-function safeJson(obj) {
-  return JSON.stringify(obj).replace(/<\//g, "<\\/");
-}
 
 function log(msg) {
   const line = `[${new Date().toISOString()}] ${msg}`;
@@ -266,35 +227,42 @@ async function runOnce() {
     .toISOString()
     .replace("T", " ")
     .slice(0, 19); // 北京时间
+  const source = `${BASE}/index.asp`;
 
-  const data = {
-    updatedAt: nowIso,
-    localTime: local + " (UTC+8)",
-    source: `${BASE}/index.asp`,
-    totalPages: lastPage,
-    siteTotals: totals, // 页面上官方口径的统计，供核对
-    recordCount: merged.length,
-    records: merged,
-  };
-
-  atomicWrite(DATA_FILE, JSON.stringify(data));
-
-  // 当日概况单独落盘：页面默认视图（今日举报）只读这个小文件，避免加载全量 JSON
+  // 当日概况（北京时间），与 history 快照聚合口径一致
   const today = beijingDate(Date.now());
   const todayRecords = merged.filter((r) => r.date === today);
-  const todayData = {
-    updatedAt: nowIso,
-    localTime: local + " (UTC+8)",
-    date: today,
-    source: `${BASE}/index.asp`,
-    siteTotals: totals,
-    recordCount: todayRecords.length,
-    byDate: aggregate(todayRecords), // 与 history.json 聚合口径一致
-  };
-  atomicWrite(TODAY_FILE, JSON.stringify(todayData));
-  atomicWrite(TODAY_JS_FILE, `window.WAIGUA_TODAY = ${safeJson(todayData)};`);
 
-  appendHistory(merged, nowIso);
+  // 事务内一次写入：明细 upsert → today 快照替换 → history 快照 append + 90 天裁剪 → meta
+  //（server.js 轮询 dataset_meta 感知变化后自动重建注入数据）
+  await tx(async (conn) => {
+    await bulkUpsert(conn, "waigua_reports", WAIGUA_COLS, merged.map(toWaiguaRow), WAIGUA_UPD);
+
+    await conn.execute(`DELETE FROM waigua_snapshots WHERE kind = 'today'`);
+    await conn.execute(
+      `INSERT INTO waigua_snapshots (${SNAP_COLS.join(", ")}) VALUES (?,?,?,?,?,?,?)`,
+      toSnapshotRow("today", {
+        at: nowIso, date: today, localTime: local + " (UTC+8)",
+        recordCount: todayRecords.length, siteTotals: totals,
+        byDate: aggregate(todayRecords),
+      }),
+    );
+
+    await conn.execute(
+      `INSERT INTO waigua_snapshots (${SNAP_COLS.join(", ")}) VALUES (?,?,?,?,?,?,?)`,
+      toSnapshotRow("history", {
+        at: nowIso, recordCount: merged.length,
+        byDate: aggregate(merged),
+      }),
+    );
+    await conn.execute(
+      `DELETE FROM waigua_snapshots WHERE kind = 'history' AND at < UTC_TIMESTAMP(3) - INTERVAL ${HISTORY_KEEP_DAYS} DAY`,
+    );
+
+    await bumpDatasetMeta(conn, "waigua_today", { source, recordCount: todayRecords.length });
+    await bumpDatasetMeta(conn, "waigua_history", { source, recordCount: merged.length });
+  });
+
   trimLog();
 
   const distinct = {};

@@ -1,9 +1,12 @@
-const fs = require("fs");
-const path = require("path");
-const https = require("https");
+import fs from "node:fs";
+import path from "node:path";
+import https from "node:https";
+import { fileURLToPath } from "node:url";
+import { q, tx, touchDatasetMeta } from "./db.js";
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 const BASE = "https://mxdc.dvg.cn/api/tip.php";
-const EQUIP_FILE = path.join(__dirname, "equipment.json");
 const CACHE_FILE = path.join(__dirname, "equipment_money_cache.json");
 const CONCURRENCY = 5;
 const DELAY_MS = 300;
@@ -47,12 +50,12 @@ function parseMoney(html) {
 // ---------- 主流程 ----------
 
 async function main() {
-  console.log("读取 equipment.json ...");
-  const equipData = JSON.parse(fs.readFileSync(EQUIP_FILE, "utf-8"));
-  console.log(`共 ${equipData.length} 条装备记录`);
+  console.log("读取装备列表（MySQL mob_drops 表）...");
+  const dropRows = await q(`SELECT DISTINCT item_id AS id FROM mob_drops`);
+  console.log(`共 ${dropRows.length} 个唯一装备 id\n`);
 
   // 收集唯一装备 id
-  const ids = [...new Set(equipData.map((e) => e.id))];
+  const ids = [...new Set(dropRows.map((e) => e.id))];
   console.log(`唯一装备 ${ids.length} 个\n`);
 
   // 读缓存
@@ -109,21 +112,21 @@ async function main() {
   // 写入最终缓存
   fs.writeFileSync(CACHE_FILE, JSON.stringify({ moneyMap }, null, 2), "utf-8");
 
-  // 更新 equipment.json
+  // 按 item_id 回填 mob_drops.money（touch 只改 updated_at，触发 server.js 热重载）
   let updated = 0;
-  for (const e of equipData) {
-    const money = moneyMap[e.id];
-    if (money != null) {
-      e.money = money;
-      updated++;
+  await tx(async (conn) => {
+    for (const [idStr, money] of Object.entries(moneyMap)) {
+      if (money == null) continue;
+      const [result] = await conn.execute(
+        `UPDATE mob_drops SET money = ? WHERE item_id = ?`,
+        [money, Number(idStr)],
+      );
+      updated += result.affectedRows;
     }
-  }
-  fs.writeFileSync(EQUIP_FILE, JSON.stringify(equipData, null, 2), "utf-8");
-  // 同步生成 rank.html 的脚本版数据（file:// 双击可用）
-  const safeJson = JSON.stringify(equipData).replace(/<\//g, "<\\/");
-  fs.writeFileSync(EQUIP_FILE + ".js", `window.RANK_EQUIPMENT = ${safeJson};`, "utf-8");
+    await touchDatasetMeta(conn, "mob_drops");
+  });
 
-  console.log(`\n\n完成！共 ${updated} 条补充了价格 → equipment.json`);
+  console.log(`\n\n完成！共 ${updated} 条掉落记录补充了价格 → mob_drops.money`);
   console.log(`有价格的装备: ${Object.values(moneyMap).filter((v) => v != null).length}/${ids.length}`);
 }
 

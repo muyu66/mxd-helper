@@ -1,10 +1,13 @@
-const fs = require("fs");
-const path = require("path");
-const https = require("https");
+import fs from "node:fs";
+import path from "node:path";
+import https from "node:https";
+import { fileURLToPath } from "node:url";
+import { q, tx, bulkInsert, bumpDatasetMeta } from "./db.js";
+import { DROP_COLS, toDropRow } from "./db-rows.js";
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 const BASE = "https://mxdc.dvg.cn/mob_info.php";
-const DATA_FILE = path.join(__dirname, "data.json");
-const OUTPUT_FILE = path.join(__dirname, "equipment.json");
 const CACHE_FILE = path.join(__dirname, "equipment_cache.json"); // 断点续传缓存
 const CONCURRENCY = 3;
 const DELAY_MS = 500; // 每次请求间隔
@@ -80,19 +83,18 @@ function parseEquipments(html) {
 
 // ---------- 主流程 ----------
 
-function loadMobIds() {
-  const raw = fs.readFileSync(DATA_FILE, "utf-8");
-  const data = JSON.parse(raw);
+async function loadMobIds() {
+  const rows = await q(`SELECT mobid FROM mobs ORDER BY seq`);
   const ids = new Set();
-  for (const item of data.items) {
-    if (item.mobid) ids.add(item.mobid);
+  for (const r of rows) {
+    if (r.mobid) ids.add(r.mobid);
   }
   return Array.from(ids);
 }
 
 async function main() {
-  console.log("读取 data.json ...");
-  const mobIds = loadMobIds();
+  console.log("读取怪物列表（MySQL mobs 表）...");
+  const mobIds = await loadMobIds();
   console.log(`共 ${mobIds.length} 个唯一 mobid\n`);
 
   // 读取缓存（断点续传）
@@ -151,12 +153,13 @@ async function main() {
   const workers = Array.from({ length: CONCURRENCY }, () => worker());
   await Promise.all(workers);
 
-  // 写入最终结果
-  fs.writeFileSync(OUTPUT_FILE, JSON.stringify(results, null, 2), "utf-8");
-  // 同步生成 rank.html 的脚本版数据（file:// 双击可用）
-  const safeJson = JSON.stringify(results).replace(/<\//g, "<\\/");
-  fs.writeFileSync(OUTPUT_FILE + ".js", `window.RANK_EQUIPMENT = ${safeJson};`, "utf-8");
-  console.log(`\n\n完成！共 ${results.length} 条装备掉落记录 → equipment.json`);
+  // 整包写入 MySQL（旧「整文件重写 equipment.json」语义：DELETE + 全量 INSERT）
+  await tx(async (conn) => {
+    await conn.execute(`DELETE FROM mob_drops`);
+    await bulkInsert(conn, "mob_drops", DROP_COLS, results.map(toDropRow));
+    await bumpDatasetMeta(conn, "mob_drops", { recordCount: results.length });
+  });
+  console.log(`\n\n完成！共 ${results.length} 条装备掉落记录 → mob_drops 表`);
 
   // 清理缓存
   if (fs.existsSync(CACHE_FILE)) {

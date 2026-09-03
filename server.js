@@ -1,33 +1,34 @@
 /**
- * server.js — Node 混合端：静态页面 + 内存 JSON 数据注入
+ * server.js — Node 混合端：静态页面 + MySQL 数据注入
  *
  * 背景：原先纯静态 HTML 靠 <script src="*.json.js?t=..."> 加载数据，
  * 每次打开页面都要额外请求 300KB~800KB 的 JSON 脚本（无压缩、多次往返），加载很慢。
  *
  * 改为 Node 服务后：
  *   1. HTML/CSS/JS/图片仍按静态文件提供，file:// 双击打开照常可用；
- *   2. JSON 在启动时读入内存，响应页面时直接内联注入
- *      <script>window.XXX = {...}</script>，页面只需一次请求，且服务端
- *      把带缩进的 JSON 紧凑化（account-info.json 826KB → 331KB）；
+ *   2. 数据存 MySQL 8.0（schema.sql 建表），启动时从库读出并按源 JSON 的
+ *      形状逐字节重建（data-service.js），响应页面时直接内联注入
+ *      <script>window.XXX = {...}</script>，页面只需一次请求；
  *   3. 文本响应 gzip 压缩（大 JSON 压缩率约 85%），静态资源带 ETag 缓存头；
- *   4. fs.watchFile 轮询监控 JSON 文件：抓取脚本（data.js / account-info.js /
- *      waigua-info.js）更新文件后，自动重新读入内存，页面下次请求即为新数据。
- *      抓取脚本可能非原子写入（读到半截文件），解析失败会短延时重试，
- *      重试仍失败则保留旧数据继续服务，不会因坏文件下线。
+ *   4. 每 5 秒轮询 dataset_meta 表：爬虫（data.js / account-info.js /
+ *      waigua-info.js 等）写入新数据并 bump 元信息后，自动重建注入文本，
+ *      页面下次请求即为新数据。读取失败保留旧数据继续服务，不会因坏数据下线。
  *   5. OCR 识别已拆分到独立服务 ocr_worker.js（默认 127.0.0.1:3002）：
  *      本进程只负责接收图片、转交任务并立即返回任务号，排队与识别全部
  *      发生在 OCR 进程内，页面请求不再被识别拖住。
  *   6. shenmi 专属接口（/api/ocr*、/api/price）统一要求暗号头 X-Shenmi-Code，
  *      防止绕过 shenmi.html 直接刷接口；暗号由环境变量 SHENMI_CODE 配置，
  *      默认 zhuzhu（页面解锁校验走 /api/shenmi/verify）。
- *   7. 简单 JSON 数据库 stats.json：站点累计统计（当前为累计识别请求次数），
- *      启动时读入内存，变更即原子落盘；GET /api/stats 读取（同样要求暗号头）。
+ *   7. 站点累计统计存 site_stats 表：GET /api/stats 读内存副本，
+ *      每次识别请求内存 +1 并异步 UPDATE 落库（原子自增，免整文件写）。
  *   8. 经验收益上报：PC 端挂机程序每段采集结束 POST /api/exp/report 一次，
- *      存 exp-reports.json（轻量 JSON 数据库，全部保留不清理；量大卡顿再优化）；
+ *      存 exp_reports 表（INSERT 成功才进内存，内存=库一致；含 snapshot 原始体）；
  *      exp.html 轮询 GET /api/exp/reports 展示。防刷靠按设备/IP 限频、
  *      字段校验、服务端重算每小时收益（不信任客户端算好的 expPerHour 等）。
  *
  * 用法：node server.js（PORT 环境变量可改端口，默认 3001）+ node ocr_worker.js（OCR 服务）
+ * 连接：MYSQL_HOST/PORT/USER/PASSWORD/DATABASE 环境变量（服务器在 pm2 env 配置），
+ *       本地未设置时走 db.js 的开发默认值。首次启动前先跑 schema.sql 建库。
  */
 import http from "node:http";
 import fs from "node:fs";
@@ -36,84 +37,73 @@ import zlib from "node:zlib";
 import crypto from "node:crypto";
 import { fileURLToPath } from "node:url";
 import { searchGoodsAll } from "./gmmsj.mjs";
+import { q, qOne, tx, bulkUpsert } from "./db.js";
+import { loadDatasetText, rowToExpReport } from "./data-service.js";
+import { EXP_COLS, toExpRow, PRICE_COLS, PRICE_UPD, toPriceRow } from "./db-rows.js";
 
 const ROOT = path.dirname(fileURLToPath(import.meta.url));
 const PORT = Number(process.env.PORT) || 3001;
 const HOST = process.env.HOST || "0.0.0.0"; // 部署时经 nginx 反代应设为 127.0.0.1（见 ecosystem.config.cjs）
 const SHENMI_CODE = process.env.SHENMI_CODE || "zhuzhu"; // shenmi 暗号：页面解锁与 /api/ocr*、/api/price 校验用
 
-/* ---------------- 内存 JSON 数据源 ---------------- */
+/* ---------------- MySQL 数据源 ---------------- */
 
-/** 数据文件注册表：相对路径 → 注入浏览器的全局变量名（与 *.json.js 里的变量名一致） */
+/** 数据集注册表：dataset 名 → 注入浏览器的全局变量名（与 *.json.js 里的变量名一致） */
 const DATA_FILES = {
-  "data.json": "RANK_DATA",
-  "equipment.json": "RANK_EQUIPMENT",
-  "account-info.json": "ACCOUNT_DATA",
-  "waigua-info/history.json": "WAIGUA_HISTORY",
-  "waigua-info/today.json": "WAIGUA_TODAY",
+  mobs: "RANK_DATA",
+  mob_drops: "RANK_EQUIPMENT",
+  accounts: "ACCOUNT_DATA",
+  waigua_history: "WAIGUA_HISTORY",
+  waigua_today: "WAIGUA_TODAY",
 };
 
 /** 每个页面注入哪些数据（顺序即注入顺序） */
 const PAGE_INJECTS = {
-  "rank.html": ["data.json", "equipment.json"],
-  "account.html": ["account-info.json"],
-  "waigua.html": ["waigua-info/history.json", "waigua-info/today.json"],
+  "rank.html": ["mobs", "mob_drops"],
+  "account.html": ["accounts"],
+  "waigua.html": ["waigua_history", "waigua_today"],
 };
 
-/** 内存缓存：relPath → { global, text, mtimeMs, size, updatedAt } */
+/** 内存缓存：dataset → { global, text, updatedAt, metaUpdatedAt } */
 const store = new Map();
 
-const RELOAD_RETRIES = 2; // JSON 解析失败后的重试次数
-const RETRY_DELAY_MS = 300; // 重试间隔（毫秒）
+const REFRESH_INTERVAL_MS = 5000; // dataset_meta 轮询间隔：小时级更新数据 5s 足够
 
-/** 读取并解析一个 JSON 文件到内存；解析失败自动重试（应对非原子写入） */
-function loadFile(rel, attempt = 0) {
-  const abs = path.join(ROOT, rel);
+/**
+ * 从库重建全部注入数据集的文本。只重载 dataset_meta.updated_at 有变化的数据集；
+ * 载入失败保留旧数据继续服务（与旧 watchFile 时代「坏文件不下线」同一哲学）。
+ */
+async function refreshDatasets() {
+  let metas;
   try {
-    const raw = fs.readFileSync(abs, "utf-8");
-    const parsed = JSON.parse(raw);
-    const stat = fs.statSync(abs);
-    store.set(rel, {
-      global: DATA_FILES[rel],
-      text: JSON.stringify(parsed), // 紧凑化，去掉源文件的缩进
-      mtimeMs: stat.mtimeMs,
-      size: stat.size,
-      updatedAt: Date.now(), // 每次重载自增，参与页面 ETag
-    });
-    console.log(
-      `[data] ${rel} → window.${DATA_FILES[rel]} 已载入内存` +
-      `（磁盘 ${(stat.size / 1024).toFixed(0)} KB → 紧凑 ${(store.get(rel).text.length / 1024).toFixed(0)} KB）`,
-    );
-    return true;
+    metas = await q(`SELECT dataset, updated_at FROM dataset_meta`);
   } catch (err) {
-    if (attempt < RELOAD_RETRIES && err instanceof SyntaxError) {
-      // 可能是写入到一半被读到（如 data.js 直接 writeFileSync 覆盖），稍后重试
-      setTimeout(() => loadFile(rel, attempt + 1), RETRY_DELAY_MS);
-      return false;
+    console.error(`[data] dataset_meta 查询失败：${err.message}`);
+    return;
+  }
+  for (const [dataset, global] of Object.entries(DATA_FILES)) {
+    const meta = metas.find((m) => m.dataset === dataset);
+    const metaTs = meta ? new Date(meta.updated_at).getTime() : 0;
+    const cached = store.get(dataset);
+    if (cached && cached.metaUpdatedAt === metaTs) continue;
+    try {
+      const text = await loadDatasetText(dataset);
+      store.set(dataset, { global, text, updatedAt: Date.now(), metaUpdatedAt: metaTs });
+      console.log(
+        `[data] ${dataset} → window.${global} 已载入内存` +
+        `（注入文本 ${(text.length / 1024).toFixed(0)} KB）`,
+      );
+    } catch (err) {
+      console.error(
+        `[data] ${dataset} 载入失败：${err.message} —— ` +
+        (cached ? "继续使用内存中的旧数据" : "该数据暂不可用"),
+      );
     }
-    console.error(
-      `[data] ${rel} 加载失败：${err.message} —— ` +
-      (store.has(rel) ? "继续使用内存中的旧数据" : "该数据暂不可用"),
-    );
-    return false;
   }
 }
 
-// 启动时全量载入
-for (const rel of Object.keys(DATA_FILES)) loadFile(rel);
-
-// 监听变化：watchFile 按 mtime/size 轮询，兼容「写 .tmp 再 rename」和「直接覆盖」
-// 两种写入方式，也兼容编辑器保存产生的连续多次写入（轮询天然防抖）。
-// 间隔 2s 对小时级更新的数据足够；如需更快可调小 interval。
-for (const rel of Object.keys(DATA_FILES)) {
-  fs.watchFile(path.join(ROOT, rel), { interval: 2000 }, (curr, prev) => {
-    const cached = store.get(rel);
-    if (curr.mtimeMs === prev.mtimeMs && curr.size === prev.size) return;
-    if (cached && curr.mtimeMs === cached.mtimeMs && curr.size === cached.size) return;
-    console.log(`[data] 检测到 ${rel} 变化，重新载入...`);
-    loadFile(rel);
-  });
-}
+await refreshDatasets(); // 启动即全量载入
+setInterval(refreshDatasets, REFRESH_INTERVAL_MS);
 
 /* ---------------- HTTP 服务 ---------------- */
 
@@ -326,38 +316,48 @@ function handleOcrQueue(req, res) {
 
 /* ---------------- 询价（GET /api/price?keyword=，gmmsj 商品搜索） ---------------- */
 
-// JSON 文件当缓存库：30 分钟内的查询直接读缓存，不再翻页轰炸 gmmsj；
-// 缓存落盘到 price-cache.json，重启服务后启动时读回内存继续生效
-const PRICE_CACHE_FILE = path.join(ROOT, "price-cache.json");
+// MySQL 当缓存库：30 分钟内的查询直接读缓存，不再翻页轰炸 gmmsj；
+// 持久化到 price_cache 表，重启服务后启动时读回 TTL 内的记录继续生效。
+// 写库策略：内存 LRU 为主、变更标脏，周期批量 upsert（本质是缓存，
+// 最坏丢一个周期 30s）；LRU 淘汰只删内存，表内过期行由 TTL 过滤天然忽略。
 const PRICE_CACHE_TTL_MS = 30 * 60 * 1000; // 缓存有效期 30 分钟
 const PRICE_CACHE_MAX = 200; // 内存上限，超出时先清过期、再丢最旧的
+const PRICE_FLUSH_INTERVAL_MS = 30 * 1000; // 落库周期
 const priceCache = new Map(); // keyword → { t, lowest, avg, count, totalPage }
+let priceCacheDirty = false; // 有变更待落库
 
-function atomicWrite(file, content) {
-  fs.writeFileSync(file + ".tmp", content);
-  fs.renameSync(file + ".tmp", file);
-}
-
-/** 启动时读回磁盘缓存（仅保留 30 分钟内的记录） */
-function loadPriceCache() {
+/** 启动时读回库内缓存（仅保留 30 分钟内的记录） */
+async function loadPriceCache() {
   try {
-    const obj = JSON.parse(fs.readFileSync(PRICE_CACHE_FILE, "utf-8"));
-    const now = Date.now();
-    for (const [k, v] of Object.entries(obj)) {
-      if (v && typeof v.t === "number" && now - v.t < PRICE_CACHE_TTL_MS) priceCache.set(k, v);
+    const rows = await q(
+      `SELECT keyword, t, lowest, avg, count, total_page FROM price_cache WHERE t > ?`,
+      [Date.now() - PRICE_CACHE_TTL_MS],
+    );
+    for (const r of rows) {
+      priceCache.set(r.keyword, {
+        t: Number(r.t),
+        lowest: r.lowest == null ? null : Number(r.lowest),
+        avg: r.avg == null ? null : Number(r.avg),
+        count: r.count,
+        totalPage: r.total_page,
+      });
     }
     console.log(`[price] 询价缓存载入 ${priceCache.size} 条（30 分钟内直接复用）`);
-  } catch {
-    // 首次运行或文件损坏：从空缓存开始
+  } catch (err) {
+    console.error(`[price] price_cache 读取失败：${err.message}，从空缓存开始`);
   }
 }
 
-/** 缓存落盘（原子写：先写 .tmp 再 rename，防读到半截文件） */
-function savePriceCache() {
+/** 批量落库（幂等 upsert；失败标回脏，下个周期再试） */
+async function flushPriceCache() {
+  if (!priceCacheDirty || !priceCache.size) return;
+  priceCacheDirty = false;
   try {
-    atomicWrite(PRICE_CACHE_FILE, JSON.stringify(Object.fromEntries(priceCache)));
+    const rows = [...priceCache.entries()].map(([k, v]) => toPriceRow(k, v));
+    await tx((conn) => bulkUpsert(conn, "price_cache", PRICE_COLS, rows, PRICE_UPD));
   } catch (err) {
-    console.error(`[price] 缓存落盘失败：${err.message}`);
+    priceCacheDirty = true; // 下个周期再试
+    console.error(`[price] 缓存落库失败：${err.message}`);
   }
 }
 
@@ -378,6 +378,7 @@ async function queryPrice(keyword) {
     totalPage,
   };
   priceCache.set(keyword, data);
+  priceCacheDirty = true; // 周期批量落库，不在此处阻塞接口
   // 上限维护：先清过期，仍超则丢最旧的
   for (const [k, v] of priceCache) {
     if (Date.now() - v.t >= PRICE_CACHE_TTL_MS) priceCache.delete(k);
@@ -388,11 +389,17 @@ async function queryPrice(keyword) {
       .slice(0, priceCache.size - PRICE_CACHE_MAX);
     for (const [k] of oldest) priceCache.delete(k);
   }
-  savePriceCache();
   return data;
 }
 
-loadPriceCache(); // 启动即读回缓存（模块加载顺序上位于各函数定义之后）
+await loadPriceCache(); // 启动即读回缓存（模块加载顺序上位于各函数定义之后）
+setInterval(flushPriceCache, PRICE_FLUSH_INTERVAL_MS);
+// 进程退出前同步 flush 一次（幂等 upsert，pm2 重启场景少丢缓存）
+for (const sig of ["SIGINT", "SIGTERM"]) {
+  process.on(sig, () => {
+    flushPriceCache().finally(() => process.exit(0));
+  });
+}
 
 /** 并发受控队列：一张图最多 5 个装备同时询价，并发 3 个对接口保持克制 */
 let priceActive = 0;
@@ -448,14 +455,13 @@ function handlePrice(req, res) {
 
 /* ---------------- 经验收益上报（PC 端 → POST /api/exp/report） ----------------
  * PC 端挂机程序（nodejs）每结束一段采集周期就 POST 一次收益快照，存进
- * exp-reports.json 当轻量数据库；exp.html 轮询 GET /api/exp/reports 展示表格。
- * 防刷两道闸：
+ * exp_reports 表当数据库（含 snapshot 原始上报体）；exp.html 轮询
+ * GET /api/exp/reports 展示表格。防刷两道闸：
  *   1. 同设备 / 同 IP 两次上报的最短间隔限频（EXP_MIN_INTERVAL_MS）；
  *   2. 服务端重算：不信任客户端算好的 expPerHour / goldPerHour，只取 delta
  *      原始差值按上报的实际刷怪时长（暂停不计入）自己换算，并对时长、
  *      时间戳、每小时收益上限做边界校验，异常数据直接拒绝。 */
 
-const EXP_FILE = path.join(ROOT, "exp-reports.json");
 const EXP_BODY_LIMIT = 64 * 1024; // 上报体上限 64KB（正常一帧约 1.5KB）
 const EXP_MIN_INTERVAL_MS = 5000; // 同设备 / 同 IP 两次上报的最短间隔
 const EXP_MAX_DURATION_S = 6 * 3600; // 单段采集时长上限 6 小时
@@ -463,7 +469,17 @@ const EXP_MAX_PER_HOUR = 1e9; // 每小时经验上限（伪造兜底，正常�
 const GOLD_MAX_PER_HOUR = 1e10; // 每小时金币上限
 const POTION_MAX_PER_HOUR = 1e9; // 每小时药水钱上限
 
-let expReports = []; // 最新在数组尾；落盘文件形如 { reports: [...] }
+/** 单条上报落库（INSERT 成功才算入库，内存数组与库保持一致） */
+async function insertExpReport(report, snapshotObj) {
+  const cols = EXP_COLS.join(", ");
+  const marks = EXP_COLS.map(() => "?").join(",");
+  await q(
+    `INSERT INTO exp_reports (${cols}) VALUES (${marks})`,
+    toExpRow(report, snapshotObj), // snapshot 存校验前的原始上报体
+  );
+}
+
+let expReports = []; // 最新在数组尾；与 exp_reports 表 ORDER BY seq 同序
 const expLastDevice = new Map(); // deviceId → 上次成功上报的时间戳
 const expLastIp = new Map(); // 来源 IP → 上次成功上报的时间戳
 
@@ -476,35 +492,14 @@ function newExpId() {
   return id;
 }
 
-/** 启动时读回磁盘上的上报记录；旧记录没有 id 的补一个（分享链接需要） */
-function loadExpReports() {
+/** 启动时读回库内上报记录（seq 自增序即源数组顺序） */
+async function loadExpReports() {
   try {
-    const obj = JSON.parse(fs.readFileSync(EXP_FILE, "utf-8"));
-    if (obj && Array.isArray(obj.reports)) {
-      expReports = obj.reports; // 全部保留，不设上限（量大卡顿再优化）
-      let migrated = false;
-      for (const r of expReports) {
-        if (!r.id) {
-          r.id = newExpId();
-          migrated = true;
-        }
-      }
-      if (migrated) saveExpReports();
-      console.log(`[exp] 载入历史上报 ${expReports.length} 条`);
-      return;
-    }
-  } catch {
-    // 首次运行或文件损坏：从空库开始
-  }
-  console.log("[exp] exp-reports.json 不存在或损坏，从空库开始");
-}
-
-/** 落盘（原子写：先写 .tmp 再 rename，防读到半截文件） */
-function saveExpReports() {
-  try {
-    atomicWrite(EXP_FILE, JSON.stringify({ reports: expReports }, null, 2));
+    const rows = await q(`SELECT * FROM exp_reports ORDER BY seq ASC`);
+    expReports = rows.map(rowToExpReport); // 全部保留，不设上限（量大卡顿再优化）
+    console.log(`[exp] 载入历史上报 ${expReports.length} 条`);
   } catch (err) {
-    console.error(`[exp] 上报落盘失败：${err.message}`);
+    console.error(`[exp] exp_reports 读取失败：${err.message}，从空库开始`);
   }
 }
 
@@ -622,7 +617,7 @@ function handleExpReport(req, res) {
   }
 
   readBody(req, EXP_BODY_LIMIT)
-    .then((buf) => {
+    .then(async (buf) => {
       let body;
       try {
         body = JSON.parse(buf.toString("utf-8"));
@@ -644,12 +639,29 @@ function handleExpReport(req, res) {
         return reply(429, { ok: false, error: "上报过于频繁" });
       }
 
+      // 先落库，成功才进内存（内存=库一致）；snapshot 存校验前的原始上报体供审计
+      try {
+        await insertExpReport(r.report, body);
+      } catch (err) {
+        if (err.code === "ER_DUP_ENTRY") {
+          // 极低概率撞 id：重生成重试一次
+          r.report.id = newExpId();
+          try {
+            await insertExpReport(r.report, body);
+          } catch (err2) {
+            console.error(`[exp] 落库失败（重试后）：${err2.message} ip=${ip}`);
+            return reply(500, { ok: false, error: "上报存储失败" });
+          }
+        } else {
+          console.error(`[exp] 落库失败：${err.message} ip=${ip}`);
+          return reply(500, { ok: false, error: "上报存储失败" });
+        }
+      }
       expReports.push(r.report);
       expLastDevice.set(r.report.deviceId, now);
       expLastIp.set(ip, now);
       pruneRateMap(expLastDevice);
       pruneRateMap(expLastIp);
-      saveExpReports();
       console.log(
         `[exp] 入库：${r.report.id} ${r.report.deviceId} Lv${r.report.level} ${r.report.mapName} ` +
         `+${r.report.delta.expGained}经验 +${r.report.delta.gold}金币（${r.report.durationSeconds}s）`,
@@ -739,35 +751,35 @@ function handleExpReports(req, res) {
   });
 }
 
-loadExpReports(); // 启动即读回（模块加载顺序上位于各函数定义之后）
+await loadExpReports(); // 启动即读回（模块加载顺序上位于各函数定义之后）
 
-/* ---------------- 简单 JSON 数据库（stats.json） ----------------
- * 站点累计统计：以后所有需要落盘的计数都往这个文件里放，当作轻量数据库使用。
- * 启动时读入内存，变更即原子落盘（先写 .tmp 再 rename，防读到半截文件）。 */
-
-const STATS_FILE = path.join(ROOT, "stats.json");
+/* ---------------- 站点统计（site_stats 表） ----------------
+ * 站点累计统计：以后所有需要落盘的计数都往这张表里放。
+ * 启动时读入内存，识别请求 +1 时内存先自增，再异步 upsert 落库
+ * （首次插入内存值、之后原子自增；并发安全，落库失败仅日志）。 */
 
 let stats = { totalRequests: 0 }; // 累计识别请求次数
 
-function loadStats() {
+async function loadStats() {
   try {
-    const obj = JSON.parse(fs.readFileSync(STATS_FILE, "utf-8"));
-    if (obj && typeof obj.totalRequests === "number") stats = obj;
+    const row = await qOne(`SELECT total_requests FROM site_stats WHERE id = 1`);
+    if (row) stats = { totalRequests: Number(row.total_requests) };
     console.log(`[stats] 载入统计：累计识别请求 ${stats.totalRequests} 次`);
-  } catch {
-    // 首次运行或文件损坏：从 0 开始
-    console.log("[stats] stats.json 不存在或损坏，从 0 开始统计");
+  } catch (err) {
+    console.error(`[stats] site_stats 读取失败：${err.message}，从 0 开始统计`);
   }
 }
 
-/** 识别请求 +1 并落盘 */
+/** 识别请求 +1 并落库（fire-and-forget，不阻塞 OCR 响应） */
 function bumpTotalRequests() {
   stats.totalRequests += 1;
-  try {
-    atomicWrite(STATS_FILE, JSON.stringify(stats, null, 2));
-  } catch (err) {
-    console.error(`[stats] 落盘失败：${err.message}`);
-  }
+  q(
+    `INSERT INTO site_stats (id, total_requests) VALUES (1, ?)
+     ON DUPLICATE KEY UPDATE total_requests = total_requests + 1`,
+    [stats.totalRequests],
+  ).catch((err) => {
+    console.error(`[stats] 落库失败：${err.message}`);
+  });
 }
 
 /** GET /api/stats：站点累计统计（当前含累计识别请求次数） */
@@ -779,7 +791,7 @@ function handleStats(req, res) {
   });
 }
 
-loadStats(); // 启动即读入（模块加载顺序上位于各函数定义之后）
+await loadStats(); // 启动即读入（模块加载顺序上位于各函数定义之后）
 
 function respond(req, res, { status = 200, type = "text/plain; charset=utf-8", cache = "no-cache", etag, headers = {}, body, compress = false }) {
   const h = { "Content-Type": type, "Cache-Control": cache, ...headers };
@@ -937,9 +949,8 @@ const server = http.createServer((req, res) => {
 
 server.listen(PORT, HOST, () => {
   console.log(`\n🚀 mxd-helper 混合端已启动：http://${HOST}:${PORT}/（默认 rank.html）`);
-  console.log(`   内存数据源：${Object.keys(DATA_FILES).join("、")}`);
+  console.log(`   MySQL 数据源：${Object.keys(DATA_FILES).join("、")}（dataset_meta 轮询 ${REFRESH_INTERVAL_MS / 1000}s 热重载）`);
   console.log(`   OCR 转交：http://${OCR_HOST}:${OCR_PORT}/（独立服务 ocr_worker.js，需另行启动）`);
   console.log("   shenmi 暗号：已启用（环境变量 SHENMI_CODE 可修改，默认 zhuzhu）");
-  console.log("   经验上报：POST /api/exp/report（免密钥，防刷靠限频+校验重算）");
-  console.log("   监控中：JSON 文件变化后自动重载入内存\n");
+  console.log("   经验上报：POST /api/exp/report（免密钥，防刷靠限频+校验重算）\n");
 });

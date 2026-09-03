@@ -66,7 +66,6 @@
     '<a class="mh-btn' + active("waigua.html") + '" href="waigua.html">举报分析</a>' +
     '<a class="mh-btn' + active("account.html") + '" href="account.html">卖号分析</a>' +
     '<a class="mh-btn' + active("shenmi.html") + '" href="shenmi.html">神秘商人</a>' +
-    '<a class="mh-btn' + active("999.html") + '" href="999.html">计时提醒</a>' +
     '<a class="mh-btn' + active("exp.html") + '" href="exp.html">打怪效率</a>' +
     "</nav>" +
     "</div>" +
