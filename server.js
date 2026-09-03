@@ -25,6 +25,10 @@
  *      存 exp_reports 表（INSERT 成功才进内存，内存=库一致；含 snapshot 原始体）；
  *      exp.html 轮询 GET /api/exp/reports 展示。防刷靠按设备/IP 限频、
  *      字段校验、服务端重算每小时收益（不信任客户端算好的 expPerHour 等）。
+ *   9. 经验上报 v2（/api/v2/exp/*）：新版工具协议，体精简为经验/h+地图等，
+ *      新增备注/攻击力，不再上报金币/药水；JWT 鉴权（HS256，sub=设备ID，2h），
+ *      服务端签发（EXP_JWT_SECRET 验签 + EXP_DEVICE_SECRET 换 token）。
+ *      exp.html 带 ?token= 打开可编辑「本设备」上报的记录（PATCH /api/v2/exp/report）。
  *
  * 用法：node server.js（PORT 环境变量可改端口，默认 3001）+ node ocr_worker.js（OCR 服务）
  * 连接：MYSQL_HOST/PORT/USER/PASSWORD/DATABASE 环境变量（服务器在 pm2 env 配置），
@@ -37,7 +41,7 @@ import zlib from "node:zlib";
 import crypto from "node:crypto";
 import { fileURLToPath } from "node:url";
 import { searchGoodsAll } from "./gmmsj.mjs";
-import { q, qOne, tx, bulkUpsert } from "./db.js";
+import { q, qOne, tx, bulkUpsert, toDbVal } from "./db.js";
 import { loadDatasetText, rowToExpReport } from "./data-service.js";
 import { EXP_COLS, toExpRow, PRICE_COLS, PRICE_UPD, toPriceRow } from "./db-rows.js";
 
@@ -162,8 +166,9 @@ const OCR_LIMIT = 10 * 1024 * 1024; // 图片上限 10MB（上传到本进程时
 /** /api/* 接口的 CORS 头：file:// 双击打开页面时也能跨域调用本地服务 */
 const API_CORS = {
   "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
-  "Access-Control-Allow-Headers": "Content-Type, X-Shenmi-Code", // 暗号头参与 CORS 预检（file:// 跨域需要）
+  "Access-Control-Allow-Methods": "GET, POST, PATCH, OPTIONS", // PATCH 供 exp v2 编辑上报用
+  // Authorization 参与预检：exp v2 的 JWT 鉴权（file:// 跨域需要）
+  "Access-Control-Allow-Headers": "Content-Type, X-Shenmi-Code, Authorization, X-Exp-Device-Secret",
 };
 
 /** 校验请求携带的 shenmi 暗号头是否与配置一致 */
@@ -522,6 +527,10 @@ function buildExpRecord(body) {
   if (!str(body.mapName, 64)) return { ok: false, error: "mapName 非法" };
   if (!/^[a-z]{1,16}$/i.test(String(body.partyMode || ""))) return { ok: false, error: "partyMode 非法" };
 
+  // v1 兼容 v2 新增的可选属性（备注 / 攻击力-魔法力）：公共页手录可填，空串视为无
+  const np = validateNotePower(body);
+  if (!np.ok) return np;
+
   const start = Date.parse(body.startTime);
   const end = Date.parse(body.endTime);
   if (!Number.isFinite(start) || !Number.isFinite(end)) return { ok: false, error: "时间格式非法" };
@@ -593,9 +602,26 @@ function buildExpRecord(body) {
         potionHpPerHour,
         potionMpPerHour,
       },
+      note: np.note,
+      power: np.power,
       serverTime: new Date().toISOString(),
     },
   };
+}
+
+/** 可选属性校验（v1/v2 共用）：备注 note(≤500，空串→null) + 攻击力/魔法力 power(int 0~1e9，可缺省) */
+function validateNotePower(body) {
+  let note = null;
+  if (body.note !== undefined && body.note !== null) {
+    if (typeof body.note !== "string" || body.note.length > 500) return { ok: false, error: "note 非法" };
+    note = body.note.trim() === "" ? null : body.note;
+  }
+  let power = null;
+  if (body.power !== undefined && body.power !== null) {
+    if (!Number.isInteger(body.power) || body.power < 0 || body.power > 1e9) return { ok: false, error: "power 非法" };
+    power = body.power;
+  }
+  return { ok: true, note, power };
 }
 
 /** POST /api/exp/report：PC 端上报一段采集周期的收益（限频 + 校验重算） */
@@ -672,6 +698,351 @@ function handleExpReport(req, res) {
     .catch((err) => {
       console.error(`[exp] 上报处理失败：${err.message} ip=${ip}`);
       if (!res.headersSent) reply(413, { ok: false, error: "请求体过大或连接中断" });
+    });
+}
+
+/* ---------------- 经验上报 v2（/api/v2/exp/*：JWT 鉴权，sub=设备ID） ----------------
+ * v2 是新版 PC 工具协议：上报体精简为「经验/h + 职业/等级/地图/组队 + 备注/攻击力/测试时长」，
+ * 不再上报金币与药水（对应 DB 列留 NULL）；鉴权用服务端签发的 JWT（HS256，默认 2h，
+ * payload.sub = 设备ID）。endpoints：
+ *   POST /api/v2/exp/token   设备密钥头 X-Exp-Device-Secret 换 JWT（PC 工具内置该密钥）
+ *   GET  /api/v2/exp/session  校验 JWT → sub（exp.html 据此点亮对应设备行的编辑按钮）
+ *   POST /api/v2/exp/report   用 JWT 上报一条 v2 记录（device_id 取 sub，不信 body）
+ *   PATCH /api/v2/exp/report  用 JWT 编辑一条「本设备」上报的记录（id/device/时间/审计不可改）
+ * 密钥来自环境变量，缺省为开发值并告警——生产务必在 server.env 设置强随机密钥。 */
+const EXP_JWT_SECRET = process.env.EXP_JWT_SECRET || "dev-exp-jwt-secret";
+const EXP_DEVICE_SECRET = process.env.EXP_DEVICE_SECRET || "zhuzhu";
+const EXP_TOKEN_TTL_S = 2 * 3600; // JWT 有效期 2 小时
+const EXP_V2_BODY_LIMIT = 32 * 1024; // v2 上报体上限（精简体）
+if (EXP_JWT_SECRET === "dev-exp-jwt-secret" || EXP_DEVICE_SECRET === "zhuzhu") {
+  console.warn("[exp] ⚠️ 正在使用开发默认 EXP_JWT_SECRET / EXP_DEVICE_SECRET，生产请在 server.env 设置强随机密钥");
+}
+
+/** base64url 编解码（Node 16+ Buffer 原生支持） */
+function b64url(buf) {
+  return Buffer.from(buf).toString("base64url");
+}
+function b64urlToBuf(str) {
+  return Buffer.from(str, "base64url");
+}
+
+/** 签发 JWT：sub=deviceId，默认 2 小时有效，HS256 签名 */
+function signExpToken(deviceId, ttlS = EXP_TOKEN_TTL_S) {
+  const now = Math.floor(Date.now() / 1000);
+  const header = b64url(JSON.stringify({ alg: "HS256", typ: "JWT" }));
+  const payload = b64url(JSON.stringify({ sub: deviceId, iat: now, exp: now + ttlS }));
+  const sig = crypto.createHmac("sha256", EXP_JWT_SECRET).update(`${header}.${payload}`).digest();
+  return `${header}.${payload}.${b64url(sig)}`;
+}
+
+/** 验签 JWT → payload 或 null（三段结构 / 算法 / 常量时间比对 / 有效期 / sub 形状） */
+function verifyExpToken(token) {
+  if (typeof token !== "string") return null;
+  const parts = token.split(".");
+  if (parts.length !== 3) return null;
+  let header, payload;
+  try {
+    header = JSON.parse(b64urlToBuf(parts[0]).toString("utf-8"));
+    payload = JSON.parse(b64urlToBuf(parts[1]).toString("utf-8"));
+  } catch {
+    return null;
+  }
+  if (!header || header.alg !== "HS256") return null;
+  const sig = crypto.createHmac("sha256", EXP_JWT_SECRET).update(`${parts[0]}.${parts[1]}`).digest();
+  const given = b64urlToBuf(parts[2]);
+  if (sig.length !== given.length || !crypto.timingSafeEqual(sig, given)) return null;
+  if (typeof payload.exp !== "number" || payload.exp * 1000 <= Date.now()) return null;
+  if (typeof payload.sub !== "string" || !/^[0-9a-zA-Z_-]{1,64}$/.test(payload.sub)) return null;
+  return payload;
+}
+
+/** 从 Authorization: Bearer <token> 验签 → payload 或 null */
+function authExpBearer(req) {
+  const h = req.headers.authorization || "";
+  const m = /^Bearer\s+(.+)$/i.exec(h);
+  if (!m) return null;
+  return verifyExpToken(m[1].trim());
+}
+
+/** v2 系列 handler 的 JSON 应答统一出口 */
+function v2Reply(req, res, status, payload) {
+  respond(req, res, {
+    status,
+    type: "application/json; charset=utf-8",
+    headers: API_CORS,
+    body: Buffer.from(JSON.stringify(payload)),
+  });
+}
+
+/** 校验 + 组装 v2 上报记录（deviceId 取 JWT sub；金币/药水等 v2 不涉及的字段一律 null） */
+function buildExpV2Record(sub, body) {
+  const str = (v, max) => typeof v === "string" && v.length > 0 && v.length <= max;
+  const int = (v, min, max) => Number.isInteger(v) && v >= min && v <= max;
+  const num = (v, min, max) => typeof v === "number" && Number.isFinite(v) && v >= min && v <= max;
+
+  if (!int(body.level, 1, 300)) return { ok: false, error: "level 非法" };
+  if (!str(body.job, 32)) return { ok: false, error: "job 非法" };
+  if (!str(body.map, 64)) return { ok: false, error: "map 非法" };
+  if (!/^[a-z]{1,16}$/i.test(String(body.mode || ""))) return { ok: false, error: "mode 非法" };
+  if (!num(body.exp_per_hour, 0, EXP_MAX_PER_HOUR)) return { ok: false, error: "exp_per_hour 非法" };
+  if (!num(body.test_seconds, 0, EXP_MAX_DURATION_S)) return { ok: false, error: "test_seconds 非法" };
+  const np = validateNotePower(body);
+  if (!np.ok) return np;
+
+  return {
+    ok: true,
+    report: {
+      id: newExpId(),
+      deviceId: sub,
+      level: body.level,
+      job: body.job,
+      mapId: null, // v2 只上报地图名，map_id 不参与
+      mapName: body.map,
+      partyMode: String(body.mode).toLowerCase(),
+      startTime: null,
+      endTime: null,
+      durationSeconds: body.test_seconds,
+      delta: { gold: null, hpPotionUsed: null, mpPotionUsed: null, expGained: null, levelsGained: null },
+      profit: {
+        expPerHour: Math.round(body.exp_per_hour),
+        goldPerHour: null, potionValue: null,
+        potionHpValue: null, potionMpValue: null,
+        potionHpPerHour: null, potionMpPerHour: null,
+      },
+      note: np.note,
+      power: np.power,
+      serverTime: new Date().toISOString(),
+    },
+  };
+}
+
+/** POST /api/v2/exp/token：设备密钥（全工具共用，内置在 PC 客户端）换 2 小时 JWT */
+function handleExpV2Token(req, res) {
+  if (req.headers["x-exp-device-secret"] !== EXP_DEVICE_SECRET) {
+    return v2Reply(req, res, 403, { ok: false, error: "设备密钥错误" });
+  }
+  readBody(req, EXP_V2_BODY_LIMIT)
+    .then((buf) => {
+      let body;
+      try {
+        body = JSON.parse(buf.toString("utf-8"));
+      } catch {
+        return v2Reply(req, res, 400, { ok: false, error: "请求体不是合法 JSON" });
+      }
+      const deviceId = typeof body.deviceId === "string" ? body.deviceId.trim() : "";
+      if (!/^[0-9a-zA-Z_-]{1,64}$/.test(deviceId)) return v2Reply(req, res, 400, { ok: false, error: "deviceId 非法" });
+      const token = signExpToken(deviceId);
+      console.log(`[exp] 签发 token：sub=${deviceId}（${EXP_TOKEN_TTL_S}s 有效）`);
+      v2Reply(req, res, 200, { ok: true, token, sub: deviceId, expiresIn: EXP_TOKEN_TTL_S });
+    })
+    .catch((err) => {
+      console.error(`[exp] 签发失败：${err.message}`);
+      if (!res.headersSent) v2Reply(req, res, 413, { ok: false, error: "请求体过大或连接中断" });
+    });
+}
+
+/** GET /api/v2/exp/session：校验 JWT → sub（exp.html 打开 ?token= 链接后用其确认可编辑的设备） */
+function handleExpV2Session(req, res) {
+  const payload = authExpBearer(req);
+  if (!payload) return v2Reply(req, res, 401, { ok: false, error: "token 无效或已过期" });
+  v2Reply(req, res, 200, {
+    ok: true,
+    sub: payload.sub,
+    exp: payload.exp,
+    ttl: Math.max(0, payload.exp - Math.floor(Date.now() / 1000)),
+  });
+}
+
+/** POST /api/v2/exp/report：v2 工具用 JWT 上报一条精简记录（金币/药水不参与，限频沿用 v1 表） */
+function handleExpV2Report(req, res) {
+  const payload = authExpBearer(req);
+  if (!payload) return v2Reply(req, res, 401, { ok: false, error: "token 无效或已过期" });
+  const sub = payload.sub;
+  const ip = req.socket.remoteAddress || "";
+  const now = Date.now();
+  if (now - (expLastIp.get(ip) || 0) < EXP_MIN_INTERVAL_MS) {
+    return v2Reply(req, res, 429, { ok: false, error: "上报过于频繁" });
+  }
+  readBody(req, EXP_V2_BODY_LIMIT)
+    .then(async (buf) => {
+      let body;
+      try {
+        body = JSON.parse(buf.toString("utf-8"));
+      } catch {
+        console.log(`[exp] v2 拒绝：请求体不是合法 JSON ip=${ip}`);
+        return v2Reply(req, res, 400, { ok: false, error: "请求体不是合法 JSON" });
+      }
+      const r = buildExpV2Record(sub, body);
+      if (!r.ok) {
+        console.log(`[exp] v2 拒绝：${r.error} ip=${ip} | 请求体=${JSON.stringify(body).slice(0, 300)}`);
+        return v2Reply(req, res, 400, { ok: false, error: r.error });
+      }
+      const lastDevice = expLastDevice.get(r.report.deviceId) || 0;
+      if (now - lastDevice < EXP_MIN_INTERVAL_MS) {
+        console.log(`[exp] v2 拒绝：设备限频 deviceId=${r.report.deviceId}`);
+        return v2Reply(req, res, 429, { ok: false, error: "上报过于频繁" });
+      }
+      try {
+        await insertExpReport(r.report, body); // toExpRow 已带 note/power；snapshot 存原始 body
+      } catch (err) {
+        if (err.code === "ER_DUP_ENTRY") {
+          r.report.id = newExpId();
+          try {
+            await insertExpReport(r.report, body);
+          } catch (err2) {
+            console.error(`[exp] v2 落库失败（重试后）：${err2.message} ip=${ip}`);
+            return v2Reply(req, res, 500, { ok: false, error: "上报存储失败" });
+          }
+        } else {
+          console.error(`[exp] v2 落库失败：${err.message} ip=${ip}`);
+          return v2Reply(req, res, 500, { ok: false, error: "上报存储失败" });
+        }
+      }
+      expReports.push(r.report);
+      expLastDevice.set(r.report.deviceId, now);
+      expLastIp.set(ip, now);
+      pruneRateMap(expLastDevice);
+      pruneRateMap(expLastIp);
+      console.log(`[exp] v2 入库：${r.report.id} ${r.report.deviceId} Lv${r.report.level} ${r.report.mapName} +${r.report.profit.expPerHour}/h`);
+      v2Reply(req, res, 200, { ok: true, id: r.report.id, report: r.report });
+    })
+    .catch((err) => {
+      console.error(`[exp] v2 上报处理失败：${err.message} ip=${ip}`);
+      if (!res.headersSent) v2Reply(req, res, 413, { ok: false, error: "请求体过大或连接中断" });
+    });
+}
+
+/** 组装编辑结果：校验 body（snake_case，键缺省沿用原值；id/device/时间/审计一律不动） */
+function buildExpEdit(rec, body) {
+  const str = (v, max) => typeof v === "string" && v.length > 0 && v.length <= max;
+  const int = (v, min, max) => Number.isInteger(v) && v >= min && v <= max;
+  const num = (v, min, max) => typeof v === "number" && Number.isFinite(v) && v >= min && v <= max;
+  const seg = (perHour, durS) => Math.round((perHour * durS) / 3600);
+
+  if (!int(body.level, 1, 300)) return { ok: false, error: "level 非法" };
+  if (!str(body.job, 32)) return { ok: false, error: "job 非法" };
+  if (!str(body.map, 64)) return { ok: false, error: "map 非法" };
+  if (!/^[a-z]{1,16}$/i.test(String(body.mode || ""))) return { ok: false, error: "mode 非法" };
+  if (!num(body.exp_per_hour, 0, EXP_MAX_PER_HOUR)) return { ok: false, error: "exp_per_hour 非法" };
+  if (body.map_id !== undefined && body.map_id !== null && !int(body.map_id, 0, 1e9)) {
+    return { ok: false, error: "map_id 非法" };
+  }
+
+  const next = Object.assign({}, rec, {
+    level: body.level,
+    job: body.job,
+    mapName: body.map,
+    mapId: body.map_id !== undefined && body.map_id !== null ? body.map_id : rec.mapId,
+    partyMode: String(body.mode).toLowerCase(),
+    profit: Object.assign({}, rec.profit || {}),
+    delta: Object.assign({}, rec.delta || {}),
+  });
+
+  // 备注/攻击力：键缺省沿用原值；note 空串或 power null 表示清空
+  if (body.note !== undefined) {
+    if (typeof body.note !== "string" || body.note.length > 500) return { ok: false, error: "note 非法" };
+    next.note = body.note.trim() === "" ? null : body.note;
+  }
+  if (body.power !== undefined) {
+    if (body.power === null) next.power = null;
+    else if (!Number.isInteger(body.power) || body.power < 0 || body.power > 1e9) {
+      return { ok: false, error: "power 非法" };
+    } else next.power = body.power;
+  }
+
+  // 经验/h：直接写 profit 列；v1 语义行（有 delta）同步反推 delta 差值与药水金额，保持库内自洽
+  next.profit.expPerHour = Math.round(body.exp_per_hour);
+  const durS = Number(next.durationSeconds) || 1;
+  if (rec.delta && rec.delta.gold != null) {
+    next.delta.expGained = seg(body.exp_per_hour, durS);
+    if (body.gold_per_hour !== undefined) {
+      if (!num(body.gold_per_hour, 0, GOLD_MAX_PER_HOUR)) return { ok: false, error: "gold_per_hour 非法" };
+      next.delta.gold = seg(body.gold_per_hour, durS);
+      next.profit.goldPerHour = Math.round(body.gold_per_hour);
+    }
+    if (body.potion_hp_per_hour !== undefined) {
+      if (!num(body.potion_hp_per_hour, 0, POTION_MAX_PER_HOUR)) return { ok: false, error: "potion_hp_per_hour 非法" };
+      next.profit.potionHpPerHour = Math.round(body.potion_hp_per_hour);
+      next.profit.potionHpValue = seg(body.potion_hp_per_hour, durS);
+    }
+    if (body.potion_mp_per_hour !== undefined) {
+      if (!num(body.potion_mp_per_hour, 0, POTION_MAX_PER_HOUR)) return { ok: false, error: "potion_mp_per_hour 非法" };
+      next.profit.potionMpPerHour = Math.round(body.potion_mp_per_hour);
+      next.profit.potionMpValue = seg(body.potion_mp_per_hour, durS);
+    }
+  }
+  return { ok: true, next };
+}
+
+/** 编辑落库：只改本设备行，WHERE 再带 device_id 兜底；不碰 id/device/时间/snapshot */
+async function updateExpReport(id, deviceId, r) {
+  await q(
+    `UPDATE exp_reports SET
+       level=?, job=?, map_id=?, map_name=?, party_mode=?, duration_seconds=?,
+       delta_gold=?, delta_hp_potion_used=?, delta_mp_potion_used=?, delta_exp_gained=?, delta_levels_gained=?,
+       profit_exp_per_hour=?, profit_gold_per_hour=?, profit_potion_value=?,
+       profit_potion_hp_value=?, profit_potion_mp_value=?,
+       profit_potion_hp_per_hour=?, profit_potion_mp_per_hour=?,
+       note=?, power=?
+     WHERE id=? AND device_id=?`,
+    [
+      toDbVal(r.level), toDbVal(r.job), toDbVal(r.mapId), toDbVal(r.mapName), toDbVal(r.partyMode),
+      toDbVal(r.durationSeconds),
+      toDbVal(r.delta ? r.delta.gold : null),
+      toDbVal(r.delta ? r.delta.hpPotionUsed : null),
+      toDbVal(r.delta ? r.delta.mpPotionUsed : null),
+      toDbVal(r.delta ? r.delta.expGained : null),
+      toDbVal(r.delta ? r.delta.levelsGained : null),
+      toDbVal(r.profit ? r.profit.expPerHour : null),
+      toDbVal(r.profit ? r.profit.goldPerHour : null),
+      toDbVal(r.profit ? r.profit.potionValue : null),
+      toDbVal(r.profit ? r.profit.potionHpValue : null),
+      toDbVal(r.profit ? r.profit.potionMpValue : null),
+      toDbVal(r.profit ? r.profit.potionHpPerHour : null),
+      toDbVal(r.profit ? r.profit.potionMpPerHour : null),
+      toDbVal(r.note), toDbVal(r.power),
+      id, deviceId,
+    ],
+  );
+}
+
+/** PATCH /api/v2/exp/report：编辑「本设备」上报的记录（DB 先行，成功才改内存权威数组） */
+function handleExpV2ReportUpdate(req, res) {
+  const payload = authExpBearer(req);
+  if (!payload) return v2Reply(req, res, 401, { ok: false, error: "token 无效或已过期" });
+  const sub = payload.sub;
+  readBody(req, EXP_V2_BODY_LIMIT)
+    .then(async (buf) => {
+      let body;
+      try {
+        body = JSON.parse(buf.toString("utf-8"));
+      } catch {
+        return v2Reply(req, res, 400, { ok: false, error: "请求体不是合法 JSON" });
+      }
+      const id = typeof body.id === "string" ? body.id.trim() : "";
+      const rec = expReports.find((x) => x.id === id);
+      if (!rec) return v2Reply(req, res, 404, { ok: false, error: "记录不存在" });
+      if (rec.deviceId !== sub) return v2Reply(req, res, 403, { ok: false, error: "无权修改该记录" });
+
+      const r = buildExpEdit(rec, body);
+      if (!r.ok) {
+        console.log(`[exp] v2 拒绝修改：${r.error} sub=${sub} id=${id} | body=${JSON.stringify(body).slice(0, 300)}`);
+        return v2Reply(req, res, 400, { ok: false, error: r.error });
+      }
+      try {
+        await updateExpReport(id, sub, r.next); // 先落库，成功才算修改
+      } catch (err) {
+        console.error(`[exp] v2 修改落库失败：${err.message} id=${id} sub=${sub}`);
+        return v2Reply(req, res, 500, { ok: false, error: "修改存储失败" });
+      }
+      const idx = expReports.indexOf(rec);
+      if (idx >= 0) expReports[idx] = r.next; // 内存权威数组原地替换，GET/轮询下次即新值
+      console.log(`[exp] v2 修改：${id} ${sub} Lv${r.next.level} ${r.next.mapName} +${r.next.profit.expPerHour}/h`);
+      v2Reply(req, res, 200, { ok: true, report: r.next });
+    })
+    .catch((err) => {
+      console.error(`[exp] v2 修改处理失败：${err.message}`);
+      if (!res.headersSent) v2Reply(req, res, 413, { ok: false, error: "请求体过大或连接中断" });
     });
 }
 
@@ -900,6 +1271,11 @@ function handle(req, res) {
     // 经验收益上报：PC 端专用接口，免密钥，不经过 shenmi 暗号
     if (pathname === "/api/exp/report" && req.method === "POST") return handleExpReport(req, res);
     if (pathname === "/api/exp/reports" && req.method === "GET") return handleExpReports(req, res);
+    // 经验上报 v2：JWT 鉴权（sub=设备ID），自带密钥/令牌校验，不经过 shenmi 暗号
+    if (pathname === "/api/v2/exp/token" && req.method === "POST") return handleExpV2Token(req, res);
+    if (pathname === "/api/v2/exp/session" && req.method === "GET") return handleExpV2Session(req, res);
+    if (pathname === "/api/v2/exp/report" && req.method === "POST") return handleExpV2Report(req, res);
+    if (pathname === "/api/v2/exp/report" && req.method === "PATCH") return handleExpV2ReportUpdate(req, res);
     // 其余 shenmi 专属接口统一过暗号：防止绕过页面直接刷接口
     if (!checkShenmiCode(req)) return rejectShenmiCode(req, res);
     if (pathname === "/api/ocr" && req.method === "POST") return handleOcr(req, res);
@@ -933,7 +1309,9 @@ const server = http.createServer((req, res) => {
   // 响应完成后再打日志：异步接口（ocr/exp 等）处理完成前 statusCode 还是默认值，
   // 提前打印会把 400/429 误报成 200，误导排查
   res.on("finish", () => {
-    console.log(`[http] ${req.method} ${req.url} → ${res.statusCode}`);
+    // 访问日志对 token 打码：JWT 会出现在 exp.html?token=… 链接里，避免整串进 pm2 日志
+    const logUrl = (req.url || "").replace(/([?&]token=)[^&]*/g, "$1***");
+    console.log(`[http] ${req.method} ${logUrl} → ${res.statusCode}`);
   });
   try {
     handle(req, res);
@@ -952,5 +1330,6 @@ server.listen(PORT, HOST, () => {
   console.log(`   MySQL 数据源：${Object.keys(DATA_FILES).join("、")}（dataset_meta 轮询 ${REFRESH_INTERVAL_MS / 1000}s 热重载）`);
   console.log(`   OCR 转交：http://${OCR_HOST}:${OCR_PORT}/（独立服务 ocr_worker.js，需另行启动）`);
   console.log("   shenmi 暗号：已启用（环境变量 SHENMI_CODE 可修改，默认 zhuzhu）");
-  console.log("   经验上报：POST /api/exp/report（免密钥，防刷靠限频+校验重算）\n");
+  console.log("   经验上报：POST /api/exp/report（免密钥，防刷靠限频+校验重算）");
+  console.log("   经验上报 v2：/api/v2/exp/token|session|report（JWT 鉴权，sub=设备ID；PATCH 供 exp.html 编辑）\n");
 });

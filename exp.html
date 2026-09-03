@@ -89,7 +89,7 @@
       }
 
       .container {
-        max-width: 1450px;
+        max-width: 1550px;
         margin: 0 auto;
         padding: 0 24px;
         position: relative;
@@ -478,6 +478,54 @@
         border-color: var(--success);
         color: var(--green);
       }
+      /* 编辑按钮：默认置灰，仅当该行 deviceId 与本页授权设备一致时点亮 */
+      .edit-btn {
+        margin-right: 6px;
+        padding: 3px 0;
+        width: 56px;
+        box-sizing: border-box;
+        text-align: center;
+        border: 1px solid #d9d9d9;
+        border-radius: 6px;
+        background: var(--bg-white);
+        color: var(--primary);
+        font-size: 0.8rem;
+        cursor: pointer;
+        transition: all 0.2s;
+      }
+      .edit-btn:hover:not(:disabled) {
+        border-color: var(--primary);
+        background: #e6f4ff;
+      }
+      .edit-btn:disabled {
+        color: #bfbfbf;
+        border-color: #e5e5e5;
+        cursor: not-allowed;
+      }
+      /* 备注单元格：超长省略号，悬停 title 看全文 */
+      .note-cell {
+        display: inline-block;
+        max-width: 180px;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+        vertical-align: bottom;
+      }
+      /* 编辑授权横幅（?token= 校验后显示在明细卡片顶部） */
+      .edit-banner {
+        margin: 12px 20px 0;
+        padding: 8px 12px;
+        border-radius: var(--radius);
+        background: #f0f5ff;
+        border: 1px solid #adc6ff;
+        color: #1d39c4;
+        font-size: 0.85rem;
+      }
+      .edit-banner.warn {
+        background: #fff7e6;
+        border-color: #ffd591;
+        color: #ad4e00;
+      }
 
       /* ---- 手动录入按钮 + 弹窗表单 ---- */
       .btn-primary {
@@ -858,6 +906,7 @@
           </div>
           <button class="btn-primary" id="manual-btn">＋ 手动录入</button>
         </div>
+        <div class="edit-banner" id="edit-banner" hidden></div>
         <div class="table-wrap">
           <table>
             <thead id="thead"></thead>
@@ -876,7 +925,7 @@
     <div class="modal-mask" id="manual-modal" hidden>
       <div class="modal-card">
         <div class="modal-header">
-          <div class="title">✍️ 手动录入</div>
+          <div class="title" id="manual-title">✍️ 手动录入</div>
           <button class="modal-close" id="manual-close" title="关闭">✕</button>
         </div>
         <div class="modal-body">
@@ -953,11 +1002,35 @@
             <div class="form-group span-2">
               <label
                 >净收入/h
-                <span class="label-note"
+                <span class="label-note" id="m-net-note"
                   >自动计算 = 金币收益 − 血瓶钱 − 蓝瓶钱</span
                 ></label
               >
               <div class="readonly-field" id="m-net">-</div>
+            </div>
+            <div class="form-group">
+              <label for="m-power"
+                >攻击力/魔法力
+                <span class="label-note">选填，未记录留空</span></label
+              >
+              <input
+                id="m-power"
+                type="number"
+                min="0"
+                step="1"
+                placeholder="如 122"
+              />
+            </div>
+            <div class="form-group span-2">
+              <label for="m-note"
+                >备注 <span class="label-note">选填，补充说明</span></label
+              >
+              <input
+                id="m-note"
+                type="text"
+                maxlength="500"
+                placeholder="如装备/药水配置说明…"
+              />
             </div>
           </div>
           <div class="modal-error" id="manual-error" hidden></div>
@@ -989,6 +1062,8 @@
           { key: "potionMpPerHour", label: "蓝瓶钱/h", num: 1, zeroDash: 1 },
           { key: "netPerHour", label: "净收入/h", num: 1 },
           { key: "durationSeconds", label: "测试时长", num: 1 },
+          { key: "power", label: "攻击力", num: 1, zeroDash: 1 },
+          { key: "note", label: "备注" },
           { key: "_copy", label: "操作", noSort: 1 },
         ];
 
@@ -1006,6 +1081,12 @@
         var SHARE_ID = (
           new URLSearchParams(location.search).get("id") || ""
         ).trim();
+        // 编辑授权：客户端带 exp.html?token=<JWT> 打开，session 接口校验后得到可编辑的设备ID
+        var EDIT_TOKEN = (
+          new URLSearchParams(location.search).get("token") || ""
+        ).trim();
+        var editSub = null; // 有编辑权限的设备ID（null=未授权，编辑按钮全部置灰）
+        var editExp = 0; // 授权过期时间戳(ms)，仅用于横幅展示
 
         var $thead = document.getElementById("thead");
         var $tbody = document.getElementById("tbody");
@@ -1055,6 +1136,10 @@
         var JOB_ALIASES = { 枪骑士: "枪战士", 冰雷: "冰雷法师" };
         function jobLabel(j) {
           return JOB_ALIASES[j] || j;
+        }
+        // 只有授权设备的行才允许编辑；其余行编辑按钮置灰
+        function canEditRow(r) {
+          return !!editSub && r.deviceId === editSub;
         }
 
         // 净收入/h = 金币收益 - 血瓶钱 - 蓝瓶钱；正显红 +，负显绿 -（涨红跌绿惯例）
@@ -1109,8 +1194,26 @@
           if (col.key === "netPerHour")
             return netHtml(r.netPerHour, r.goldPerHour);
           if (col.key === "job") return esc(jobLabel(v));
-          if (col.key === "_copy") {
+          if (col.key === "note") {
+            if (v == null || v === "") return "";
             return (
+              '<span class="note-cell" title="' +
+              esc(v) +
+              '">' +
+              esc(v) +
+              "</span>"
+            );
+          }
+          if (col.key === "_copy") {
+            // 编辑仅对本页授权设备（editSub）的行点亮，其余置灰
+            var editBtn =
+              '<button class="edit-btn" data-id="' +
+              esc(r.id) +
+              '" data-act="edit"' +
+              (canEditRow(r) ? "" : ' disabled title="需打开带本设备 token 的链接才可编辑"') +
+              ">编辑</button>";
+            return (
+              editBtn +
               '<button class="copy-btn" data-id="' +
               esc(r.id) +
               '">分享</button>'
@@ -1492,6 +1595,14 @@
             }
             return;
           }
+          var editBtn = e.target.closest(".edit-btn");
+          if (editBtn) {
+            var editRec = allRows.filter(function (x) {
+              return String(x.id) === editBtn.getAttribute("data-id");
+            })[0];
+            if (editRec && canEditRow(editRec)) openEditModal(editRec);
+            return;
+          }
           var btn = e.target.closest(".copy-btn");
           if (!btn) return;
           var rec = allRows.filter(function (x) {
@@ -1573,6 +1684,7 @@
         var $manualSubmit = document.getElementById("manual-submit");
         var $mapInput = document.getElementById("m-map");
         var $mapList = document.getElementById("map-list");
+        var editingId = null; // 非空=处于「编辑」模式，记录 id 即为被编辑行
 
         function manualError(msg) {
           var $el = document.getElementById("manual-error");
@@ -1672,12 +1784,75 @@
 
         function openManualModal() {
           resetManualForm();
+          $manualSubmit.textContent = "提交";
+          document.getElementById("manual-title").textContent = "✍️ 手动录入";
           $manualModal.hidden = false;
           loadManualMeta().catch(function (err) {
             // 内部错误只进控制台，弹窗内只提示简单信息
             console.error("加载手动录入选项失败：", err);
             manualError("选项加载失败，请关闭后重试");
           });
+        }
+        // 编辑模式：与手动录入共用同一弹窗，预填该行数据；仅授权设备的行能进来
+        function openEditModal(row) {
+          resetManualForm();
+          editingId = row.id;
+          $manualSubmit.textContent = "保存";
+          document.getElementById("manual-title").textContent = "✏️ 编辑记录";
+
+          document.getElementById("m-level").value = row.level;
+          document.getElementById("m-party").value =
+            row.partyMode === "party" ? "party" : "solo";
+          document.getElementById("m-exp").value =
+            row.expPerHour != null ? row.expPerHour : "";
+          document.getElementById("m-power").value =
+            row.power != null ? row.power : "";
+          document.getElementById("m-note").value = row.note || "";
+          $mapInput.value = row.mapName || "";
+          manual.map = null; // 具体命中由下方 meta 加载完成后再定
+
+          // 经济字段：v1 行（有 delta 金币）可编辑并预填；v2 行未上报金币/药水，禁用
+          var hasEcon = row.delta && row.delta.gold != null;
+          setEconEditable(hasEcon);
+          if (hasEcon) {
+            document.getElementById("m-gold").value =
+              row.goldPerHour != null ? row.goldPerHour : "";
+            document.getElementById("m-hp").value =
+              row.potionHpPerHour != null ? row.potionHpPerHour : "";
+            document.getElementById("m-mp").value =
+              row.potionMpPerHour != null ? row.potionMpPerHour : "";
+          }
+          recomputeNet();
+          $manualModal.hidden = false;
+          manualHideError();
+
+          // 职业/地图回填依赖选项数据，加载完成后补（未加载时先开弹窗，值稍后到位）
+          loadManualMeta()
+            .catch(function (err) {
+              console.error("加载编辑选项失败：", err);
+              manualError("选项加载失败，请关闭后重试");
+            })
+            .then(function () {
+              fillJobSelect(row.job);
+              var mapName = row.mapName || "";
+              if (!manual.maps || !mapName) return;
+              // 地图：优先按 mapid 命中数据集，其次同名；都没有则保留自由文本（mapid 沿原值）
+              var found = null;
+              for (var i = 0; i < manual.maps.length && !found; i++) {
+                if (row.mapId != null && manual.maps[i].mapid === row.mapId)
+                  found = manual.maps[i];
+              }
+              if (!found) {
+                for (var j = 0; j < manual.maps.length && !found; j++) {
+                  if (manual.maps[j].mapName === mapName) found = manual.maps[j];
+                }
+              }
+              manual.map =
+                found || {
+                  mapid: row.mapId != null ? row.mapId : null,
+                  mapName: mapName,
+                };
+            });
         }
         function closeManualModal() {
           $manualModal.hidden = true;
@@ -1692,10 +1867,39 @@
           document.getElementById("m-gold").value = "";
           document.getElementById("m-hp").value = "";
           document.getElementById("m-mp").value = "";
+          document.getElementById("m-power").value = "";
+          document.getElementById("m-note").value = "";
           manual.map = null;
           $mapList.hidden = true;
+          setEconEditable(true); // 手动录入可填金币/药水；编辑 v2 行时关掉
+          editingId = null;
           recomputeNet();
           manualHideError();
+        }
+
+        // 编辑 v2 记录（未上报金币/药水）时禁用经济字段；手动录入始终可填
+        function setEconEditable(on) {
+          ["m-gold", "m-hp", "m-mp"].forEach(function (id) {
+            var el = document.getElementById(id);
+            el.disabled = !on;
+            if (!on) el.value = "";
+          });
+          document.getElementById("m-net-note").textContent = on
+            ? "自动计算 = 金币收益 − 血瓶钱 − 蓝瓶钱"
+            : "该条为 v2 记录，未上报金币/药水，不可修改";
+        }
+
+        // 职业下拉回填：目标职业不在选项里时动态补一个 option 保留原值
+        function fillJobSelect(job) {
+          var sel = document.getElementById("m-job");
+          sel.value = job || "";
+          if (job && sel.value !== job) {
+            var o = document.createElement("option");
+            o.value = job;
+            o.textContent = job;
+            sel.appendChild(o);
+            sel.value = job;
+          }
         }
 
         // 净收入/h 只读展示：金币收益 − 血瓶钱 − 蓝瓶钱，三项都为空时显示 -
@@ -1716,6 +1920,7 @@
         }
 
         function submitManual() {
+          if (editingId) return submitEdit(); // 编辑模式走 PATCH（授权接口），创建走下方 v1
           var level = Math.round(
             Number(document.getElementById("m-level").value),
           );
@@ -1729,6 +1934,12 @@
           var gold = Number($gold.value);
           var hp = $hp.value.trim() === "" ? 0 : Number($hp.value);
           var mp = $mp.value.trim() === "" ? 0 : Number($mp.value);
+          var powerRaw = document.getElementById("m-power").value;
+          var power =
+            powerRaw.trim() === "" ? null : Math.round(Number(powerRaw));
+          if (power != null && !(power >= 0 && power <= 1e9))
+            return manualError("攻击力/魔法力填写有误");
+          var note = document.getElementById("m-note").value;
 
           if (!(level >= 1) || level > 300)
             return manualError("请填写 30-100 之间的等级");
@@ -1761,6 +1972,8 @@
               levelsGained: 0,
             },
             profit: { potionHpValue: hp, potionMpValue: mp },
+            note: note, // 备注（可选，空串由服务端按无处理）
+            power: power, // 攻击力/魔法力（可选，空视为无）
           };
 
           manualHideError();
@@ -1796,6 +2009,171 @@
               $manualSubmit.textContent = "提交";
               console.error("手动录入失败：", err);
               manualError("录入失败，请稍后重试");
+            });
+        }
+
+        // 编辑提交：PATCH /api/v2/exp/report（带 Bearer token），只能改授权设备自己的行
+        function submitEdit() {
+          var level = Math.round(
+            Number(document.getElementById("m-level").value),
+          );
+          var job = document.getElementById("m-job").value;
+          var party = document.getElementById("m-party").value;
+          var exp = Number(document.getElementById("m-exp").value);
+          var powerRaw = document.getElementById("m-power").value;
+          var power =
+            powerRaw.trim() === "" ? null : Math.round(Number(powerRaw));
+          var note = document.getElementById("m-note").value;
+          var mapName = $mapInput.value.trim();
+          var mapid =
+            manual.map &&
+            manual.map.mapName === mapName &&
+            manual.map.mapid != null
+              ? manual.map.mapid
+              : null;
+
+          if (!(level >= 1) || level > 300)
+            return manualError("请填写 1-300 之间的等级");
+          if (!job) return manualError("请选择职业");
+          if (!mapName) return manualError("请填写地图");
+          if (
+            document.getElementById("m-exp").value.trim() === "" ||
+            !(exp >= 0)
+          )
+            return manualError("请填写正确的经验/h");
+          if (power != null && !(power >= 0 && power <= 1e9))
+            return manualError("攻击力/魔法力填写有误");
+
+          var body = {
+            id: editingId,
+            level: level,
+            job: job,
+            map: mapName,
+            mode: party,
+            exp_per_hour: Math.round(exp),
+            note: note,
+            power: power,
+            map_id: mapid,
+          };
+          // 经济字段仅在可编辑（v1 有 delta）的行生效；留空 = 该项不改动
+          if (!document.getElementById("m-gold").disabled) {
+            var readNum = function (id, max) {
+              var raw = document.getElementById(id).value.trim();
+              if (raw === "") return { skip: true };
+              var n = Number(raw);
+              if (!(n >= 0) || n > max) return { bad: true };
+              return { v: Math.round(n) };
+            };
+            var g = readNum("m-gold", 1e10);
+            var hp = readNum("m-hp", 1e9);
+            var mp = readNum("m-mp", 1e9);
+            if (g.bad || hp.bad || mp.bad)
+              return manualError("金币/药水金额填写有误");
+            if (!g.skip) body.gold_per_hour = g.v;
+            if (!hp.skip) body.potion_hp_per_hour = hp.v;
+            if (!mp.skip) body.potion_mp_per_hour = mp.v;
+          }
+
+          manualHideError();
+          $manualSubmit.disabled = true;
+          $manualSubmit.textContent = "保存中…";
+          fetch(API_BASE + "/api/v2/exp/report", {
+            method: "PATCH",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: "Bearer " + EDIT_TOKEN,
+            },
+            body: JSON.stringify(body),
+          })
+            .then(function (r) {
+              return r.json().then(function (j) {
+                return { status: r.status, j: j };
+              });
+            })
+            .then(function (res) {
+              $manualSubmit.disabled = false;
+              $manualSubmit.textContent = "保存";
+              if (!res.j || !res.j.ok) {
+                console.error("编辑被拒绝：", res.status, res.j);
+                if (res.status === 401 || res.status === 403) {
+                  clearEditAuth();
+                  manualError(
+                    res.status === 403
+                      ? "只能编辑本设备上报的记录"
+                      : "编辑授权已过期或无效，请重新打开授权链接",
+                  );
+                } else {
+                  manualError("保存失败，请稍后重试");
+                }
+                return;
+              }
+              closeManualModal();
+              load(); // 立即刷新，编辑结果出现在表格
+            })
+            .catch(function (err) {
+              $manualSubmit.disabled = false;
+              $manualSubmit.textContent = "保存";
+              console.error("编辑失败：", err);
+              manualError("保存失败，请稍后重试");
+            });
+        }
+
+        /* ---- 编辑授权（exp.html?token= 会话） ---- */
+        function editBanner(msg, warn) {
+          var $b = document.getElementById("edit-banner");
+          $b.hidden = false;
+          $b.className = "edit-banner" + (warn ? " warn" : "");
+          $b.innerHTML = msg;
+        }
+        function clearEditAuth() {
+          editSub = null;
+          editExp = 0;
+          document.getElementById("edit-banner").hidden = true;
+          render(); // 撤销权限后重新点亮状态：编辑按钮全部回灰
+        }
+        // 带 token 打开时调 /api/v2/exp/session 确认授权设备；成功后点亮该设备行的编辑按钮
+        function resolveEditToken() {
+          if (!EDIT_TOKEN) return;
+          // 先从地址栏移除 token，避免误分享/进代理与访问日志（file:// 下 replaceState 可能失败，忽略）
+          try {
+            if (history.replaceState) {
+              var u = new URL(location.href);
+              u.searchParams.delete("token");
+              history.replaceState(null, "", u.toString());
+            }
+          } catch (e) {
+            console.warn("移除地址栏 token 失败：", e);
+          }
+          fetch(API_BASE + "/api/v2/exp/session", {
+            headers: { Authorization: "Bearer " + EDIT_TOKEN },
+          })
+            .then(function (r) {
+              return r.json().then(function (j) {
+                return { status: r.status, j: j };
+              });
+            })
+            .then(function (res) {
+              if (res.j && res.j.ok) {
+                editSub = res.j.sub;
+                editExp = res.j.exp * 1000;
+                editBanner(
+                  "🔑 已获得 <b>" +
+                    esc(editSub) +
+                    "</b> 的编辑权限，可修改该设备上报的记录（" +
+                    fmtTime(res.j.exp * 1000) +
+                    " 过期）",
+                  false,
+                );
+                render();
+              } else {
+                console.warn("编辑 token 无效或已过期：", res.status, res.j);
+                editBanner("编辑授权已过期或无效，仅打开对应 token 链接才能编辑", true);
+                EDIT_TOKEN = ""; // 置空，避免编辑请求携带注定失败的 token
+              }
+            })
+            .catch(function (err) {
+              console.error("校验编辑 token 失败：", err);
+              editBanner("编辑授权校验失败，暂不可编辑", true);
             });
         }
 
@@ -1840,6 +2218,7 @@
           $mapList.hidden = true;
         });
 
+        resolveEditToken(); // 带 token 打开时确认编辑授权（无 token 直接跳过）
         load();
         setInterval(load, POLL_MS);
       })();

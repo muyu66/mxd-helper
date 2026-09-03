@@ -151,6 +151,8 @@ CREATE TABLE exp_reports (
   profit_potion_mp_per_hour BIGINT NULL,
   server_time      TIMESTAMP(3)   NULL,
   snapshot         JSON           NULL COMMENT '客户端上报的原始请求体(校验前 body 原文),审计/回溯用',
+  note             VARCHAR(500)   NULL COMMENT '备注(客户端可选,空串存 NULL)',
+  power            INT            NULL COMMENT '攻击力/魔法力(客户端可选)',
   PRIMARY KEY (id),
   UNIQUE KEY uk_exp_seq (seq),
   KEY idx_exp_device (device_id),

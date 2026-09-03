@@ -53,8 +53,8 @@
     "</style>" +
     '<div class="mh-banner">' +
     '<div class="mh-banner-inner">' +
-    '<span class="mh-new">NEW</span>' +
-    '<span class="mh-banner-text">猪猪工具Bar v1.2 提供 BOSS计时、EXP效率计算、999打卡、商人刷新通知，体积只有4M。' +
+    '<span class="mh-new">HOT</span>' +
+    '<span class="mh-banner-text">猪猪工具Bar v2.0 最新增加实时经验显示功能，安全无侵入，体积只有7M。' +
     '<a class="mh-banner-link" href="mxd-bar.zip">立即下载</a></span>' +
     "</div>" +
     "</div>" +

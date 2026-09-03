@@ -194,7 +194,11 @@ async function loadWaiguaTodayText() {
 
 /* ---------------- exp(行转换供 server.js 使用,不经注入) ---------------- */
 
-/** DB 行 → /api/exp/reports 的记录形状(与 server.js buildExpRecord 产出的结构一致) */
+/** NULL 安全数值转换：v2 上报只带经验/h，金币/药水/delta 列为 NULL → null（前端显示「-」）；
+ *   v1 行数值非空不受影响（前端 Number(x)||0 与统计的 >0 判定对 null/0 等价）。 */
+const numOrNull = (v) => (v == null ? null : Number(v));
+
+/** DB 行 → /api/exp/reports 的记录形状(与 server.js buildExpRecord / buildExpV2Record 产出的结构一致) */
 export function rowToExpReport(row) {
   return {
     id: row.id,
@@ -208,21 +212,23 @@ export function rowToExpReport(row) {
     endTime: row.end_time ? new Date(row.end_time).toISOString() : null,
     durationSeconds: Number(row.duration_seconds),
     delta: {
-      gold: Number(row.delta_gold),
+      gold: numOrNull(row.delta_gold),
       hpPotionUsed: row.delta_hp_potion_used,
       mpPotionUsed: row.delta_mp_potion_used,
-      expGained: Number(row.delta_exp_gained),
+      expGained: numOrNull(row.delta_exp_gained),
       levelsGained: row.delta_levels_gained,
     },
     profit: {
-      expPerHour: Number(row.profit_exp_per_hour),
-      goldPerHour: Number(row.profit_gold_per_hour),
-      potionValue: Number(row.profit_potion_value),
-      potionHpValue: Number(row.profit_potion_hp_value),
-      potionMpValue: Number(row.profit_potion_mp_value),
-      potionHpPerHour: Number(row.profit_potion_hp_per_hour),
-      potionMpPerHour: Number(row.profit_potion_mp_per_hour),
+      expPerHour: numOrNull(row.profit_exp_per_hour),
+      goldPerHour: numOrNull(row.profit_gold_per_hour),
+      potionValue: numOrNull(row.profit_potion_value),
+      potionHpValue: numOrNull(row.profit_potion_hp_value),
+      potionMpValue: numOrNull(row.profit_potion_mp_value),
+      potionHpPerHour: numOrNull(row.profit_potion_hp_per_hour),
+      potionMpPerHour: numOrNull(row.profit_potion_mp_per_hour),
     },
+    note: row.note,
+    power: numOrNull(row.power),
     serverTime: row.server_time ? new Date(row.server_time).toISOString() : null,
   };
 }

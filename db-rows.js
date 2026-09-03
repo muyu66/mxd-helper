@@ -82,7 +82,7 @@ export const EXP_COLS = cols(`id, device_id, level, job, map_id, map_name, party
   profit_exp_per_hour, profit_gold_per_hour, profit_potion_value,
   profit_potion_hp_value, profit_potion_mp_value,
   profit_potion_hp_per_hour, profit_potion_mp_per_hour,
-  server_time, snapshot`);
+  server_time, snapshot, note, power`);
 export const EXP_UPD = EXP_COLS.filter((c) => c !== "id");
 
 /**
@@ -104,6 +104,7 @@ export function toExpRow(r, snapshot = r) {
     toDbVal(r.profit?.potionHpPerHour), toDbVal(r.profit?.potionMpPerHour),
     r.serverTime ? new Date(r.serverTime) : null,
     JSON.stringify(snapshot),
+    toDbVal(r.note), toDbVal(r.power),
   ];
 }
 
