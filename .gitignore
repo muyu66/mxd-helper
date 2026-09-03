@@ -57,6 +57,7 @@ report.[0-9]*.[0-9]*.[0-9]*.[0-9]*.json
 
 .history
 .env.*
+server.env
 last-id-*.txt
 debug_*.html
 equipment_cache.json

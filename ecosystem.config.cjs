@@ -9,16 +9,11 @@ module.exports = {
       script: "server.js",
       cwd: __dirname,
       time: true, // 日志带时间戳
+      env_file: "server.env", // 服务器本地环境变量（暗号/MySQL 口令等，进 .gitignore 不进 git）
       env: {
         HOST: "127.0.0.1", // 只监听本机：公网流量统一走 nginx 反代，不暴露 3000 端口
         // OCR 已拆分到 mxd-ocr（ocr_worker.js）：本进程只转交任务，
         // server.js 的 OCR_PORT 与 mxd-ocr 的 PORT 默认一致（3002），不同时再单独配置
-        SHENMI_CODE: "xiaozhu", // shenmi.html 暗号（页面解锁 + /api/ocr*、/api/price 校验），改这里后 pm2 restart mxd-server
-        // MySQL 连接（部署时填真实口令；库结构见 schema.sql，上线前先跑迁移脚本）
-        MYSQL_HOST: "127.0.0.1",
-        MYSQL_USER: "mxd",
-        MYSQL_PASSWORD: "CHANGE_ME",
-        MYSQL_DATABASE: "mxd_helper",
       },
       max_memory_restart: "200M", // 注入数据缓存 + gzip 缓存，异常涨内存时兜底重启
       // 常驻 HTTP 服务，pm2 默认自动拉起；数据变化由 server.js 内部轮询 dataset_meta 重载
@@ -45,12 +40,7 @@ module.exports = {
       cwd: __dirname,
       max_memory_restart: "300M", // 异常涨内存时自动重启兜底
       time: true, // 日志带时间戳
-      env: {
-        MYSQL_HOST: "127.0.0.1",
-        MYSQL_USER: "mxd",
-        MYSQL_PASSWORD: "CHANGE_ME",
-        MYSQL_DATABASE: "mxd_helper",
-      },
+      env_file: "server.env", // 与 mxd-server 共用同一份服务器本地环境变量
       // 抓取循环在脚本内部实现，进程正常运行不会退出；
       // 若进程意外崩溃，pm2 默认自动拉起（autorestart 默认开启）
     },
@@ -59,12 +49,7 @@ module.exports = {
       script: "account-info.js",
       cwd: __dirname,
       time: true, // 日志带时间戳
-      env: {
-        MYSQL_HOST: "127.0.0.1",
-        MYSQL_USER: "mxd",
-        MYSQL_PASSWORD: "CHANGE_ME",
-        MYSQL_DATABASE: "mxd_helper",
-      },
+      env_file: "server.env", // 与 mxd-server 共用同一份服务器本地环境变量
       // 单次执行脚本（抓完全部分页后正常退出），由 pm2 按 cron 每小时拉起一次：
       // 每小时第 7 分钟执行，避免与整点任务挤在同一时刻
       cron_restart: "7 * * * *",
