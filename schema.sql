@@ -153,6 +153,7 @@ CREATE TABLE exp_reports (
   snapshot         JSON           NULL COMMENT '客户端上报的原始请求体(校验前 body 原文),审计/回溯用',
   note             VARCHAR(500)   NULL COMMENT '备注(客户端可选,空串存 NULL)',
   power            INT            NULL COMMENT '攻击力/魔法力(客户端可选)',
+  vip              TINYINT(1)     NULL DEFAULT NULL COMMENT '会员加成:1=有会员/0=无会员/NULL=未知(v2上报属性,布尔转存)',
   PRIMARY KEY (id),
   UNIQUE KEY uk_exp_seq (seq),
   KEY idx_exp_device (device_id),

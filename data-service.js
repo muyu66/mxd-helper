@@ -229,6 +229,7 @@ export function rowToExpReport(row) {
     },
     note: row.note,
     power: numOrNull(row.power),
+    vip: row.vip == null ? null : !!row.vip, // TINYINT(1) 0/1 → boolean，NULL 表示未知
     serverTime: row.server_time ? new Date(row.server_time).toISOString() : null,
   };
 }
@@ -280,6 +281,7 @@ export function canonicalizeExpReport(r) {
       potionHpPerHour: r.profit.potionHpPerHour,
       potionMpPerHour: r.profit.potionMpPerHour,
     },
+    vip: r.vip == null ? null : !!r.vip, // 源文件旧记录无 vip → 未知 null
     serverTime: r.serverTime,
   };
 }

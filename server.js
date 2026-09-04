@@ -43,7 +43,7 @@ import { fileURLToPath } from "node:url";
 import { searchGoodsAll } from "./gmmsj.mjs";
 import { q, qOne, tx, bulkUpsert, toDbVal } from "./db.js";
 import { loadDatasetText, rowToExpReport } from "./data-service.js";
-import { EXP_COLS, toExpRow, PRICE_COLS, PRICE_UPD, toPriceRow } from "./db-rows.js";
+import { EXP_COLS, toExpRow, vipToDb, PRICE_COLS, PRICE_UPD, toPriceRow } from "./db-rows.js";
 
 const ROOT = path.dirname(fileURLToPath(import.meta.url));
 const PORT = Number(process.env.PORT) || 3001;
@@ -527,9 +527,11 @@ function buildExpRecord(body) {
   if (!str(body.mapName, 64)) return { ok: false, error: "mapName 非法" };
   if (!/^[a-z]{1,16}$/i.test(String(body.partyMode || ""))) return { ok: false, error: "partyMode 非法" };
 
-  // v1 兼容 v2 新增的可选属性（备注 / 攻击力-魔法力）：公共页手录可填，空串视为无
+  // v1 兼容 v2 新增的可选属性（备注 / 攻击力-魔法力 / 会员 vip）：公共页手录可填，空串视为无
   const np = validateNotePower(body);
   if (!np.ok) return np;
+  const vp = validateVip(body); // 会员加成：仅新版手动录入会传，布尔/null 合法
+  if (!vp.ok) return vp;
 
   const start = Date.parse(body.startTime);
   const end = Date.parse(body.endTime);
@@ -604,6 +606,7 @@ function buildExpRecord(body) {
       },
       note: np.note,
       power: np.power,
+      vip: vp.vip, // 会员加成：手动录入可选传；PC 端 v1 不传 → 未知 null
       serverTime: new Date().toISOString(),
     },
   };
@@ -622,6 +625,14 @@ function validateNotePower(body) {
     power = body.power;
   }
   return { ok: true, note, power };
+}
+
+/** 可选会员加成 vip（v2 上报 + v1 手动录入共用）：true=有会员 / false=无会员 / 缺省或 null=未知；只收布尔，其余拒绝 */
+function validateVip(body) {
+  const v = body.vip;
+  if (v === undefined || v === null) return { ok: true, vip: null };
+  if (typeof v !== "boolean") return { ok: false, error: "vip 非法" };
+  return { ok: true, vip: v };
 }
 
 /** POST /api/exp/report：PC 端上报一段采集周期的收益（限频 + 校验重算） */
@@ -788,6 +799,8 @@ function buildExpV2Record(sub, body) {
   if (!num(body.test_seconds, 0, EXP_MAX_DURATION_S)) return { ok: false, error: "test_seconds 非法" };
   const np = validateNotePower(body);
   if (!np.ok) return np;
+  const vp = validateVip(body); // 会员加成（布尔；true/false，缺省或 null = 未知）
+  if (!vp.ok) return vp;
 
   return {
     ok: true,
@@ -811,6 +824,7 @@ function buildExpV2Record(sub, body) {
       },
       note: np.note,
       power: np.power,
+      vip: vp.vip, // 会员加成:true=有 / false=无 / null=未知
       serverTime: new Date().toISOString(),
     },
   };
@@ -949,6 +963,12 @@ function buildExpEdit(rec, body) {
       return { ok: false, error: "power 非法" };
     } else next.power = body.power;
   }
+  // 会员加成 vip：PATCH 可改；true=有会员 / false=无会员 / null=清为未知；键缺省沿用原值
+  if (body.vip !== undefined) {
+    const vp = validateVip(body);
+    if (!vp.ok) return vp;
+    next.vip = vp.vip;
+  }
 
   // 经验/h：直接写 profit 列；v1 语义行（有 delta）同步反推 delta 差值与药水金额，保持库内自洽
   next.profit.expPerHour = Math.round(body.exp_per_hour);
@@ -983,7 +1003,7 @@ async function updateExpReport(id, deviceId, r) {
        profit_exp_per_hour=?, profit_gold_per_hour=?, profit_potion_value=?,
        profit_potion_hp_value=?, profit_potion_mp_value=?,
        profit_potion_hp_per_hour=?, profit_potion_mp_per_hour=?,
-       note=?, power=?
+       note=?, power=?, vip=?
      WHERE id=? AND device_id=?`,
     [
       toDbVal(r.level), toDbVal(r.job), toDbVal(r.mapId), toDbVal(r.mapName), toDbVal(r.partyMode),
@@ -1000,7 +1020,7 @@ async function updateExpReport(id, deviceId, r) {
       toDbVal(r.profit ? r.profit.potionMpValue : null),
       toDbVal(r.profit ? r.profit.potionHpPerHour : null),
       toDbVal(r.profit ? r.profit.potionMpPerHour : null),
-      toDbVal(r.note), toDbVal(r.power),
+      toDbVal(r.note), toDbVal(r.power), vipToDb(r.vip),
       id, deviceId,
     ],
   );
@@ -1133,13 +1153,33 @@ function buildGroupStats(list, keyOf) {
     .sort((a, b) => (b.avgExpPerHour || 0) - (a.avgExpPerHour || 0)); // 平均经验/h 高的在前
 }
 
-/** GET /api/exp/reports?limit=&id=：表格页读取（公开只读无需密钥；最新在前）
+/** 等级段刻槽（与 exp.html 前端一致）：1-9 / 10-19 … 90-99 / 100+；非法返回 "" */
+function expLevelBucket(lv) {
+  lv = Number(lv);
+  if (!(lv >= 1)) return "";
+  if (lv >= 100) return "100+";
+  if (lv < 10) return "1-9";
+  const lo = Math.floor(lv / 10) * 10;
+  return lo + "-" + (lo + 9);
+}
+
+/** GET /api/exp/reports?limit=&id=&job=&level=：表格页读取（公开只读无需密钥；最新在前）
  *  id 可选：传记录 id 则只返回那一条（客户端分享 exp.html?id=xxx 链接用）
- *  响应带 mapStats：全量数据按地图聚合的平均值（地图均值面板用） */
+ *  job/level 可选：职业(归一化名)与等级段筛选，作用于聚合输入集合——
+ *  mapStats/jobStats（地图/职业均值面板）只在筛选出的子集里算；
+ *  reports 仍返回全量窗口（明细表由前端本地再筛，避免把职业下拉框选项一起筛没）。 */
 function handleExpReports(req, res) {
   const q = new URL(req.url, "http://localhost").searchParams;
   const recordId = (q.get("id") || "").trim();
   const list = recordId ? expReports.filter((r) => r.id === recordId) : expReports;
+
+  // 聚合统计的输入集合：按职业/等级段收窄（空参 = 全量）
+  const job = (q.get("job") || "").trim();
+  const level = (q.get("level") || "").trim();
+  let statsList = list;
+  if (job) statsList = statsList.filter((r) => (JOB_ALIASES[r.job] || r.job) === job);
+  if (level) statsList = statsList.filter((r) => expLevelBucket(r.level) === level);
+
   let limit = Number(q.get("limit")) || 200;
   limit = Math.max(1, Math.min(500, Math.floor(limit)));
   const reports = list.slice(-limit).reverse();
@@ -1155,8 +1195,8 @@ function handleExpReports(req, res) {
         total: list.length,
         serverTime: new Date().toISOString(),
         reports,
-        mapStats: buildGroupStats(list, (r) => r.mapName),
-        jobStats: buildGroupStats(list, (r) => JOB_ALIASES[r.job] || r.job),
+        mapStats: buildGroupStats(statsList, (r) => r.mapName),
+        jobStats: buildGroupStats(statsList, (r) => JOB_ALIASES[r.job] || r.job),
       }),
     ),
   });

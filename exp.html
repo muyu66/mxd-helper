@@ -353,6 +353,42 @@
         padding: 4px 10px;
         border-radius: 100px;
       }
+      /* 明细表头右侧操作区：新版/旧版列开关 + 手动录入按钮 */
+      .header-actions {
+        display: inline-flex;
+        align-items: center;
+        gap: 12px;
+        flex-wrap: wrap;
+      }
+      .view-seg {
+        display: inline-flex;
+        align-items: center;
+        background: #f5f5f5;
+        border-radius: 8px;
+        padding: 2px;
+        gap: 2px;
+      }
+      .seg-btn {
+        border: none;
+        background: transparent;
+        padding: 5px 14px;
+        font-size: 0.85rem;
+        line-height: 1.5;
+        color: var(--text-secondary);
+        border-radius: 6px;
+        cursor: pointer;
+        white-space: nowrap;
+        transition: color 0.2s, background 0.2s, box-shadow 0.2s;
+      }
+      .seg-btn:hover {
+        color: var(--primary);
+      }
+      .seg-btn.on {
+        background: var(--bg-white);
+        color: var(--primary);
+        font-weight: 500;
+        box-shadow: var(--shadow-sm);
+      }
       .table-wrap {
         overflow-x: auto;
         overflow-y: auto;
@@ -441,6 +477,20 @@
       .party-pill.party {
         background: #f6ffed;
         color: #389e0d;
+      }
+      /* 会员加成：有会员金/琥珀、无会员中性灰、未知显示 - */
+      .vip-pill {
+        display: inline-block;
+        padding: 2px 9px;
+        border-radius: 10px;
+        font-size: 0.72rem;
+        font-weight: 600;
+        background: #f5f5f5;
+        color: #8c8c8c;
+      }
+      .vip-pill.on {
+        background: #fff7e6;
+        color: #d46b08;
       }
       .src {
         color: var(--text-tertiary);
@@ -882,7 +932,9 @@
       <!-- 地图均值面板（默认收缩） -->
       <div class="table-card stats-card" id="stats-card">
         <div class="table-card-header stats-toggle" id="stats-toggle">
-          <div class="title">🗺️ 地图均值 <span class="badge">全量</span></div>
+          <div class="title">
+            🗺️ 地图均值 <span class="badge" id="stats-badge">全量</span>
+          </div>
           <span class="stats-hint" id="stats-hint">点击展开</span>
         </div>
         <div class="table-wrap">
@@ -907,7 +959,9 @@
       <!-- 职业均值面板（默认收缩） -->
       <div class="table-card stats-card" id="job-stats-card">
         <div class="table-card-header stats-toggle" id="job-stats-toggle">
-          <div class="title">⚔️ 职业均值 <span class="badge">全量</span></div>
+          <div class="title">
+            ⚔️ 职业均值 <span class="badge" id="job-stats-badge">全量</span>
+          </div>
           <span class="stats-hint" id="job-stats-hint">点击展开</span>
         </div>
         <div class="table-wrap">
@@ -935,7 +989,29 @@
           <div class="title">
             📊 上报明细 <span class="badge" id="table-badge">--</span>
           </div>
-          <button class="btn-primary" id="manual-btn">＋ 手动录入</button>
+          <div class="header-actions" id="header-actions">
+            <div class="view-seg" id="view-seg" role="group" aria-label="表格列版本">
+              <button
+                type="button"
+                class="seg-btn on"
+                id="view-new"
+                data-view="new"
+                title="新版：隐藏金币收益 / 血瓶钱 / 蓝瓶钱 / 净收入列"
+              >
+                新版
+              </button>
+              <button
+                type="button"
+                class="seg-btn"
+                id="view-old"
+                data-view="old"
+                title="旧版：显示金币收益 / 血瓶钱 / 蓝瓶钱 / 净收入列"
+              >
+                旧版
+              </button>
+            </div>
+            <button class="btn-primary" id="manual-btn">＋ 手动录入</button>
+          </div>
         </div>
         <div class="edit-banner" id="edit-banner" hidden></div>
         <div class="table-wrap">
@@ -1005,6 +1081,17 @@
                 step="1"
                 placeholder="1 小时获得经验"
               />
+            </div>
+            <div class="form-group" id="vip-group">
+              <label for="m-vip"
+                >会员加成
+                <span class="label-note">有/无会员影响经验加成；未知留空</span></label
+              >
+              <select id="m-vip">
+                <option value="">未知</option>
+                <option value="1">有会员</option>
+                <option value="0">无会员</option>
+              </select>
             </div>
             <div class="form-group">
               <label for="m-gold">金币收益/h</label>
@@ -1108,6 +1195,40 @@
         var sortCol = null; // 排序列 key；null = 接口顺序（上报时间倒序）
         var sortDir = 1; // 1 升序 / -1 降序
         var runId = 0; // 丢弃过期轮询结果（与 shenmi.html 同款）
+        // 表格列版本：新版（去金币收益/血瓶钱/蓝瓶钱/净收入列）｜旧版（全列）
+        // 用户选择存 localStorage，默认新版
+        var VIEW_LS = "exp.tableVersion";
+        var tableVersion = "new";
+        try {
+          var savedView = localStorage.getItem(VIEW_LS);
+          if (savedView === "old" || savedView === "new") tableVersion = savedView;
+        } catch (e) {
+          console.warn("读取表格列版本偏好失败：", e);
+        }
+        var ECON_KEYS = [
+          "goldPerHour",
+          "potionHpPerHour",
+          "potionMpPerHour",
+          "netPerHour",
+        ];
+        // 会员加成列：仅新版视图展示（旧版沿用老列集，不出现）
+        var VIP_COL = { key: "vip", label: "会员", noSort: 1 };
+        // 当前生效的列：新版 = 全列去掉经济类四列 + 会员列插在组队之后；旧版用全量
+        function activeCols() {
+          if (tableVersion === "old") return COLS;
+          var cols = COLS.filter(function (c) {
+            return ECON_KEYS.indexOf(c.key) === -1;
+          });
+          var at = cols.length;
+          for (var i = 0; i < cols.length; i++) {
+            if (cols[i].key === "partyMode") {
+              at = i + 1;
+              break;
+            }
+          }
+          cols.splice(at, 0, VIP_COL);
+          return cols;
+        }
         // 分享链接筛选：exp.html?id=<记录id> 时只展示这一条记录
         var SHARE_ID = (
           new URLSearchParams(location.search).get("id") || ""
@@ -1240,6 +1361,13 @@
           }
           if (col.key === "netPerHour")
             return netHtml(r.netPerHour, r.goldPerHour);
+          if (col.key === "vip") {
+            // 会员加成：true=有会员 / false=无会员 / null(未知) 显示 -
+            if (v == null) return "-";
+            return v
+              ? '<span class="vip-pill on">会员</span>'
+              : '<span class="vip-pill">非会员</span>';
+          }
           if (col.key === "job") return esc(jobLabel(v));
           if (col.key === "note") {
             if (v == null || v === "") return "";
@@ -1292,7 +1420,7 @@
         function buildHead() {
           $thead.innerHTML =
             "<tr>" +
-            COLS.map(function (c) {
+            activeCols().map(function (c) {
               var isSorted = c.key === sortCol;
               var cls =
                 (c.num ? "num" : "") +
@@ -1340,7 +1468,7 @@
           if (!sortCol) return list;
           var k = sortCol,
             dir = sortDir;
-          var col = COLS.filter(function (c) {
+          var col = activeCols().filter(function (c) {
             return c.key === k;
           })[0];
           return list.slice().sort(function (a, b) {
@@ -1469,15 +1597,17 @@
             .map(function (r) {
               return (
                 "<tr>" +
-                COLS.map(function (c) {
-                  return (
-                    '<td class="' +
-                    (c.num ? "num" : "") +
-                    '">' +
-                    cellHtml(c, r) +
-                    "</td>"
-                  );
-                }).join("") +
+                activeCols()
+                  .map(function (c) {
+                    return (
+                      '<td class="' +
+                      (c.num ? "num" : "") +
+                      '">' +
+                      cellHtml(c, r) +
+                      "</td>"
+                    );
+                  })
+                  .join("") +
                 "</tr>"
               );
             })
@@ -1504,6 +1634,9 @@
           var id = ++runId;
           var url = API_BASE + "/api/exp/reports?limit=200";
           if (SHARE_ID) url += "&id=" + encodeURIComponent(SHARE_ID);
+          // 职业/等级段筛选一并下发：地图均值/职业均值由服务端在筛选子集上计算
+          if (fJob) url += "&job=" + encodeURIComponent(fJob);
+          if (fLevel) url += "&level=" + encodeURIComponent(fLevel);
           fetch(url)
             .then(function (r) {
               if (!r.ok) throw new Error("HTTP " + r.status);
@@ -1707,18 +1840,31 @@
           });
         });
 
-        // 职业 / 等级段筛选：改下拉框立即重渲染表格
+        // 两个均值面板的角标：随职业/等级段筛选切换「全量」↔「已筛选」
+        function updateStatBadges() {
+          var filtered = !!(fJob || fLevel);
+          var txt = filtered ? "已筛选" : "全量";
+          document.getElementById("stats-badge").textContent = txt;
+          document.getElementById("job-stats-badge").textContent = txt;
+        }
+
+        // 职业 / 等级段筛选：改下拉框立即重渲染表格；
+        // 同时下发到服务端刷新地图/职业均值（在筛选子集上算）
         document
           .getElementById("f-job")
           .addEventListener("change", function () {
             fJob = this.value;
+            updateStatBadges();
             render();
+            load();
           });
         document
           .getElementById("f-level")
           .addEventListener("change", function () {
             fLevel = this.value;
+            updateStatBadges();
             render();
+            load();
           });
 
         // 数据来源筛选提示里的「清除」入口
@@ -1744,7 +1890,7 @@
           document.getElementById("filter-card").hidden = true;
           document.getElementById("stats-card").hidden = true;
           document.getElementById("job-stats-card").hidden = true;
-          document.getElementById("manual-btn").hidden = true;
+          document.getElementById("header-actions").hidden = true;
         }
 
         /* ============ 手动录入 ============ */
@@ -1879,6 +2025,9 @@
           document.getElementById("m-power").value =
             row.power != null ? row.power : "";
           document.getElementById("m-note").value = row.note || "";
+          // 会员加成：有会员=1 / 无会员=0 / 未知或旧数据=留空；仅新版可编辑
+          document.getElementById("m-vip").value =
+            row.vip == null ? "" : row.vip ? "1" : "0";
           $mapInput.value = row.mapName || "";
           manual.map = null; // 具体命中由下方 meta 加载完成后再定
 
@@ -1940,12 +2089,27 @@
           document.getElementById("m-mp").value = "";
           document.getElementById("m-power").value = "";
           document.getElementById("m-note").value = "";
+          document.getElementById("m-vip").value = ""; // 会员加成默认未知
           manual.map = null;
           $mapList.hidden = true;
           setEconEditable(true); // 手动录入可填金币/药水；编辑 v2 行时关掉
           editingId = null;
           recomputeNet();
           manualHideError();
+          syncModalForView(); // 经济字段/会员字段按当前视图显隐
+        }
+
+        // 弹窗字段随表格列版本联动：新版 = 隐藏经济字段(金币/药水/净收入)、显示会员；
+        // 旧版 = 显示经济字段、隐藏会员（会员只属新版语义）
+        var ECON_GROUP_IDS = ["m-gold", "m-hp", "m-mp", "m-net"];
+        function syncModalForView() {
+          var isNew = tableVersion === "new";
+          ECON_GROUP_IDS.forEach(function (id) {
+            var el = document.getElementById(id);
+            if (el) el.closest(".form-group").style.display = isNew ? "none" : "";
+          });
+          var vg = document.getElementById("vip-group");
+          if (vg) vg.style.display = isNew ? "" : "none";
         }
 
         // 编辑 v2 记录（未上报金币/药水）时禁用经济字段；手动录入始终可填
@@ -1990,6 +2154,14 @@
           $net.innerHTML = netHtml(net, true);
         }
 
+        // 会员加成下拉取值：有会员=true / 无会员=false / 未知="" → null
+        function readVipValue() {
+          var v = document.getElementById("m-vip").value;
+          if (v === "1") return true;
+          if (v === "0") return false;
+          return null;
+        }
+
         function submitManual() {
           if (editingId) return submitEdit(); // 编辑模式走 PATCH（授权接口），创建走下方 v1
           var level = Math.round(
@@ -1997,20 +2169,33 @@
           );
           var job = document.getElementById("m-job").value;
           var party = document.getElementById("m-party").value;
+          // 新版视图下经济字段被隐藏：金币/药水不采集，一律按 0 记录（v1 协议照旧）；
+          // 旧版视图保留原行为——由用户实际填写
+          var isNewView = tableVersion === "new";
           var $exp = document.getElementById("m-exp");
-          var $gold = document.getElementById("m-gold");
-          var $hp = document.getElementById("m-hp");
-          var $mp = document.getElementById("m-mp");
           var exp = Number($exp.value);
-          var gold = Number($gold.value);
-          var hp = $hp.value.trim() === "" ? 0 : Number($hp.value);
-          var mp = $mp.value.trim() === "" ? 0 : Number($mp.value);
+          var gold = 0;
+          var hp = 0;
+          var mp = 0;
+          if (!isNewView) {
+            var $gold = document.getElementById("m-gold");
+            gold = Number($gold.value);
+            hp =
+              document.getElementById("m-hp").value.trim() === ""
+                ? 0
+                : Number(document.getElementById("m-hp").value);
+            mp =
+              document.getElementById("m-mp").value.trim() === ""
+                ? 0
+                : Number(document.getElementById("m-mp").value);
+          }
           var powerRaw = document.getElementById("m-power").value;
           var power =
             powerRaw.trim() === "" ? null : Math.round(Number(powerRaw));
           if (power != null && !(power >= 0 && power <= 1e9))
             return manualError("攻击力/魔法力填写有误");
           var note = document.getElementById("m-note").value;
+          var vip = readVipValue(); // 会员加成：true/false/未知(null)
 
           if (!(level >= 1) || level > 300)
             return manualError("请填写 30-100 之间的等级");
@@ -2018,9 +2203,10 @@
           if (!manual.map) return manualError("请从列表中选择地图");
           if ($exp.value.trim() === "" || !(exp >= 0))
             return manualError("请填写正确的经验/h");
-          if ($gold.value.trim() === "" || !(gold >= 0))
+          // 旧版视图才校验经济字段（新版不采集，金币/药水按 0 记录）
+          if (!isNewView && ($gold.value.trim() === "" || !(gold >= 0)))
             return manualError("请填写正确的金币收益/h");
-          if (!(hp >= 0) || !(mp >= 0))
+          if (!isNewView && (!(hp >= 0) || !(mp >= 0)))
             return manualError("血瓶钱/蓝瓶钱不能为负数");
 
           // 时间戳按「刚刚结束的 1 小时」构造；留 1 秒余量防客户端时钟偏差被判「未来」
@@ -2045,6 +2231,7 @@
             profit: { potionHpValue: hp, potionMpValue: mp },
             note: note, // 备注（可选，空串由服务端按无处理）
             power: power, // 攻击力/魔法力（可选，空视为无）
+            vip: vip, // 会员加成：true/false/null(未知)；仅新版视图展示/录入
           };
 
           manualHideError();
@@ -2085,6 +2272,7 @@
 
         // 编辑提交：PATCH /api/v2/exp/report（带 Bearer token），只能改授权设备自己的行
         function submitEdit() {
+          var isNewView = tableVersion === "new"; // 新版才提交/编辑会员
           var level = Math.round(
             Number(document.getElementById("m-level").value),
           );
@@ -2126,8 +2314,12 @@
             power: power,
             map_id: mapid,
           };
-          // 经济字段仅在可编辑（v1 有 delta）的行生效；留空 = 该项不改动
-          if (!document.getElementById("m-gold").disabled) {
+          // 新版视图下经济字段隐藏、不改动（防止误清原值）；会员由新版编辑框维护
+          if (isNewView) {
+            body.vip = readVipValue(); // null = 清为未知
+          }
+          // 经济字段仅在旧版视图且该行可编辑（v1 有 delta）时生效；留空 = 该项不改动
+          if (!isNewView && !document.getElementById("m-gold").disabled) {
             var readNum = function (id, max) {
               var raw = document.getElementById(id).value.trim();
               if (raw === "") return { skip: true };
@@ -2361,6 +2553,42 @@
           $mapInput.value = m.mapName;
           $mapList.hidden = true;
         });
+
+        /* ---- 新版/旧版列开关：切换即持久化并重渲染表格 ---- */
+        // 同步两个按钮的高亮态；切到新版后若当前排序列（经济类）已被移除，清回默认顺序
+        function applyViewToggle() {
+          document
+            .getElementById("view-new")
+            .classList.toggle("on", tableVersion !== "old");
+          document
+            .getElementById("view-old")
+            .classList.toggle("on", tableVersion === "old");
+          if (
+            sortCol &&
+            !activeCols().some(function (c) {
+              return c.key === sortCol;
+            })
+          )
+            sortCol = null;
+        }
+        document
+          .getElementById("view-seg")
+          .addEventListener("click", function (e) {
+            var btn = e.target.closest(".seg-btn");
+            if (!btn) return;
+            var next =
+              btn.getAttribute("data-view") === "old" ? "old" : "new";
+            if (next === tableVersion) return;
+            tableVersion = next;
+            try {
+              localStorage.setItem(VIEW_LS, tableVersion);
+            } catch (err) {
+              console.warn("保存表格列版本偏好失败：", err);
+            }
+            applyViewToggle();
+            render();
+          });
+        applyViewToggle(); // 按 localStorage 恢复开关态（未记录过时默认新版）
 
         resolveEditToken(); // 带 token 打开时确认编辑授权（无 token 直接跳过）
         load();

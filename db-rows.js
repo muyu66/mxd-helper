@@ -82,7 +82,7 @@ export const EXP_COLS = cols(`id, device_id, level, job, map_id, map_name, party
   profit_exp_per_hour, profit_gold_per_hour, profit_potion_value,
   profit_potion_hp_value, profit_potion_mp_value,
   profit_potion_hp_per_hour, profit_potion_mp_per_hour,
-  server_time, snapshot, note, power`);
+  server_time, snapshot, note, power, vip`);
 export const EXP_UPD = EXP_COLS.filter((c) => c !== "id");
 
 /**
@@ -105,7 +105,14 @@ export function toExpRow(r, snapshot = r) {
     r.serverTime ? new Date(r.serverTime) : null,
     JSON.stringify(snapshot),
     toDbVal(r.note), toDbVal(r.power),
+    vipToDb(r.vip), // 会员加成:布尔 → 0/1，null/缺省 → NULL(未知)
   ];
+}
+
+/** vip 布尔转库值:null/undefined → NULL,true → 1,false → 0（共享给 server.js 的 PATCH 落库） */
+export function vipToDb(v) {
+  if (v === undefined || v === null) return null;
+  return v ? 1 : 0;
 }
 
 /* ---------------- price_cache ---------------- */

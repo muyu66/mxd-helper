@@ -234,7 +234,13 @@ curl "https://你的域名/api/exp/reports?limit=50&id=mj8v3x2a1b9c"
 
 **提交失败排查**：失败时响应是 `{"ok":false,"error":"<原因>"}`，服务端日志同时会打印 `[exp] 拒绝：<原因> | 请求体=…`（含截断的原始请求体）。客户端调试时务必把完整响应原样打印（状态码 + 响应体），常见失败原因：`429 上报过于频繁`（两次成功上报间隔 <5 秒）、`结束时间在未来`（本机时钟超前服务器 5 分钟以上）、`时间戳间隔过短`（`endTime-startTime` < 1 秒）、`partyMode 非法`（只能英文字母 `solo`/`party`，不能是中文「组队」）、连接被拒（服务端没启动或地址/端口不对）。
 
-**地图/职业均值**：`GET /api/exp/reports` 响应自带 `mapStats` 与 `jobStats` 字段——全量数据分别按地图、职业聚合的算术平均值（`group` / `count` / `avgExpPerHour` / `avgGoldPerHour` / `avgPotionHpPerHour` / `avgPotionMpPerHour`），按平均经验/h 降序；值为 0 的记录视为「未记录」，不计入该指标的平均，某指标全部缺失时该字段为 `null`（页面显示 -）；jobStats 按归一化后的职业名分组（枪骑士统一为枪战士）；exp.html 顶部的两个均值面板直接使用，客户端无需关心。
+**地图/职业均值**：`GET /api/exp/reports` 响应自带 `mapStats` 与 `jobStats` 字段——数据分别按地图、职业聚合的算术平均值（`group` / `count` / `avgExpPerHour` / `avgGoldPerHour` / `avgPotionHpPerHour` / `avgPotionMpPerHour`），按平均经验/h 降序；值为 0 的记录视为「未记录」，不计入该指标的平均，某指标全部缺失时该字段为 `null`（页面显示 -）；jobStats 按归一化后的职业名分组（枪骑士统一为枪战士）；exp.html 顶部的两个均值面板直接使用，客户端无需关心。
+
+**职业 / 等级段筛选（作用于两个均值面板）**：GET 支持可选 `job`、`level` 参数。传了之后 `mapStats`/`jobStats` 只在这两个条件圈出的**子集**里算（exp.html 的两个均值面板随顶部的职业/等级段下拉框联动显示「已筛选」）；`reports` 明细**始终返回全量窗口**（页面本地再筛，避免职业下拉框选项被一起筛没）。`job` 传归一化职业名（如 `枪战士`——别名「枪骑士」会被归并），`level` 传等级段字符串（`1-9`/`10-19`/…/`90-99`/`100+`，非法等级记录不在任何段内）。例：只统计 50-59 级枪战士的均值：
+
+```bash
+curl "https://你的域名/api/exp/reports?limit=50&job=%E6%9E%AA%E6%88%98%E5%A3%AB&level=50-59"
+```
 
 **curl 模拟一次上报**：
 
@@ -273,7 +279,7 @@ curl -X POST "https://你的域名/api/exp/report" \
 
 v1（上文 §1~§8）服务端全权重算、上报即快照、只增不改。v2 面向**新版精简协议**与**页面编辑**：
 
-- 上报体是 snake_case 的**每小时值直接上报**（`exp_per_hour` 等），不再发金币/药水（入库对应列留 NULL，页面显示 `-`），新增 **备注** 与 **攻击力/魔法力** 两个可选字段。
+- 上报体是 snake_case 的**每小时值直接上报**（`exp_per_hour` 等），不再发金币/药水（入库对应列留 NULL，页面显示 `-`），新增 **备注**、**攻击力/魔法力**、**会员加成 `vip`** 三个可选字段。
 - 鉴权用 **JWT**：客户端先拿设备密钥换 2h token，之后所有请求带 `Authorization: Bearer <token>`；JWT 的 `sub` 即**设备ID**，服务端以它为 device_id 落库（不信 body 里的设备字段）。
 - **编辑能力**：`exp.html` 通过带 `?token=` 的链接打开后，前端调 session 接口确认授权设备，该设备上报的行出现可点的「编辑」按钮，走 PATCH 就地修改。token 只授权修改**本设备**的记录。
 
@@ -331,6 +337,7 @@ v1（上文 §1~§8）服务端全权重算、上报即快照、只增不改。v
   "mode": "solo",
   "note": "免费测试期",
   "power": 122,
+  "vip": true,
   "test_seconds": 1800
 }
 ```
@@ -346,12 +353,13 @@ v1（上文 §1~§8）服务端全权重算、上报即快照、只增不改。v
 | `mode` ★ | string | 英文字母 `solo`/`party` | `party_mode` | 组队与否（中文会被拒） |
 | `note` ✎ | string | ≤500 字符，空串按无 | `note`（新列） | 备注 |
 | `power` ✎ | integer | 0 ~ 1e9 | `power`（新列） | 攻击力/魔法力 |
+| `vip` ✎ | boolean | `true`/`false`，或**省略 / `null`** | `vip`（新列） | 会员加成：`true`=有会员，`false`=无会员，省略或 `null`=未知（页面显示 `-`） |
 | `test_seconds` ★ | number | 0 ~ 21600（**0 合法**） | `duration_seconds` | 本次测试/刷怪秒数 |
 
 服务端校验通过后以 JWT `sub` 为 device_id 落库，delta/金币/药水相关列一律 NULL。成功 `200`：
 
 ```json
-{ "ok": true, "id": "mtm3...", "report": { "id": "mtm3...", "deviceId": "my-device-uuid", "level": 22, "job": "剑客", "mapId": null, "mapName": "巫婆森林Ⅰ", "partyMode": "solo", "startTime": null, "endTime": null, "durationSeconds": 1800, "delta": { "gold": null, "hpPotionUsed": null, "mpPotionUsed": null, "expGained": null, "levelsGained": null }, "profit": { "expPerHour": 123456, "goldPerHour": null, "potionValue": null, "potionHpValue": null, "potionMpValue": null, "potionHpPerHour": null, "potionMpPerHour": null }, "note": "免费测试期", "power": 122, "serverTime": "2026-08-25T05:50:48.123Z" } }
+{ "ok": true, "id": "mtm3...", "report": { "id": "mtm3...", "deviceId": "my-device-uuid", "level": 22, "job": "剑客", "mapId": null, "mapName": "巫婆森林Ⅰ", "partyMode": "solo", "startTime": null, "endTime": null, "durationSeconds": 1800, "delta": { "gold": null, "hpPotionUsed": null, "mpPotionUsed": null, "expGained": null, "levelsGained": null }, "profit": { "expPerHour": 123456, "goldPerHour": null, "potionValue": null, "potionHpValue": null, "potionMpValue": null, "potionHpPerHour": null, "potionMpPerHour": null }, "note": "免费测试期", "power": 122, "vip": true, "serverTime": "2026-08-25T05:50:48.123Z" } }
 ```
 
 无 token / token 失效 → `401`；限频同 v1（同设备或同 IP 5 秒内只收一条，`429`）。
@@ -377,7 +385,8 @@ v1（上文 §1~§8）服务端全权重算、上报即快照、只增不改。v
   "mode": "party",
   "map_id": null,
   "note": "改过的备注",
-  "power": 500
+  "power": 500,
+  "vip": true
 }
 ```
 
@@ -387,6 +396,7 @@ v1（上文 §1~§8）服务端全权重算、上报即快照、只增不改。v
 - `level/job/map/mode/exp_per_hour` 必填（前端每次带全量当前值）；`map_name` 以 `map` 文本为准。
 - `map_id` 可选：传数字则更新；`null`/缺省 = **沿用原 map_id**（v2 行本就是 NULL，编辑 v1 行且地图名不在站点数据集时传 null 不会丢原 map_id）。
 - `note`：空串 → 清空；`power`：`null` → 清空；键缺省 = 不动该项。
+- `vip`（会员加成）可选：`true`=有会员 / `false`=无会员 / `null`=清回未知；键缺省 = 不改动该项（新版表格视图的编辑框里可改）。
 - 编辑**有金币/药水数据（v1 型）的行**时，可随传 `gold_per_hour` / `potion_hp_per_hour` / `potion_mp_per_hour`（number，≥0），服务端按该行时长反推 delta 差值并同步每小时值，保证库内自洽；不传 = 该项不改。
 - `id / device_id / start_time / end_time / server_time / snapshot` 一律不可改。落库成功才更新内存（GET/轮询下次即见新值）。
 
@@ -403,8 +413,9 @@ https://你的域名/exp.html?token=<上一步换到的 JWT>
 前端行为：
 - 打开后调 `GET /api/v2/exp/session` 校验，通过则顶部出现横幅「🔑 已获得 <设备ID> 的编辑/删除权限」，该设备行的「编辑」「删除」图标点亮；随后**自动从地址栏移除 token**（防误分享/进日志）。
 - 无 token 或 token 失效：横幅提示，「编辑」「删除」图标全部置灰。
-- 点「编辑」打开与「手动录入」同一弹窗（预填等级/职业/地图/经验/h/备注/攻击力；v2 行没有金币/药水，那三项禁用）。保存走上方 PATCH；401/403 会撤销权限并把按钮置灰。
+- 点「编辑」打开与「手动录入」同一弹窗（预填等级/职业/地图/经验/h/备注/攻击力/会员；v2 行没有金币/药水，那三项禁用）。保存走上方 PATCH；401/403 会撤销权限并把按钮置灰。
 - 「手动录入」同样能填备注/攻击力（走 v1，可选），新加的两列在表格展示，v2 行金币/净收入等显示 `-`。
+- 弹窗字段随表格的「新版/旧版」开关联动：**新版**视图隐藏金币/药水/净收入输入、显示「会员加成」下拉（手动录入按 0 记录经济并保存 vip；编辑时 vip 可改，随 PATCH 提交）；**旧版**视图显示经济输入、隐藏会员下拉（编辑经济行时 vip 保持不变）。
 
 ---
 
