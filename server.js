@@ -26,7 +26,7 @@
  *      exp.html 轮询 GET /api/exp/reports 展示。防刷靠按设备/IP 限频、
  *      字段校验、服务端重算每小时收益（不信任客户端算好的 expPerHour 等）。
  *   9. 经验上报 v2（/api/v2/exp/*）：新版工具协议，体精简为经验/h+地图等，
- *      新增备注/攻击力，不再上报金币/药水；JWT 鉴权（HS256，sub=设备ID，2h），
+ *      新增备注/最大攻击力，不再上报金币/药水；JWT 鉴权（HS256，sub=设备ID，2h），
  *      服务端签发（EXP_JWT_SECRET 验签 + EXP_DEVICE_SECRET 换 token）。
  *      exp.html 带 ?token= 打开可编辑/删除「本设备」上报的记录（PATCH/DELETE /api/v2/exp/report）。
  *
@@ -527,7 +527,7 @@ function buildExpRecord(body) {
   if (!str(body.mapName, 64)) return { ok: false, error: "mapName 非法" };
   if (!/^[a-z]{1,16}$/i.test(String(body.partyMode || ""))) return { ok: false, error: "partyMode 非法" };
 
-  // v1 兼容 v2 新增的可选属性（备注 / 攻击力-魔法力 / 会员 vip）：公共页手录可填，空串视为无
+  // v1 兼容 v2 新增的可选属性（备注 / 最大攻击力-魔法力 / 会员 vip）：公共页手录可填，空串视为无
   const np = validateNotePower(body);
   if (!np.ok) return np;
   const vp = validateVip(body); // 会员加成：仅新版手动录入会传，布尔/null 合法
@@ -612,7 +612,7 @@ function buildExpRecord(body) {
   };
 }
 
-/** 可选属性校验（v1/v2 共用）：备注 note(≤500，空串→null) + 攻击力/魔法力 power(int 0~1e9，可缺省) */
+/** 可选属性校验（v1/v2 共用）：备注 note(≤500，空串→null) + 最大攻击力/魔法力 power(int 0~1e9，可缺省) */
 function validateNotePower(body) {
   let note = null;
   if (body.note !== undefined && body.note !== null) {
@@ -713,7 +713,7 @@ function handleExpReport(req, res) {
 }
 
 /* ---------------- 经验上报 v2（/api/v2/exp/*：JWT 鉴权，sub=设备ID） ----------------
- * v2 是新版 PC 工具协议：上报体精简为「经验/h + 职业/等级/地图/组队 + 备注/攻击力/测试时长」，
+ * v2 是新版 PC 工具协议：上报体精简为「经验/h + 职业/等级/地图/组队 + 备注/最大攻击力/测试时长」，
  * 不再上报金币与药水（对应 DB 列留 NULL）；鉴权用服务端签发的 JWT（HS256，默认 2h，
  * payload.sub = 设备ID）。endpoints：
  *   POST /api/v2/exp/token   设备密钥头 X-Exp-Device-Secret 换 JWT（PC 工具内置该密钥）
@@ -952,7 +952,7 @@ function buildExpEdit(rec, body) {
     delta: Object.assign({}, rec.delta || {}),
   });
 
-  // 备注/攻击力：键缺省沿用原值；note 空串或 power null 表示清空
+  // 备注/最大攻击力：键缺省沿用原值；note 空串或 power null 表示清空
   if (body.note !== undefined) {
     if (typeof body.note !== "string" || body.note.length > 500) return { ok: false, error: "note 非法" };
     next.note = body.note.trim() === "" ? null : body.note;

@@ -1238,7 +1238,7 @@
             </div>
             <div class="form-group">
               <label for="m-power"
-                >攻击力/魔法力
+                >最大攻击力/魔法力
                 <span class="label-note">选填，未记录留空</span></label
               >
               <input
@@ -2329,7 +2329,7 @@
           var power =
             powerRaw.trim() === "" ? null : Math.round(Number(powerRaw));
           if (power != null && !(power >= 0 && power <= 1e9))
-            return manualError("攻击力/魔法力填写有误");
+            return manualError("最大攻击力/魔法力填写有误");
           var note = document.getElementById("m-note").value;
           var vip = readVipValue(); // 会员加成：true/false/未知(null)
 
@@ -2366,7 +2366,7 @@
             },
             profit: { potionHpValue: hp, potionMpValue: mp },
             note: note, // 备注（可选，空串由服务端按无处理）
-            power: power, // 攻击力/魔法力（可选，空视为无）
+            power: power, // 最大攻击力/魔法力（可选，空视为无）
             vip: vip, // 会员加成：true/false/null(未知)；仅新版视图展示/录入
           };
 
@@ -2437,7 +2437,7 @@
           )
             return manualError("请填写正确的经验/h");
           if (power != null && !(power >= 0 && power <= 1e9))
-            return manualError("攻击力/魔法力填写有误");
+            return manualError("最大攻击力/魔法力填写有误");
 
           var body = {
             id: editingId,

@@ -6,12 +6,12 @@ PC 端挂机程序每结束一段采集周期，向服务端 POST 一次收益�
 
 ## 1. 接口地址
 
-| 项目 | 值 |
-|---|---|
-| 方法 | `POST` |
-| 地址 | `https://你的域名/api/exp/report`（本地开发：`http://127.0.0.1:3001/api/exp/report`） |
-| `Content-Type` | `application/json` |
-| 请求体上限 | 64 KB（正常一帧约 1.5 KB，无需担心） |
+| 项目           | 值                                                                                    |
+| -------------- | ------------------------------------------------------------------------------------- |
+| 方法           | `POST`                                                                                |
+| 地址           | `https://你的域名/api/exp/report`（本地开发：`http://127.0.0.1:3001/api/exp/report`） |
+| `Content-Type` | `application/json`                                                                    |
+| 请求体上限     | 64 KB（正常一帧约 1.5 KB，无需担心）                                                  |
 
 **无鉴权**：不需要任何密钥或签名头，直接 POST 即可（防刷由服务端的限频与数据校验兜底）。
 
@@ -60,27 +60,27 @@ PC 端挂机程序每结束一段采集周期，向服务端 POST 一次收益�
 
 ### 3.2 字段表（★ = 必填，服务端校验后入库；✎ = 可选）
 
-| 字段 | 类型 | 约束 | 说明 |
-|---|---|---|---|
-| `deviceId` ★ | string | 1~64 字符，只允许字母/数字/`_`/`-` | 设备唯一标识（UUID 即可），兼作限频依据 |
-| `level` ★ | integer | 1 ~ 300 | 本段结束时的角色等级 |
-| `job` ★ | string | 1~32 字符 | 职业名，如 `枪骑士` |
-| `mapId` ★ | integer | 0 ~ 1000000000 | 地图 ID |
-| `mapName` ★ | string | 1~64 字符 | 地图名 |
-| `partyMode` ★ | string | 1~16 个**英文字母**（建议 `solo` / `party`） | 是否组队。服务端只存值不解释，但中文会被拒 |
-| `startTime` ★ | string | ISO 8601 时间（`new Date().toISOString()` 格式） | 本段采集开始时间 |
-| `endTime` ★ | string | ISO 8601；必须晚于 `startTime`；不得超前服务器时间 5 分钟 | 本段采集结束时间 |
-| `durationSeconds` ★ | number | 1 ~ 21600（6 小时） | 本段**实际刷怪时长**（秒，暂停时间不计入）。入库与每小时换算都用它；服务端不再与时间戳比对（有暂停功能时二者不一致是正常的），仅要求时间戳差值本身 ≥ 1 秒 |
-| `delta.gold` ★ | number | ≥ 0 | 本段获得金币（end 金币 - start 金币） |
-| `delta.hpPotionUsed` ★ | integer | 0 ~ 1000000 | 本段消耗血瓶数量 |
-| `delta.mpPotionUsed` ★ | integer | 0 ~ 1000000 | 本段消耗蓝瓶数量 |
-| `delta.expGained` ★ | number | ≥ 0 | 本段获得经验 |
-| `delta.levelsGained` ★ | integer | 0 ~ 100 | 本段升级数 |
-| `profit.potionValue` ✎ | number | ≥ 0 | 本段药水总花费（金币）。不传时按 `potionHpValue + potionMpValue` 计算 |
-| `profit.potionHpValue` ✎ | number | ≥ 0 | 本段血瓶总花费（金币）。不传按 0 |
-| `profit.potionMpValue` ✎ | number | ≥ 0 | 本段蓝瓶总花费（金币）。不传按 0 |
-| `start` / `end` 快照 ✎ | object | 不校验 | 原始完整快照可以照发，服务端直接丢弃，不影响入库 |
-| `profit.expPerHour` / `profit.goldPerHour` 等 ✎ | — | 不校验、不信任 | **服务端会按 `delta` 原始差值自己重算每小时收益**，客户端算不算、传不传都无所谓 |
+| 字段                                            | 类型    | 约束                                                      | 说明                                                                                                                                                      |
+| ----------------------------------------------- | ------- | --------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `deviceId` ★                                    | string  | 1~64 字符，只允许字母/数字/`_`/`-`                        | 设备唯一标识（UUID 即可），兼作限频依据                                                                                                                   |
+| `level` ★                                       | integer | 1 ~ 300                                                   | 本段结束时的角色等级                                                                                                                                      |
+| `job` ★                                         | string  | 1~32 字符                                                 | 职业名，如 `枪骑士`                                                                                                                                       |
+| `mapId` ★                                       | integer | 0 ~ 1000000000                                            | 地图 ID                                                                                                                                                   |
+| `mapName` ★                                     | string  | 1~64 字符                                                 | 地图名                                                                                                                                                    |
+| `partyMode` ★                                   | string  | 1~16 个**英文字母**（建议 `solo` / `party`）              | 是否组队。服务端只存值不解释，但中文会被拒                                                                                                                |
+| `startTime` ★                                   | string  | ISO 8601 时间（`new Date().toISOString()` 格式）          | 本段采集开始时间                                                                                                                                          |
+| `endTime` ★                                     | string  | ISO 8601；必须晚于 `startTime`；不得超前服务器时间 5 分钟 | 本段采集结束时间                                                                                                                                          |
+| `durationSeconds` ★                             | number  | 1 ~ 21600（6 小时）                                       | 本段**实际刷怪时长**（秒，暂停时间不计入）。入库与每小时换算都用它；服务端不再与时间戳比对（有暂停功能时二者不一致是正常的），仅要求时间戳差值本身 ≥ 1 秒 |
+| `delta.gold` ★                                  | number  | ≥ 0                                                       | 本段获得金币（end 金币 - start 金币）                                                                                                                     |
+| `delta.hpPotionUsed` ★                          | integer | 0 ~ 1000000                                               | 本段消耗血瓶数量                                                                                                                                          |
+| `delta.mpPotionUsed` ★                          | integer | 0 ~ 1000000                                               | 本段消耗蓝瓶数量                                                                                                                                          |
+| `delta.expGained` ★                             | number  | ≥ 0                                                       | 本段获得经验                                                                                                                                              |
+| `delta.levelsGained` ★                          | integer | 0 ~ 100                                                   | 本段升级数                                                                                                                                                |
+| `profit.potionValue` ✎                          | number  | ≥ 0                                                       | 本段药水总花费（金币）。不传时按 `potionHpValue + potionMpValue` 计算                                                                                     |
+| `profit.potionHpValue` ✎                        | number  | ≥ 0                                                       | 本段血瓶总花费（金币）。不传按 0                                                                                                                          |
+| `profit.potionMpValue` ✎                        | number  | ≥ 0                                                       | 本段蓝瓶总花费（金币）。不传按 0                                                                                                                          |
+| `start` / `end` 快照 ✎                          | object  | 不校验                                                    | 原始完整快照可以照发，服务端直接丢弃，不影响入库                                                                                                          |
+| `profit.expPerHour` / `profit.goldPerHour` 等 ✎ | —       | 不校验、不信任                                            | **服务端会按 `delta` 原始差值自己重算每小时收益**，客户端算不算、传不传都无所谓                                                                           |
 
 > 注意：`hpPotionUsed`/`mpPotionUsed`/`levelsGained` 要求整数；`gold`/`expGained`/药水金额允许小数；`durationSeconds` 允许小数但建议取整或保留与时间戳一致的真实值。
 
@@ -156,11 +156,11 @@ PC 端挂机程序每结束一段采集周期，向服务端 POST 一次收益�
 
 统一格式 `{"ok": false, "error": "<原因>"}`，按状态码处理：
 
-| 状态码 | error | 客户端处理 |
-|---|---|---|
-| 400 | `请求体不是合法 JSON` / 各字段校验文案（见第 4 节） | 检查本段数据，修正后重试（或丢弃本段，下段照常） |
-| 413 | `请求体过大或连接中断` | 请求体超 64KB 或连接中途断开，缩小报文重试 |
-| 429 | `上报过于频繁` | 距上次成功上报不足 5 秒，等待后重试 |
+| 状态码 | error                                               | 客户端处理                                       |
+| ------ | --------------------------------------------------- | ------------------------------------------------ |
+| 400    | `请求体不是合法 JSON` / 各字段校验文案（见第 4 节） | 检查本段数据，修正后重试（或丢弃本段，下段照常） |
+| 413    | `请求体过大或连接中断`                              | 请求体超 64KB 或连接中途断开，缩小报文重试       |
+| 429    | `上报过于频繁`                                      | 距上次成功上报不足 5 秒，等待后重试              |
 
 ---
 
@@ -183,7 +183,10 @@ async function report(session) {
     const j = await res.json().catch(() => null);
     if (res.ok) {
       console.log("上报成功:", j.report.profit);
-      console.log("分享链接（只显示这一条记录）:", "https://你的域名/exp.html?id=" + j.id);
+      console.log(
+        "分享链接（只显示这一条记录）:",
+        "https://你的域名/exp.html?id=" + j.id,
+      );
       return true;
     }
     if (res.status === 429) {
@@ -199,8 +202,8 @@ async function report(session) {
 }
 
 // 构造一次上报（推荐用 new Date().toISOString() 记录时间戳）
-const start = new Date();            // 采集开始时刻
-const end = new Date();              // 采集结束时刻
+const start = new Date(); // 采集开始时刻
+const end = new Date(); // 采集结束时刻
 await report({
   deviceId: "004abf2e-bbaa-429f-ab0b-14575f9118c1",
   level: 55,
@@ -211,7 +214,13 @@ await report({
   startTime: start.toISOString(),
   endTime: end.toISOString(),
   durationSeconds: Math.round((end - start) / 1000),
-  delta: { gold: 4000, hpPotionUsed: 30, mpPotionUsed: 200, expGained: 3000, levelsGained: 0 },
+  delta: {
+    gold: 4000,
+    hpPotionUsed: 30,
+    mpPotionUsed: 200,
+    expGained: 3000,
+    levelsGained: 0,
+  },
   profit: { potionValue: 41500, potionHpValue: 1500, potionMpValue: 40000 },
 });
 ```
@@ -279,7 +288,7 @@ curl -X POST "https://你的域名/api/exp/report" \
 
 v1（上文 §1~§8）服务端全权重算、上报即快照、只增不改。v2 面向**新版精简协议**与**页面编辑**：
 
-- 上报体是 snake_case 的**每小时值直接上报**（`exp_per_hour` 等），不再发金币/药水（入库对应列留 NULL，页面显示 `-`），新增 **备注**、**攻击力/魔法力**、**会员加成 `vip`** 三个可选字段。
+- 上报体是 snake_case 的**每小时值直接上报**（`exp_per_hour` 等），不再发金币/药水（入库对应列留 NULL，页面显示 `-`），新增 **备注**、**最大攻击力/魔法力**、**会员加成 `vip`** 三个可选字段。
 - 鉴权用 **JWT**：客户端先拿设备密钥换 2h token，之后所有请求带 `Authorization: Bearer <token>`；JWT 的 `sub` 即**设备ID**，服务端以它为 device_id 落库（不信 body 里的设备字段）。
 - **编辑能力**：`exp.html` 通过带 `?token=` 的链接打开后，前端调 session 接口确认授权设备，该设备上报的行出现可点的「编辑」按钮，走 PATCH 就地修改。token 只授权修改**本设备**的记录。
 
@@ -289,16 +298,21 @@ v1（上文 §1~§8）服务端全权重算、上报即快照、只增不改。v
 
 ## 9. 换 token（PC 工具内置设备密钥，启动/到期时调一次）
 
-| 项 | 值 |
-|---|---|
-| 方法 / 地址 | `POST /api/v2/exp/token` |
-| 请求头 | `X-Exp-Device-Secret: <设备密钥>`（新 PC 工具内置的共享密钥；服务端环境变量 `EXP_DEVICE_SECRET`） |
-| 请求体 | `{"deviceId": "my-device-uuid"}`（1~64 位，只允许字母/数字/`_`/`-`） |
+| 项          | 值                                                                                                |
+| ----------- | ------------------------------------------------------------------------------------------------- |
+| 方法 / 地址 | `POST /api/v2/exp/token`                                                                          |
+| 请求头      | `X-Exp-Device-Secret: <设备密钥>`（新 PC 工具内置的共享密钥；服务端环境变量 `EXP_DEVICE_SECRET`） |
+| 请求体      | `{"deviceId": "my-device-uuid"}`（1~64 位，只允许字母/数字/`_`/`-`）                              |
 
 响应 `200`：
 
 ```json
-{ "ok": true, "token": "eyJhbGciOiJIUzI1NiIs...", "sub": "my-device-uuid", "expiresIn": 7200 }
+{
+  "ok": true,
+  "token": "eyJhbGciOiJIUzI1NiIs...",
+  "sub": "my-device-uuid",
+  "expiresIn": 7200
+}
 ```
 
 - token 为 HS256 JWT，**2 小时**有效（服务端环境变量 `EXP_JWT_SECRET` 验签，客户端不关心算法实现）。
@@ -321,10 +335,10 @@ v1（上文 §1~§8）服务端全权重算、上报即快照、只增不改。v
 
 ## 11. v2 上报（新 PC 工具每段结束上报）
 
-| 项 | 值 |
-|---|---|
-| 方法 / 地址 | `POST /api/v2/exp/report` |
-| 请求头 | `Authorization: Bearer <token>`、`Content-Type: application/json` |
+| 项          | 值                                                                |
+| ----------- | ----------------------------------------------------------------- |
+| 方法 / 地址 | `POST /api/v2/exp/report`                                         |
+| 请求头      | `Authorization: Bearer <token>`、`Content-Type: application/json` |
 
 请求体示例：
 
@@ -344,22 +358,57 @@ v1（上文 §1~§8）服务端全权重算、上报即快照、只增不改。v
 
 字段表：
 
-| 字段 | 类型 | 约束 | 入库列 | 说明 |
-|---|---|---|---|---|
-| `exp_per_hour` ★ | number | 0 ~ 1e9（**0 合法**，样例即 0） | `profit_exp_per_hour` | 每小时经验（客户端算好直接给，服务端不再换算） |
-| `job` ★ | string | 1~32 字符 | `job` | 职业名 |
-| `level` ★ | integer | 1 ~ 300 | `level` | 角色等级 |
-| `map` ★ | string | 1~64 字符 | `map_name` | 地图名（**只存名字**，v2 无 map_id） |
-| `mode` ★ | string | 英文字母 `solo`/`party` | `party_mode` | 组队与否（中文会被拒） |
-| `note` ✎ | string | ≤500 字符，空串按无 | `note`（新列） | 备注 |
-| `power` ✎ | integer | 0 ~ 1e9 | `power`（新列） | 攻击力/魔法力 |
-| `vip` ✎ | boolean | `true`/`false`，或**省略 / `null`** | `vip`（新列） | 会员加成：`true`=有会员，`false`=无会员，省略或 `null`=未知（页面显示 `-`） |
-| `test_seconds` ★ | number | 0 ~ 21600（**0 合法**） | `duration_seconds` | 本次测试/刷怪秒数 |
+| 字段             | 类型    | 约束                                | 入库列                | 说明                                                                        |
+| ---------------- | ------- | ----------------------------------- | --------------------- | --------------------------------------------------------------------------- |
+| `exp_per_hour` ★ | number  | 0 ~ 1e9（**0 合法**，样例即 0）     | `profit_exp_per_hour` | 每小时经验（客户端算好直接给，服务端不再换算）                              |
+| `job` ★          | string  | 1~32 字符                           | `job`                 | 职业名                                                                      |
+| `level` ★        | integer | 1 ~ 300                             | `level`               | 角色等级                                                                    |
+| `map` ★          | string  | 1~64 字符                           | `map_name`            | 地图名（**只存名字**，v2 无 map_id）                                        |
+| `mode` ★         | string  | 英文字母 `solo`/`party`             | `party_mode`          | 组队与否（中文会被拒）                                                      |
+| `note` ✎         | string  | ≤500 字符，空串按无                 | `note`（新列）        | 备注                                                                        |
+| `power` ✎        | integer | 0 ~ 1e9                             | `power`（新列）       | 最大攻击力/魔法力                                                           |
+| `vip` ✎          | boolean | `true`/`false`，或**省略 / `null`** | `vip`（新列）         | 会员加成：`true`=有会员，`false`=无会员，省略或 `null`=未知（页面显示 `-`） |
+| `test_seconds` ★ | number  | 0 ~ 21600（**0 合法**）             | `duration_seconds`    | 本次测试/刷怪秒数                                                           |
 
 服务端校验通过后以 JWT `sub` 为 device_id 落库，delta/金币/药水相关列一律 NULL。成功 `200`：
 
 ```json
-{ "ok": true, "id": "mtm3...", "report": { "id": "mtm3...", "deviceId": "my-device-uuid", "level": 22, "job": "剑客", "mapId": null, "mapName": "巫婆森林Ⅰ", "partyMode": "solo", "startTime": null, "endTime": null, "durationSeconds": 1800, "delta": { "gold": null, "hpPotionUsed": null, "mpPotionUsed": null, "expGained": null, "levelsGained": null }, "profit": { "expPerHour": 123456, "goldPerHour": null, "potionValue": null, "potionHpValue": null, "potionMpValue": null, "potionHpPerHour": null, "potionMpPerHour": null }, "note": "免费测试期", "power": 122, "vip": true, "serverTime": "2026-08-25T05:50:48.123Z" } }
+{
+  "ok": true,
+  "id": "mtm3...",
+  "report": {
+    "id": "mtm3...",
+    "deviceId": "my-device-uuid",
+    "level": 22,
+    "job": "剑客",
+    "mapId": null,
+    "mapName": "巫婆森林Ⅰ",
+    "partyMode": "solo",
+    "startTime": null,
+    "endTime": null,
+    "durationSeconds": 1800,
+    "delta": {
+      "gold": null,
+      "hpPotionUsed": null,
+      "mpPotionUsed": null,
+      "expGained": null,
+      "levelsGained": null
+    },
+    "profit": {
+      "expPerHour": 123456,
+      "goldPerHour": null,
+      "potionValue": null,
+      "potionHpValue": null,
+      "potionMpValue": null,
+      "potionHpPerHour": null,
+      "potionMpPerHour": null
+    },
+    "note": "免费测试期",
+    "power": 122,
+    "vip": true,
+    "serverTime": "2026-08-25T05:50:48.123Z"
+  }
+}
 ```
 
 无 token / token 失效 → `401`；限频同 v1（同设备或同 IP 5 秒内只收一条，`429`）。
@@ -368,10 +417,10 @@ v1（上文 §1~§8）服务端全权重算、上报即快照、只增不改。v
 
 ## 12. 编辑一条「本设备」的上报记录（exp.html 授权后）
 
-| 项 | 值 |
-|---|---|
-| 方法 / 地址 | `PATCH /api/v2/exp/report` |
-| 请求头 | `Authorization: Bearer <token>`、`Content-Type: application/json` |
+| 项          | 值                                                                |
+| ----------- | ----------------------------------------------------------------- |
+| 方法 / 地址 | `PATCH /api/v2/exp/report`                                        |
+| 请求头      | `Authorization: Bearer <token>`、`Content-Type: application/json` |
 
 请求体（snake_case；`id` 为要改的记录，取自上报响应的 `id` 或 GET reports）：
 
@@ -411,20 +460,21 @@ https://你的域名/exp.html?token=<上一步换到的 JWT>
 ```
 
 前端行为：
+
 - 打开后调 `GET /api/v2/exp/session` 校验，通过则顶部出现横幅「🔑 已获得 <设备ID> 的编辑/删除权限」，该设备行的「编辑」「删除」图标点亮；随后**自动从地址栏移除 token**（防误分享/进日志）。
 - 无 token 或 token 失效：横幅提示，「编辑」「删除」图标全部置灰。
-- 点「编辑」打开与「手动录入」同一弹窗（预填等级/职业/地图/经验/h/备注/攻击力/会员；v2 行没有金币/药水，那三项禁用）。保存走上方 PATCH；401/403 会撤销权限并把按钮置灰。
-- 「手动录入」同样能填备注/攻击力（走 v1，可选），新加的两列在表格展示，v2 行金币/净收入等显示 `-`。
+- 点「编辑」打开与「手动录入」同一弹窗（预填等级/职业/地图/经验/h/备注/最大攻击力/会员；v2 行没有金币/药水，那三项禁用）。保存走上方 PATCH；401/403 会撤销权限并把按钮置灰。
+- 「手动录入」同样能填备注/最大攻击力（走 v1，可选），新加的两列在表格展示，v2 行金币/净收入等显示 `-`。
 - 弹窗字段随表格的「新版/旧版」开关联动：**新版**视图隐藏金币/药水/净收入输入、显示「会员加成」下拉（手动录入按 0 记录经济并保存 vip；编辑时 vip 可改，随 PATCH 提交）；**旧版**视图显示经济输入、隐藏会员下拉（编辑经济行时 vip 保持不变）。
 
 ---
 
 ## 13. 删除一条「本设备」的上报记录（exp.html 授权后）
 
-| 项 | 值 |
-|---|---|
-| 方法 / 地址 | `DELETE /api/v2/exp/report` |
-| 请求头 | `Authorization: Bearer <token>`、`Content-Type: application/json` |
+| 项          | 值                                                                |
+| ----------- | ----------------------------------------------------------------- |
+| 方法 / 地址 | `DELETE /api/v2/exp/report`                                       |
+| 请求头      | `Authorization: Bearer <token>`、`Content-Type: application/json` |
 
 请求体只需记录 id（取自上报响应的 `id` 或 GET reports）：
 
