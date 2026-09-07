@@ -1112,13 +1112,15 @@ function handleExpV2ReportDelete(req, res) {
 // 时间戳口径：榜的新旧/裁剪/同分先后一律以【服务器收到时刻 recvAt】为准，
 //   无视客户端 ts（pk-api §1.3 口径 b）——客户端 ts 仅要求是整数并进诊断日志。
 // 名次口径：exp_per_hour 降序；同分先到先得（recvAt 更早者靠前）；sub 字典序兜底保证稳定。
-// 裁剪：≤ PK_BOARD_MAX(999)；超限丢 recvAt 最旧的（尾部）→ 停刷设备自然淡出。
+// 裁剪（双重）：① 时间窗 —— recvAt 超过 PK_TTL_MS(1h) 未再上报的条目，每次上报时从尾部清掉
+//   （即使未满 999 也清，停刷设备约 1h 自然淡出）；② 容量硬上限 ≤ PK_BOARD_MAX(999)，超限丢最旧。
 // 限频：仅按 sub（设备）两次成功上报 <5s → 429，与 exp 同规则同文案；
 //   不做"按公网 IP"限频——共享 IP/NAT 下会有多台工具同 IP 同时以 ~10s 心跳上报，
 //   按 IP 会让彼此在节拍上互相 429 空转（鉴权已把 sub 限定为持密钥的真客户端，IP 冗余且有害）。
 // ============================================================
-const PK_BOARD_MAX = 999; // 榜上限（pk-api §1.3）
-let pkBoard = []; // 按 recvAt(服务器收到时刻)降序：最新在前，最旧在尾，超限从尾部丢
+const PK_TTL_MS = 60 * 60 * 1000; // 时间窗：条目超过 1 小时未再上报即淘汰（即使未满 999）
+const PK_BOARD_MAX = 999; // 榜单容量硬上限（pk-api §1.3）
+let pkBoard = []; // 按 recvAt(服务器收到时刻)降序：最新在前，最旧在尾，裁剪都从尾部做
 const pkLastDevice = new Map(); // sub → 上次 PK 成功上报时刻
 
 /** PK 上报体校验：命中即 400。身份取 JWT sub；board_id 只供日志不校验不拒绝。
@@ -1131,14 +1133,18 @@ function pkValidate(body) {
   return { ok: true, expPerHour: Math.round(body.exp_per_hour), ts: body.ts };
 }
 
-/** 入榜 + 裁剪：同 sub 覆盖旧条目（upsert，每台设备只占 1 槽，防单机刷屏挤掉全榜）；
- *  按 recvAt 降序重排，超 PK_BOARD_MAX 从尾部丢弃最旧。 */
-function pkUpsert(entry) {
+/** 入榜 + 裁剪（数组始终按 recvAt 降序，故过期/最旧必在尾部，从尾 pop 即可）：
+ *  ① 时间窗 —— 先清掉 recvAt < now-PK_TTL_MS(1h) 的旧条目（停刷设备自然淡出，无需等满 999）；
+ *  ② 同 sub 覆盖旧条目（upsert，每台设备只占 1 槽，防单机刷屏挤掉全榜）；
+ *  ③ 容量硬上限 —— 超 PK_BOARD_MAX 从尾部丢最久没上报的。 */
+function pkUpsert(entry, now) {
+  const cutoff = now - PK_TTL_MS;
+  while (pkBoard.length && pkBoard[pkBoard.length - 1].recvAt < cutoff) pkBoard.pop();
   const i = pkBoard.findIndex((e) => e.sub === entry.sub);
   if (i >= 0) pkBoard.splice(i, 1);
   pkBoard.push(entry);
   pkBoard.sort((a, b) => b.recvAt - a.recvAt || (a.sub < b.sub ? -1 : 1));
-  if (pkBoard.length > PK_BOARD_MAX) pkBoard.length = PK_BOARD_MAX; // 尾部=最久没上报，直接丢
+  if (pkBoard.length > PK_BOARD_MAX) pkBoard.length = PK_BOARD_MAX; // 容量硬上限，尾部=最久没上报
 }
 
 /** 现算名次：exp_per_hour 降序 → 同分先到先得（recvAt 更早靠前）→ sub 字典序兜底。自己必在榜内。 */
@@ -1174,7 +1180,7 @@ function handleExpV2Pk(req, res) {
         console.log(`[pk] 拒绝：设备限频 sub=${sub}`);
         return v2Reply(req, res, 429, { ok: false, error: "上报过于频繁" });
       }
-      pkUpsert({ sub, recvAt: now, expPerHour: v.expPerHour });
+      pkUpsert({ sub, recvAt: now, expPerHour: v.expPerHour }, now);
       const rank = pkRank(sub);
       const total = pkBoard.length;
       pkLastDevice.set(sub, now);
@@ -1459,7 +1465,7 @@ function handle(req, res) {
     return respond(req, res, { status: 404, body: Buffer.from("404 Not Found\n") });
   }
 
-  const filePath = path.join(ROOT, pathname === "/" ? "rank.html" : pathname);
+  const filePath = path.join(ROOT, pathname === "/" ? "exp.html" : pathname);
   if (filePath !== ROOT && !filePath.startsWith(ROOT + path.sep)) {
     return respond(req, res, { status: 403, body: Buffer.from("403 Forbidden\n") });
   }
@@ -1490,7 +1496,7 @@ const server = http.createServer((req, res) => {
 });
 
 server.listen(PORT, HOST, () => {
-  console.log(`\n🚀 mxd-helper 混合端已启动：http://${HOST}:${PORT}/（默认 rank.html）`);
+  console.log(`\n🚀 mxd-helper 混合端已启动：http://${HOST}:${PORT}/（默认 exp.html）`);
   console.log(`   MySQL 数据源：${Object.keys(DATA_FILES).join("、")}（dataset_meta 轮询 ${REFRESH_INTERVAL_MS / 1000}s 热重载）`);
   console.log(`   OCR 转交：http://${OCR_HOST}:${OCR_PORT}/（独立服务 ocr_worker.js，需另行启动）`);
   console.log("   shenmi 暗号：已启用（环境变量 SHENMI_CODE 可修改，默认 zhuzhu）");
