@@ -54,8 +54,8 @@
     '<div class="mh-banner">' +
     '<div class="mh-banner-inner">' +
     '<span class="mh-new">HOT</span>' +
-    '<span class="mh-banner-text">猪猪工具Bar v2.2 【 支持全分辨率、精准经验计算 】实时经验统计，体积只有3M。' +
-    '<a class="mh-banner-link" href="mxd-bar-v2.2.zip">立即下载</a></span>' +
+    '<span class="mh-banner-text">猪猪工具Bar v2.3 【 支持全分辨率、精准经验计算 】实时经验统计，体积只有3M。' +
+    '<a class="mh-banner-link" href="mxd-bar-v2.3.zip">立即下载</a></span>' +
     "</div>" +
     "</div>" +
     '<div class="mh-topbar">' +
