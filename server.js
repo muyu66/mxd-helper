@@ -1106,6 +1106,88 @@ function handleExpV2ReportDelete(req, res) {
     });
 }
 
+// ============================================================
+// 实时效率 PK（POST /api/v2/exp/pk）：纯内存实时榜，重启清空（pk-api.md 允许）
+// 身份/鉴权：复用 v2 JWT，sub = 设备 key（不信 body.board_id，后者仅作日志）
+// 时间戳口径：榜的新旧/裁剪/同分先后一律以【服务器收到时刻 recvAt】为准，
+//   无视客户端 ts（pk-api §1.3 口径 b）——客户端 ts 仅要求是整数并进诊断日志。
+// 名次口径：exp_per_hour 降序；同分先到先得（recvAt 更早者靠前）；sub 字典序兜底保证稳定。
+// 裁剪：≤ PK_BOARD_MAX(999)；超限丢 recvAt 最旧的（尾部）→ 停刷设备自然淡出。
+// 限频：仅按 sub（设备）两次成功上报 <5s → 429，与 exp 同规则同文案；
+//   不做"按公网 IP"限频——共享 IP/NAT 下会有多台工具同 IP 同时以 ~10s 心跳上报，
+//   按 IP 会让彼此在节拍上互相 429 空转（鉴权已把 sub 限定为持密钥的真客户端，IP 冗余且有害）。
+// ============================================================
+const PK_BOARD_MAX = 999; // 榜上限（pk-api §1.3）
+let pkBoard = []; // 按 recvAt(服务器收到时刻)降序：最新在前，最旧在尾，超限从尾部丢
+const pkLastDevice = new Map(); // sub → 上次 PK 成功上报时刻
+
+/** PK 上报体校验：命中即 400。身份取 JWT sub；board_id 只供日志不校验不拒绝。
+ *  时间戳口径=服务器时间，故 ts 只要求是整数（诊断用），不做超前服务器上限判断。 */
+function pkValidate(body) {
+  if (!body || typeof body !== "object") return { ok: false, error: "请求体不是对象" };
+  const num = (v, min, max) => typeof v === "number" && Number.isFinite(v) && v >= min && v <= max;
+  if (!num(body.exp_per_hour, 0, EXP_MAX_PER_HOUR)) return { ok: false, error: "exp_per_hour 非法" };
+  if (!Number.isInteger(body.ts)) return { ok: false, error: "ts 非法" };
+  return { ok: true, expPerHour: Math.round(body.exp_per_hour), ts: body.ts };
+}
+
+/** 入榜 + 裁剪：同 sub 覆盖旧条目（upsert，每台设备只占 1 槽，防单机刷屏挤掉全榜）；
+ *  按 recvAt 降序重排，超 PK_BOARD_MAX 从尾部丢弃最旧。 */
+function pkUpsert(entry) {
+  const i = pkBoard.findIndex((e) => e.sub === entry.sub);
+  if (i >= 0) pkBoard.splice(i, 1);
+  pkBoard.push(entry);
+  pkBoard.sort((a, b) => b.recvAt - a.recvAt || (a.sub < b.sub ? -1 : 1));
+  if (pkBoard.length > PK_BOARD_MAX) pkBoard.length = PK_BOARD_MAX; // 尾部=最久没上报，直接丢
+}
+
+/** 现算名次：exp_per_hour 降序 → 同分先到先得（recvAt 更早靠前）→ sub 字典序兜底。自己必在榜内。 */
+function pkRank(sub) {
+  const sorted = [...pkBoard].sort(
+    (a, b) => b.expPerHour - a.expPerHour || a.recvAt - b.recvAt || (a.sub < b.sub ? -1 : 1),
+  );
+  return Math.max(1, sorted.findIndex((e) => e.sub === sub) + 1);
+}
+
+/** POST /api/v2/exp/pk：实时效率 PK 上报。纯内存、无 DB；成功返回 {ok:true, rank, total} */
+function handleExpV2Pk(req, res) {
+  const payload = authExpBearer(req);
+  if (!payload) return v2Reply(req, res, 401, { ok: false, error: "token 无效或已过期" });
+  const sub = payload.sub;
+  const ip = req.socket.remoteAddress || ""; // 仅用于日志；不做按 IP 限频（见块首注释：共享 IP 下会互踢）
+  const now = Date.now();
+  readBody(req, EXP_BODY_LIMIT)
+    .then((buf) => {
+      let body;
+      try {
+        body = JSON.parse(buf.toString("utf-8"));
+      } catch {
+        console.log(`[pk] 拒绝：请求体不是合法 JSON ip=${ip} sub=${sub}`);
+        return v2Reply(req, res, 400, { ok: false, error: "请求体不是合法 JSON" });
+      }
+      const v = pkValidate(body);
+      if (!v.ok) {
+        console.log(`[pk] 拒绝：${v.error} ip=${ip} sub=${sub} | 请求体=${JSON.stringify(body).slice(0, 300)}`);
+        return v2Reply(req, res, 400, { ok: false, error: v.error });
+      }
+      if (now - (pkLastDevice.get(sub) || 0) < EXP_MIN_INTERVAL_MS) {
+        console.log(`[pk] 拒绝：设备限频 sub=${sub}`);
+        return v2Reply(req, res, 429, { ok: false, error: "上报过于频繁" });
+      }
+      pkUpsert({ sub, recvAt: now, expPerHour: v.expPerHour });
+      const rank = pkRank(sub);
+      const total = pkBoard.length;
+      pkLastDevice.set(sub, now);
+      pruneRateMap(pkLastDevice);
+      console.log(`[pk] 上榜：sub=${sub} exp/h=${v.expPerHour} rank=${rank} total=${total} | 客户端ts=${v.ts}`);
+      v2Reply(req, res, 200, { ok: true, rank, total });
+    })
+    .catch((err) => {
+      console.error(`[pk] 处理失败：${err.message} ip=${ip} sub=${sub}`);
+      if (!res.headersSent) v2Reply(req, res, 413, { ok: false, error: "请求体过大或连接中断" });
+    });
+}
+
 /** 职业别名归一：枪骑士与枪战士同义，统一显示为枪战士
  *  （数据原样保留，只影响职业统计的分组与前端展示） */
 const JOB_ALIASES = { 枪骑士: "枪战士", 冰雷: "冰雷法师" };
@@ -1357,6 +1439,7 @@ function handle(req, res) {
     if (pathname === "/api/v2/exp/report" && req.method === "POST") return handleExpV2Report(req, res);
     if (pathname === "/api/v2/exp/report" && req.method === "PATCH") return handleExpV2ReportUpdate(req, res);
     if (pathname === "/api/v2/exp/report" && req.method === "DELETE") return handleExpV2ReportDelete(req, res);
+    if (pathname === "/api/v2/exp/pk" && req.method === "POST") return handleExpV2Pk(req, res); // 实时效率 PK（纯内存榜）
     // 其余 shenmi 专属接口统一过暗号：防止绕过页面直接刷接口
     if (!checkShenmiCode(req)) return rejectShenmiCode(req, res);
     if (pathname === "/api/ocr" && req.method === "POST") return handleOcr(req, res);
